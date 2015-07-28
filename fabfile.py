@@ -224,7 +224,7 @@ def clone_repo():
     if exists('/vagrant/') and not exists('/opt/sharkeyes/src/'):     # then this is a vm, with a vagrant folder
         sudo('ln -s /vagrant /opt/sharkeyes/src')
     elif not exists('/opt/sharkeyes/src'):
-        run('git clone git@github.com:avaleske/SharkEyes.git /opt/sharkeyes/src')
+        run('git clone git@github.com:seacast/SharkEyes.git /opt/sharkeyes/src')
         with cd('/opt/sharkeyes/src/'):
             run('git checkout ' + env.branch)
 
