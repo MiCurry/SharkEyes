@@ -47,8 +47,10 @@ def wave_direction_function(ax, data_file, bmap, key_ax, forecast_index):
 
     # The sine and cosine functions expect Radians, so we use the deg2rad function to convert the
     # directions, which are in Degrees.
-    U = height*np.cos(np.deg2rad(directions_mod))
-    V = height*np.sin(np.deg2rad(directions_mod))
+    # Multiple the U and the V, each, by 'height' in order to SCALE the vectors. Right now
+    # they are just unit vectors.
+    U = np.cos(np.deg2rad(directions_mod))
+    V = np.sin(np.deg2rad(directions_mod))
 
     U_downsampled = crop_and_downsample_wave(U, WAVE_DIRECTION_DOWNSAMPLE)
     V_downsampled = crop_and_downsample_wave(V, WAVE_DIRECTION_DOWNSAMPLE)
@@ -60,6 +62,11 @@ def wave_direction_function(ax, data_file, bmap, key_ax, forecast_index):
 
     bmap.drawmapboundary(linewidth=0.0, ax=ax)
     overlay = bmap.quiver(x_zoomed, y_zoomed, U_downsampled, V_downsampled, ax=ax, color='black')
+
+    quiverkey1 = key_ax.quiverkey(overlay, 3.75, .4, 2, "Wave Direction", labelpos='S', labelcolor='white',
+                                  color='white', labelsep=.5, coordinates='axes')
+
+    key_ax.set_axis_off()
 
 
 # Wave Model Data Information:
