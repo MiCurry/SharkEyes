@@ -1,8 +1,25 @@
 from django.db import models
+from django.core.mail import send_mail
 
 class FeedbackHistory (models.Model):
     feedback_title = models.CharField(max_length=2000)
     feedback_comments = models.CharField(max_length=2000)
+    sent = models.BooleanField(default=False)
+
+    @classmethod
+    def send_feedback_forms(cls):
+        # Only get the items that have not yet been sent.
+        # This does not have error handling in case an email fails to send.
+        feedback_items = FeedbackHistory.objects.filter(sent=False)
+        for each in feedback_items:
+            # Use the Django framework's send_mail function to create the email
+            # pattern Subject, Body, From, To(as a list)
+            #TODO set this to be sent to Flaxen
+            send_mail('[Seacast Feedback] '+ each.feedback_title, each.feedback_comments, 'seacast.mail@gmail.com',
+                ['carlsbet@onid.oregonstate.edu'], fail_silently=False)
+            each.sent = True
+            each.save()
+
 
 class FeedbackQuestionaire (models.Model):
     ACCURACY_TYPE = (
@@ -54,3 +71,47 @@ class FeedbackQuestionaire (models.Model):
     usage_suggestion = models.CharField(max_length=2000)
     #What other ocean condition would you like to see?
     usage_model_suggestion = models.CharField(max_length=2000)
+    # Has this survey been delivered to Flaxen by email yet?
+    sent = models.BooleanField(default=False)
+
+    @classmethod
+    def send_feedback_survey(cls):
+        feedback_items = FeedbackQuestionaire.objects.filter(sent=False)
+        # Here's some helpful links for list comprehensions in Python: http://stackoverflow.com/questions/14864300/how-to-access-tuple-elements-in-a-nested-list
+        # http://stackoverflow.com/questions/2191699/find-an-element-in-a-list-of-tuples
+        for each in feedback_items:
+            loc = [item for item in each.LOCATION_TYPES if str(each.usage_location) in item]
+            location = str([item[1] for item in loc])
+
+            freq = [item for item in each.FREQUENCY_TYPES if str(each.usage_frequency) in item]
+            frequency = str( [item[1] for item in freq])
+
+            dev = [item for item in each.DEVICE_TYPE if str(each.usage_device) in item]
+            device = str([item[1] for item in dev])
+
+            sst = [item for item in each.ACCURACY_TYPE if str(each.ss_temperature_accuracy) in item]
+            sst_accuracy = str([item[1] for item in sst])
+
+            curr = [item for item in each.ACCURACY_TYPE if str(each.ss_currents_accuracy) in item]
+            currents_accuracy = str([item[1] for item in curr])
+
+            wind = [item for item in each.ACCURACY_TYPE if str(each.wind_accuracy) in item]
+            wind_accuracy = str([item[1] for item in wind])
+
+            wave = [item for item in each.ACCURACY_TYPE if str(each.wave_accuracy) in item]
+            wave_accuracy = str([item[1] for item in wave])
+
+            # Use the Django framework's send_mail function to create the email
+            # pattern Subject, Body, From, To(as a list)
+            send_mail('[Seacast Survey] ', '\nLocation: '+location+ '\nUsage Frequency: '+ str(frequency) +
+                    '\nDevice: '+ device + '\nGeneral Comments: ' + str(each.usage_comment) +
+                    '\nSST accuracy: ' + sst_accuracy + '\nCurrents accuracy: ' + currents_accuracy
+                      + '\nWind accuracy: ' + wind_accuracy + '\nWave accuracy: ' + wave_accuracy
+                      + '\nHow Seacast compares to other forecasting systems: '+ str(each.usage_comparison)
+                      + '\nWhat is liked about Seacast: ' + str(each.usage_likes)
+                      + '\nSuggestions to change: ' + str(each.usage_suggestion)
+                      + '\nOther models to incorporate: ' + str(each.usage_model_suggestion) ,
+                      'seacast.mail@gmail.com',  ['carlsbet@onid.oregonstate.edu'], fail_silently=False)
+            each.sent = True
+            each.save()
+

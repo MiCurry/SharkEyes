@@ -3,9 +3,10 @@ from celery import shared_task, chain, subtask, group
 import time
 from pl_download.models import DataFileManager
 from pl_plot.models import OverlayManager
-from pl_chop.models import TileManager
 from pl_chop.tasks import tile_overlay
 from pl_chop.tasks import tile_wave_watch_overlay
+from SharkEyesCore.models import FeedbackHistory
+from SharkEyesCore.models import FeedbackQuestionaire
 
 
 @shared_task(name='sharkeyescore.add')
@@ -16,18 +17,16 @@ def add(a, b):
 
 @shared_task(name='sharkeyescore.pipeline')
 def do_pipeline():
-    print "TASKS: before deleting files"
-
+    # Clean up old files from database and disk
     DataFileManager.delete_old_files()
-    print "TASKS: after deleting Datafiles"
     OverlayManager.delete_old_files()
-    print "TASKS: after deleting Overlays"
+
+    # Check for new feedback surveys or comments, and email them to Flaxen
+    FeedbackHistory.send_feedback_forms()
+    FeedbackQuestionaire.send_feedback_survey()
 
     wave_watch_files = DataFileManager.get_latest_wave_watch_files()
-    print "TASKS: after getting wave files"
-
     other_files = DataFileManager.fetch_new_files()   # not calling as a task so it runs inline
-    print "TASKS: after getting sst/currents files"
 
     # If no new files were returned, don't plot or tile anything.
     if not wave_watch_files and not other_files:
@@ -39,7 +38,6 @@ def do_pipeline():
     list_of_chains = []
 
     for pt in plot_task_list:
-
         if pt.args[0] != 4 and pt.args[0] != 6:
             # chaining passes the result of first function to second function
             list_of_chains.append(chain(pt, tile_overlay.s()))
