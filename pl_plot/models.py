@@ -68,14 +68,6 @@ class OverlayManager(models.Manager):
         next_few_days_of_sst_overlays = next_few_days_of_overlays.filter(definition_id__in=[1, 3])
         next_few_days_of_wave_overlays = next_few_days_of_overlays.filter(definition_id__in=[4, 6])
 
-        print "sst overlays:"
-        for each in next_few_days_of_sst_overlays:
-            print each.applies_at_datetime
-
-        print "wave overlays:"
-        for each in next_few_days_of_wave_overlays:
-            print each.applies_at_datetime
-
         # Get the newest overlay for each Model type and time. This assumes that for a certain model date,
         # a larger ID value
         # indicates a more recently-created (and hence more accurate) overlay.
@@ -97,16 +89,10 @@ class OverlayManager(models.Manager):
 
         wave_dates = newest_wave_overlays_to_display.values_list( 'applies_at_datetime', flat=True)
         sst_dates = newest_sst_overlays_to_display.values_list( 'applies_at_datetime', flat=True)
-        print "wave dates:", wave_dates
-        print "sst_dates", sst_dates
 
         #Get the distinct dates where there is an SST, currents, and also a wave overlay
         date_overlap = next_few_days_of_overlays.filter(applies_at_datetime__in=list(sst_dates))\
             .filter(applies_at_datetime__in=list(wave_dates)).values_list('applies_at_datetime', flat=True).distinct()
-        print "date overlap:"
-        for each in date_overlap:
-            print each
-
 
         # Now get the actual overlays where there is an overlap
         overlapped_sst_items_to_display = newest_sst_overlays_to_display.filter(applies_at_datetime__in=list(date_overlap))
@@ -114,9 +100,6 @@ class OverlayManager(models.Manager):
 
         #Join the two sets
         all_items_to_display = overlapped_sst_items_to_display | overlapped_wave_items_to_display
-        print "all items to display:"
-        for each in all_items_to_display:
-            print each
 
         # Send the items back to the SharkEyesCore/views.py file, which preps the main page to be loaded.
         return all_items_to_display
