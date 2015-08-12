@@ -52,8 +52,8 @@ def vagrant():
 
 
 def staging():
-    env.user = 'azureuser'
-    hostname = 'fishable.cloudapp.net'
+    env.user = 'developer'
+    hostname = 'baker.coas.oregonstate.edu'
     port = 22
     env.hosts = env.hosts = ["%s:%s" % (hostname,port)]
     env.branch = 'staging'
@@ -61,25 +61,10 @@ def staging():
 
 def production():
     env.user = 'developer'
-    hostname = 'baker.coas.oregonstate.edu'
-    port = 22
-    env.hosts = env.hosts = ["%s:%s" % (hostname,port)]
-    env.branch = 'master'
-
-
-def production_pacifico_master():
-    env.user = 'developer'
     hostname = 's-pacifico.coas.oregonstate.edu'
     port = 22
     env.hosts = env.hosts = ["%s:%s" % (hostname,port)]
     env.branch = 'master'
-
-def production_pacifico_staging():
-    env.user = 'developer'
-    hostname = 's-pacifico.coas.oregonstate.edu'
-    port = 22
-    env.hosts = env.hosts = ["%s:%s" % (hostname,port)]
-    env.branch = 'staging'
 
 def install_prereqs():
     #handle selinux
@@ -225,7 +210,7 @@ def clone_repo():
     if exists('/vagrant/') and not exists('/opt/sharkeyes/src/'):     # then this is a vm, with a vagrant folder
         sudo('ln -s /vagrant /opt/sharkeyes/src')
     elif not exists('/opt/sharkeyes/src'):
-        run('git clone git@github.com:avaleske/SharkEyes.git /opt/sharkeyes/src')
+        run('git clone git@github.com:seacast/SharkEyes.git /opt/sharkeyes/src')
         with cd('/opt/sharkeyes/src/'):
             run('git checkout ' + env.branch)
 

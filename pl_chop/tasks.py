@@ -1,6 +1,5 @@
 from celery import shared_task
 from pl_plot.models import Overlay
-from pl_plot.models import Wave_Watch_Overlay
 from pl_chop import gdal2tiles
 from uuid import uuid4
 import os
@@ -41,7 +40,7 @@ def tile_overlay(overlay_id):
     full_tile_dir = os.path.join(settings.MEDIA_ROOT, settings.TILE_STORAGE_DIR, overlay.tile_dir)
     vrt_path = os.path.join(settings.MEDIA_ROOT, settings.VRT_STORAGE_DIR, "{0}.vrt".format(uuid4()))
 
-    #These co-ordinates are only OK for the SST/currents model
+    #These co-ordinates are only OK for the SST/currents model. They will probably not work for other, new models.
      # EPSG:4326 seems to be equivalent to WGS84 (which is Simple Cylindrical)which overrides the projection for
     # the output file.
     translate_cmd = ("/usr/local/bin/gdal_translate -of VRT -a_srs EPSG:4326 -gcp 0 0 -129 47.499 "
@@ -98,6 +97,7 @@ def tile_wave_watch_overlay(overlay_id):
    # EPSG:4326 seems to be equivalent to WGS84 (which is Simple Cylindrical)
     #But these cause the image to be cropped and hence distorted.
     #So we are using the first and last lat/long entries from the NetCDF file instead.
+   # We manually examined the netCDF file for WaveWatch, to determine this latitude and longitude.
     translate_cmd = ("/usr/local/bin/gdal_translate -of VRT -a_srs EPSG:4326 -gcp 0 0 -127.0 47.5 "
                      "-gcp {0} 0 -123.75 47.5 -gcp {0} {1} -123.75 41.45 {2} {3}").format(
              str(width), str(height), image.path, vrt_path)

@@ -29,7 +29,8 @@ def home(request):
 
     # Team 2 says: at this time we want SST (1), currents (3), and Wave (4) only. Modify this as
     # you add new models.
-    num_defs = len(OverlayDefinition.objects.filter(is_base=True, id__in=[1,3,4]))
+    # TODO add in the wave Direction (6)
+    num_defs = len(OverlayDefinition.objects.filter(is_base=True, id__in=[1,3,4, 6]))
 
 
     list_of_times = datetimes[:len(datetimes)/num_defs]
@@ -39,8 +40,8 @@ def home(request):
 
     #context = {'overlays': overlays_view_data, 'defs': OverlayDefinition.objects.filter(is_base=True).exclude(id=4), 'times':list_of_times, 'windoverlays': wind_overlays_view_data, 'winddefs': OverlayDefinition.objects.filter(id=5), 'windtimes':list_of_wind_times}
 
-
-    context = {'overlays': overlays_view_data, 'defs': OverlayDefinition.objects.filter(is_base=True, id__in=[1,3,4]), 'times':list_of_times }
+    # TODO add in the wave direction (6)
+    context = {'overlays': overlays_view_data, 'defs': OverlayDefinition.objects.filter(is_base=True, id__in=[1,3,4, 6]), 'times':list_of_times }
 
     return render(request, 'index.html', context)
 
@@ -66,12 +67,13 @@ def save_survey(request):
     usage_suggestion = json.loads(request.body)["usage_suggestion"]
     usage_model_suggestion = json.loads(request.body)["usage_model_suggestion"]
     general_comment = json.loads(request.body)["usage_comments"]
+    sent = False
 
     try:
         #Establish DB Connection
         cursor = connection.cursor()
         #Execute SQL Query
-        cursor.execute("""INSERT INTO SharkEyesCore_feedbackquestionaire(usage_location, usage_frequency, usage_device,usage_comment, ss_temperature_accuracy, ss_currents_accuracy, wave_accuracy,  wind_accuracy, usage_comparison,usage_likes, usage_suggestion, usage_model_suggestion ) VALUES (%s, %s, %s, %s,%s, %s, %s, %s,%s, %s, %s, %s);""",(usage_location, usage_frequency, usage_device, general_comment, ss_temperature_accuracy, ss_currents_accuracy,wave_accuracy, wind_accuracy, usage_comparison, usage_likes, usage_suggestion, usage_model_suggestion))
+        cursor.execute("""INSERT INTO SharkEyesCore_feedbackquestionaire(usage_location, usage_frequency, usage_device,usage_comment, ss_temperature_accuracy, ss_currents_accuracy, wave_accuracy,  wind_accuracy, usage_comparison,usage_likes, usage_suggestion, usage_model_suggestion, sent ) VALUES (%s, %s, %s, %s,%s, %s, %s, %s,%s, %s, %s, %s, %s);""",(usage_location, usage_frequency, usage_device, general_comment, ss_temperature_accuracy, ss_currents_accuracy,wave_accuracy, wind_accuracy, usage_comparison, usage_likes, usage_suggestion, usage_model_suggestion, sent))
         #Nothing needs to be returned
     except IntegrityError as e:
         print "Error Message: "
@@ -83,12 +85,13 @@ def save_feedback(request):
     #Access feedback data to be saved into the database
     feedback_title = json.loads(request.body)["title"]
     feedback_comment = json.loads(request.body)["comment"]
+    sent = False  #By default, a survey has Not yet been delivered
 
     try:
         #Establish DB Connection
         cursor = connection.cursor()
         #Execute SQL Query
-        cursor.execute("""INSERT INTO SharkEyesCore_feedbackhistory (feedback_title, feedback_comments) VALUES (%s, %s);""", (feedback_title, feedback_comment))
+        cursor.execute("""INSERT INTO SharkEyesCore_feedbackhistory (feedback_title, feedback_comments, sent ) VALUES (%s, %s, %s);""", (feedback_title, feedback_comment, sent))
         #Nothing needs to be returned
     except IntegrityError as e:
         print "Error Message: "

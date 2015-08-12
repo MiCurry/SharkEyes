@@ -16,6 +16,8 @@ from uuid import uuid4
 from scipy.io import netcdf_file
 import numpy
 import shutil
+import numpy as np
+import datetime
 
 # This is how long old files (overlay items in the database, and corresponding items in UNCHOPPED folder)
 HOW_LONG_TO_KEEP_FILES = 5
@@ -56,14 +58,15 @@ class OverlayManager(models.Manager):
 
         # Pick how many days into the future and past we want to display overlays for
 #TODO put in the ISBASE
+      
         next_few_days_of_overlays = Overlay.objects.filter(
-            applies_at_datetime__gte=timezone.now()-timedelta(hours=2),
+            applies_at_datetime__gte=timezone.now()-timedelta(days=7),
             applies_at_datetime__lte=timezone.now()+timedelta(days=4),
             is_tiled=True,
         )
 
         next_few_days_of_sst_overlays = next_few_days_of_overlays.filter(definition_id__in=[1, 3])
-        next_few_days_of_wave_overlays = next_few_days_of_overlays.filter(definition_id=4)
+        next_few_days_of_wave_overlays = next_few_days_of_overlays.filter(definition_id__in=[4, 6])
 
         # Get the newest overlay for each Model type and time. This assumes that for a certain model date,
         # a larger ID value
@@ -91,7 +94,6 @@ class OverlayManager(models.Manager):
         date_overlap = next_few_days_of_overlays.filter(applies_at_datetime__in=list(sst_dates))\
             .filter(applies_at_datetime__in=list(wave_dates)).values_list('applies_at_datetime', flat=True).distinct()
 
-
         # Now get the actual overlays where there is an overlap
         overlapped_sst_items_to_display = newest_sst_overlays_to_display.filter(applies_at_datetime__in=list(date_overlap))
         overlapped_wave_items_to_display = newest_wave_overlays_to_display.filter(applies_at_datetime__in=list(date_overlap))
@@ -115,8 +117,9 @@ class OverlayManager(models.Manager):
         #Add the SST and currents plot commands
         task_list = [cls.make_plot.s(od_id, time_index, file_id, immutable=True) for od_id in [1, 3]]
 
-        #Add the wave watch plot command
-        task_list.append(cls.make_wave_watch_plot.s(4, time_index, file_id, immutable=True) )
+        #Add the commands to plot wave Height (4) and Direction (6)
+        task_list.append(cls.make_wave_watch_plot.s(4, time_index, file_id, immutable=True))
+        task_list.append(cls.make_wave_watch_plot.s(6, time_index, file_id, immutable=True))
         job = task_list
         return job
 
@@ -136,7 +139,8 @@ class OverlayManager(models.Manager):
                     # Only plot every 4th index to match up with the SST forecast.
                     # WaveWatch has forecasts for every hour but at this time we don't need them all.
                     if t % 4 == 0:
-                        task_list.append(cls.make_wave_watch_plot.subtask(args=(4, t, fid), immutable=True) )
+                        task_list.append(cls.make_wave_watch_plot.subtask(args=(4, t, fid), immutable=True))
+                        task_list.append(cls.make_wave_watch_plot.subtask(args=(6, t, fid), immutable=True))
 
             else:
                 plotter = Plotter(datafile.file.name)
@@ -168,46 +172,78 @@ class OverlayManager(models.Manager):
 
         return True
 
+
+    @staticmethod
+    def get_currents_data(forecast_index, file_id):
+        datafile = DataFile.objects.get(pk=file_id)
+        data_file = netcdf_file(os.path.join(settings.MEDIA_ROOT, settings.NETCDF_STORAGE_DIR, datafile.file.name))
+        currents_u = data_file.variables['u'][forecast_index][29]
+        currents_v = data_file.variables['v'][forecast_index][29]
+
+        print "currents u:", 10.0*currents_u
+        print "\n\n\ncurrents v:", 10.0*currents_v
+
     # Just a helper function so that you can examine the first forecast (latitude, longitude, and wave height)
     # from the NetCDF file. Pass in the file id of the WaveWatch NetCDF file you want to plot.
     @staticmethod
-    def get_data(file_id):
+    def get_data(forecast_index, file_id):
         datafile = DataFile.objects.get(pk=file_id)
         file = netcdf_file(os.path.join(settings.MEDIA_ROOT, settings.WAVE_WATCH_DIR, datafile.file.name))
         variable_names_in_file = file.variables.keys()
         print variable_names_in_file
 
-
-        # longs = [item for sublist in file.variables['longitude'][:1] for item in sublist]
-        # print "longs:"
-        # for each in longs:
-        #     print each
-        # lats = file.variables['latitude'][:, 0]
-        # print "lats:"
-        # for each in lats:
-        #     print each
-
         all_day_height = file.variables['HTSGW_surface'][:, :, :]
+        all_day_direction = file.variables['DIRPW_surface'][:,:,:]
         all_day_lat = file.variables['latitude'][:, :]
         all_day_long = file.variables['longitude'][:, :]
+        all_day_times = file.variables['time'][:]
+        #print "times: "
+        #for each in all_day_times:
+            #print each
 
-        just_this_forecast_height = all_day_height[0][:1, :]
-        just_this_forecast_lat = all_day_lat[ :,0]
-        just_this_forecast_long= all_day_long[0][ :]
-        print "\n\n\nWAVE HEIGHTS "
-        for each in just_this_forecast_height:
-            print each
+        basetime = datetime.datetime(1970,1,1,0,0,0)
 
-        print "\n\n LATS:"
-        print just_this_forecast_lat
+        # Check the first value of the forecast
+        forecast_zero = basetime + datetime.timedelta(all_day_times[0]/3600.0/24.0,0,0)
+        print(forecast_zero)
 
-        print "\n\n LONGS:"
-        print just_this_forecast_long
+        directions = all_day_direction[forecast_index, ::10, :]
+        directions_mod = 90.0 - directions + 180.0
+        index = directions_mod > 180
+        directions_mod[index] = directions_mod[index] - 360;
+
+        index = directions_mod < -180;
+        directions_mod[index] = directions_mod[index] + 360;
+
+        U = 10.*np.cos(np.deg2rad(directions_mod))
+        V = 10.*np.sin(np.deg2rad(directions_mod))
+
+        print "height:", all_day_height[:10, :10]
+        #print "\n\n\n\n\n\n\nV:", V[:10, :10]
+
+        #print "\n\n\n\n\n\n\n\nDIRECTION"
+        #for each in directions:
+            #print each
+
+        #print "\n\n\n\n\n\n\n\nDIRECTIONS MODIFIED"
+        #for each in directions_mod:
+            #print each
+
+
+
+    @staticmethod
+    def time_help():
+         print "timezone:", timezone.get_current_timezone()
+         print "zone now: ", timezone.get_current_timezone()
+         print "local time now:", timezone.localtime(timezone.now())  #this prints current PST time, with DST correct
+         print "timezone now:", timezone.make_aware(timezone.now() , timezone.utc)  #this is the UTC version of right-now's time
+         print "", timezone.is_naive(timezone.localtime(timezone.now()))
 
 
     @staticmethod
     @shared_task(name='pl_plot.make_wave_watch_plot')
     def make_wave_watch_plot(overlay_definition_id, time_index=0, file_id =None):
+        # TODO set the zoom levels for the wave Direction, similar to currents
         overlay_ids = []
 
         #grab the latest forecast file
@@ -240,18 +276,22 @@ class OverlayManager(models.Manager):
             #os.chmod(new_dir,0o777)
         #wave_storage_dir = settings.WAVE_WATCH_STORAGE_DIR + "/" + "Wave_Height_Forecast_" + generated_datetime
 
+        # Setting the time for applies_at, based on the Time variable in the file.
+        # The time variable is # of seconds since start of time epoch, so we convert to UTC
+        all_day_times = datafile_read_object.variables['time'][:]
+        basetime = datetime.datetime(1970,1,1,0,0,0)  # Jan 1, 1970
 
-        #the forecast applies at some number of hours past the generated datetime.
-        #plus NOON: so we need to add 5. Something is off with the datetime.
-        applies_at_datetime = datafile.generated_datetime + timedelta(hours=time_index) + timedelta(hours=5)
+        # This is the first forecast: right now it is Noon (UTC) [~5 AM PST] on the day before the file was downloaded
+        forecast_zero = basetime + datetime.timedelta(all_day_times[0]/3600.0/24.0,0,0)
+
+        # Based on the time index, say that this date is UTC (make_aware)
+        applies_at_datetime = timezone.make_aware(forecast_zero + timedelta(hours=time_index) , timezone.utc)
 
         #Set a new tile directory name for each forecast_index
         tile_dir = "tiles_{0}_{1}".format(overlay_definition.function_name, uuid4())
-        #print "tile_dir name = ", tile_dir
 
         #return overlaydefinition object; 4 is for wave watch
         overlay_definition = OverlayDefinition.objects.get(pk=overlay_definition_id)
-
 
         plot_filename, key_filename = plotter.make_plot(getattr(plot_functions, overlay_definition.function_name),
                         forecast_index=time_index, storage_dir=settings.UNCHOPPED_STORAGE_DIR,
@@ -260,7 +300,7 @@ class OverlayManager(models.Manager):
         overlay = Overlay(
             file=os.path.join(settings.UNCHOPPED_STORAGE_DIR, plot_filename),
             key=os.path.join(settings.KEY_STORAGE_DIR, key_filename),
-            created_datetime=timezone.now(),
+            created_datetime=timezone.now(),  #saves UTC correctly in database
             applies_at_datetime=applies_at_datetime,
             tile_dir = tile_dir,
             zoom_levels = None,
@@ -283,6 +323,8 @@ class OverlayManager(models.Manager):
     @staticmethod
     @shared_task(name='pl_plot.make_plot')
     def make_plot(overlay_definition_id, time_index=0, file_id=None):
+
+        # zoom level 2 is zoomed-out, 10 is most zoomed-in. So we are thining the less-zoomed maps MORE (4)
         zoom_levels_for_currents = [('2-7', 4), ('8-10', 2)]  # Team 1 says this is a hack. Team 2 is unsure why it is a hack.
         zoom_levels_for_others = [(None, None)]
 
@@ -301,6 +343,7 @@ class OverlayManager(models.Manager):
         tile_dir = "tiles_{0}_{1}".format(overlay_definition.function_name, uuid4())
         overlay_ids = []
         for zoom_level in zoom_levels:
+            # Make a plot with downsampling of 4, and with 2
             plot_filename, key_filename = plotter.make_plot(getattr(plot_functions, overlay_definition.function_name),
                                                             time_index=time_index, downsample_ratio=zoom_level[1])
 
@@ -389,18 +432,4 @@ class Overlay(models.Model):
 def get_upload_path(instance,filename):
     return os.path.join(
         settings.WAVE_WATCH_STORAGE_DIR + "/" + "Wave_Height_Forecast_" + instance.created_datetime)
-
-
-#note: we are NOT using this right now.
-# in future it will be better to use Overlay for all new models,
-# rather than adding different types of overlays for each model.
-class Wave_Watch_Overlay(models.Model):
-    definition = models.ForeignKey(OverlayDefinition)
-    created_datetime = models.DateTimeField()
-    tile_dir = models.CharField(max_length=240, null=True)
-    applies_at_datetime = models.DateTimeField(null=False)
-    zoom_levels = models.CharField(max_length=50, null=True)
-    is_tiled = models.BooleanField(default=False)
-    #file = models.ImageField(upload_to=get_upload_path, null=True, max_length=500)      #get_upload_path was defined in order to allow for dynamic path creation
-    key = models.ImageField(upload_to=settings.KEY_STORAGE_DIR, null=True)
 

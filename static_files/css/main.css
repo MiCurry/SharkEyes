@@ -286,6 +286,15 @@ table td.col-one {
   text-align: left;
   padding-left: 15px; }
 
+table td.col-three {
+  text-align: left;
+  padding-left: 15px;
+  font-size: 16pt;
+
+  font-weight: bold;
+
+}
+
 .lbl {
   display: inline-block;
   float: left; }

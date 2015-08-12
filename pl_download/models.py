@@ -5,6 +5,7 @@ from urlparse import urljoin
 from django.utils import timezone
 from pydap.client import open_url
 import urllib
+from scipy.io import netcdf_file
 import os
 from uuid import uuid4
 from urlparse import urljoin
@@ -17,7 +18,8 @@ from django.db.models import Q
 from operator import __or__ as OR
 from ftplib import FTP
 from django.db import models
-import shutil
+from scipy.io import netcdf_file
+import datetime
 
 
 CATALOG_XML_NAME = "catalog.xml"
@@ -65,7 +67,7 @@ class DataFileManager(models.Manager):
             if not server_filename.startswith('ocean_his'):
                 continue
             date_string_from_filename = server_filename.split('_')[-1]
-            model_date = datetime.strptime(date_string_from_filename, "%d-%b-%Y.nc").date()   # this could fail, need error handling badly
+            model_date = datetime.datetime.strptime(date_string_from_filename, "%d-%b-%Y.nc").date()   # this could fail, need error handling badly
             modified_datetime = extract_modified_datetime_from_xml(elem)
 
             for day_to_retrieve in days_to_retrieve:
@@ -77,11 +79,10 @@ class DataFileManager(models.Manager):
         new_file_ids = []
 
         for server_filename, model_date, modified_datetime in files_to_retrieve:
-            print "pl_download: before sst download"
             url = urljoin(settings.BASE_NETCDF_URL, server_filename)
             local_filename = "{0}_{1}.nc".format(model_date, uuid4())
             urllib.urlretrieve(url=url, filename=os.path.join(destination_directory, local_filename)) # this also needs a try/catch
-            print "pl_download: after getting sst file"
+
             datafile = DataFile(
                 type='NCDF',
                 download_datetime=timezone.now(),
@@ -90,7 +91,6 @@ class DataFileManager(models.Manager):
                 file=local_filename,
             )
             datafile.save()
-            print "pl_download: after saving SST to database"
 
             new_file_ids.append(datafile.id)
 
@@ -99,7 +99,6 @@ class DataFileManager(models.Manager):
     @staticmethod
     @shared_task(name='pl_download.get_latest_wave_watch_files')
     def get_latest_wave_watch_files():
-
         #list of the new file ids created in this function
         new_file_ids = []
 
@@ -120,34 +119,49 @@ class DataFileManager(models.Manager):
         ftp_dtm = ftp.sendcmd('MDTM' + " /pub/outgoing/ww3data/" + file_name)
 
         #convert ftp datetime format to a string datetime
-        modified_datetime = datetime.strptime(ftp_dtm[4:], "%Y%m%d%H%M%S").strftime("%Y-%m-%d")
+        initial_datetime = datetime.datetime.strptime(ftp_dtm[4:], "%Y%m%d%H%M%S").strftime("%Y-%m-%d")
+
+        naive_datetime = parser.parse(initial_datetime)
+        modified_datetime = timezone.make_aware(naive_datetime, timezone.utc)
 
         # check if we've downloaded it before: does DataFile contain a Wavewatch entry whose model_date matches this one?
         matches_old_file = DataFile.objects.filter(
-           model_date=modified_datetime,
-           type='WAVE'
+            #NOTE: this assumes that the file contains one day of hindcasts, so the model date is one day BEHIND
+            # the date on which we download the file.
+            # This is prone to fail. However, when we actually save the record in the database,
+            # THAT model_date is guarenteed to be correct.
+            model_date=datetime.datetime.date( modified_datetime - timedelta(days=1)),
+            type='WAVE'
         )
         if not matches_old_file:
-
-            print "pl_download: starting to get a Wave file"
-
             #Create File Name and Download actual File into media folder
             url = urljoin(settings.WAVE_WATCH_URL, file_name)
+
+            # The date in local_filename is actually 1 day LATER than the file actually applies at
             local_filename = "{0}_{1}_{2}.nc".format("OuterGrid", modified_datetime, uuid4())
             urllib.urlretrieve(url=url, filename=os.path.join(destination_directory, local_filename))
-            print "pl_download: got the file"
+
+
+            file = netcdf_file(os.path.join(settings.MEDIA_ROOT, settings.WAVE_WATCH_DIR, local_filename))
+
+            # The times in the file are UTC in seconds since Jan 1, 1970.
+            all_day_times = file.variables['time'][:]
+
+            basetime = datetime.datetime(1970,1,1,0,0,0)
+
+            # Check the first value of the forecast
+            first_forecast_time = basetime + datetime.timedelta(all_day_times[0]/3600.0/24.0,0,0)
+
             #Save the File name into the Database
             datafile = DataFile(
                 type='WAVE',
-                download_datetime=timezone.now(),
+                download_datetime=timezone.now(), # This is UTC, as should be all the items saved into a Django database
                 generated_datetime=modified_datetime,
-                model_date = modified_datetime,
+                model_date = first_forecast_time,
                 file=local_filename,
             )
 
             datafile.save()
-            print "pl_download: saved item to DB"
-
             new_file_ids.append(datafile.id)
 
             #quit ftp connection cause we accessed all the data we need
@@ -206,7 +220,7 @@ class DataFileManager(models.Manager):
     @classmethod
     def get_next_few_days_files_from_db(cls):
         next_few_days_of_files = DataFile.objects.filter(
-            model_date__gte=(timezone.now()-timedelta(days=1)).date(),
+            model_date__gte=(timezone.now()-timedelta(days=9)).date(),
             model_date__lte=(timezone.now()+timedelta(days=4)).date()
         )
 
@@ -231,8 +245,6 @@ class DataFileManager(models.Manager):
         today = timezone.now().date()
 
         #Look back at the past 3 days of datafiles
-        #TODO WAVE: specify the TYPE too
-    #    recent_netcdf_files = DataFile.objects.filter(model_date__range=[three_days_ago, today], type='NCDF')
 
         #Just for ROMS model
         recent_netcdf_files = DataFile.objects.filter(model_date__range=[three_days_ago, today])

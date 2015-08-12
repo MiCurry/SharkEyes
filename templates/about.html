@@ -42,15 +42,15 @@
     Seacast delivers an easy-to-use interface for Oregon coastal fishermen that shows forecasted sea conditions for a three day period. The projections are determined using models provided by Oregon State University's College of Earth, Ocean, and Atmospheric Sciences (CEOAS).
 </p>
 
-<h3>State of Release</h3>
+<h3>Disclaimer</h3>
 
 <p>
-    This alpha of Seacast is an early release of work-in-progress for demonstration purposes. The release is targeted for those involved with development, alpha-testers, and Expo visitors. This release is <i>not</i> intended for end users in need of data for safety, commercial, or other purposes at this time.
+    The forecasts displayed by Seacast are predictions only. They should not be relied upon for decisions that impact safety or commercial success. You, as the user, are responsible for safety-critical decisions made while using the Seacast website.
 </p>
 
 <h3>What Seacast Does</h3>
     <p>
-        Seacast displays forecasts for currents and sea surface temperature. These conditions are <i>predictions</i>, much like weather forecasts, based on scientists' models. They do not represent actual, real-time readings of ocean conditions, although the models do incorporate actual readings to create the predictions.
+        Seacast displays forecasts for currents, sea surface temperature, wave height and wave direction. These conditions are <i>predictions</i>, much like weather forecasts, based on scientists' models. They do not represent actual, real-time readings of ocean conditions, although the models do incorporate actual readings to create the predictions.
         The Seacast website produces a visual display of these conditions, as image overlays on top of a Google Maps background.
         The models used by the site, like all models, have limitations. The Seacast team would like to receive your feedback about both the layout of the website, and the accuracy of the data displayed on the website. This will allow us to improve Seacast, and give feedback to the model creators about their model.
 
@@ -59,12 +59,16 @@
     <h3>How To Use Seacast</h3>
     <p>
     Sea Surface temperature is displayed as a colormap, and currents are displayed as vectors (arrows). The arrows point in the direction of the current, and their relative length indicates the speed of the current. Note that the key for current speed, at the bottom of the page, is estimated.
-       <!-- The WaveWatch III model, for wave height, is also displayed as a color map. We recommend only turning on one of the color maps at a time for better viewing.-->
-        Turn the overlays on or off by clicking the toggle buttons in the menu bar.
+        The WaveWatch III model, for wave height, is also displayed as a color map. The wave direction model is displayed as vectors. A longer vector represents a wave with larger height.
+        Turn the overlays on or off by clicking the toggle buttons in the menu bar. Right now color maps and vectors can be 'stacked' on top of each other. If two color maps are turned on at the same time, only the last one will be displayed.
 </p>
+    <h4>Note on Vector Keys</h4>
+    <p> Both Currents and Wave Direction are represented as vectors, where the length of the arrow represents the strength of the current, or the height of the wave. Please note that the keys for these vectors are estimated, and may not be valid at all zoom levels.
+        When using Wave Direction, it is best to use the Wave Height colormap as a guide to determine the most accurate wave height, rather than relying on the length of the arrows. This is a feature in-progress. </p>
 <p>
-        The model produces predictions for 4-hour intervals for 3 days into the future. Prediction dates/times can be selected by clicking the drop-down menu in the top left corner of the menu, then clicking on the desired date and time. The page will automatically refresh with the conditions for the chosen time.
+        The model produces predictions for 4-hour intervals for 2 days into the future, and 1 week in the past. Prediction dates/times can be selected by clicking the drop-down menu in the top left corner of the menu, then clicking on the desired date and time. The page will automatically refresh with the conditions for the chosen time.
         New model dates can also be selected using the Next and Previous buttons.
+        The "hind-casts" for past days do not represent actual readings. Instead, they represent what the model predicted for those days. They may be helpful to compare with your own readings for those past days.
 
         Navigate the map, including zoom and pan, by clicking and dragging or using other navigation techniques used on Google Maps. Pinch-to-zoom on mobile devices should zoom in on the map.
         The menu can be hidden by clicking the "Hide" button in the top left.
@@ -89,18 +93,18 @@
 
     <h4>Sea Surface Temperature Model</h4>
     <ul>
-        <li>Model designed by Dr. Kurapov</li>
+        <li>Thank you to Dr. Alexander Kurapov</li>
     </ul>
 
     <h4>Current Model</h4>
     <ul>
-        <li>Model designed by Dr. Kurapov</li>
+        <li>Thank you to Dr. Alexander Kurapov</li>
     </ul>
-  <!--  <h4>WaveWatch III Model</h4>
+    <h4>Wave Model</h4>
     <ul>
-        <li>Model designed by Dr. Kurapov</li>
+        <li> Thank you to Dr. Tuba Özkan-Haller, and thank you to Gabriel Garcìa-Medina for his help with the model. </li>
     </ul>
-    -->
+
 </p>
 
 <h3>Contact</h3>
@@ -121,17 +125,16 @@
 
 
     <h4>2014: Version 2 Development Team</h4>
-    <p>The Seacast project is currently being developed by a second Capstone team, who will build upon the previous version.</p>
-  <div class="contact">
-    <p><span class="contact_name">Maria Powell</span><a href="mailto:weberma@onid.oregonstate.edu?Subject=Seacast" target="_top">weberma@onid.oregonstate.edu</a></p>
-    <p><span class="contact_name">Reed Hamilton</span><a href="mailto:hamiltor@onid.oregonstate.edu?Subject=Seacast" target="_top">hamiltor@onid.oregonstate.edu</a></p>
-    <p><span class="contact_name">Bethany Carlson</span><a href="mailto:carlsbet@onid.oregonstate.edu?Subject=Seacast" target="_top">carlsbet@onid.oregonstate.edu</a></p>
-  </div>
+    <p>The Year 2 team built upon the first team's work and added new features. </p>
+
+    <p>Maria Powell</p>
+    <p>Reed Hamilton</p>
+    <p>Bethany Carlson</p>
 
 
 
-    <!-- TODO: if a user opens the About page in a new tab, that tab has no "back" history to go back to. Should make this a hard link. -->
-    <button id="back" class="btn" onclick="goBack()">Back to Seacast</button>
+    <button id="back" class="btn" onclick="location.href='http://seacast.org';"/>Back to Seacast</button>
+
 
 </div>
 </body>
