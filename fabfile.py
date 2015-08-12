@@ -52,33 +52,18 @@ def vagrant():
 
 
 def staging():
-    env.user = 'azureuser'
-    hostname = 'fishable.cloudapp.net'
-    port = 22
-    env.hosts = env.hosts = ["%s:%s" % (hostname,port)]
-    env.branch = 'staging'
-
-
-def production():
     env.user = 'developer'
     hostname = 'baker.coas.oregonstate.edu'
     port = 22
     env.hosts = env.hosts = ["%s:%s" % (hostname,port)]
-    env.branch = 'master'
-
-def production_pacifico_master():
-    env.user = 'developer'
-    hostname = 's-pacifico.coas.oregonstate.edu'
-    port = 22
-    env.hosts = env.hosts = ["%s:%s" % (hostname,port)]
-    env.branch = 'master'
-
-def production_pacifico_staging():
-    env.user = 'developer'
-    hostname = 's-pacifico.coas.oregonstate.edu'
-    port = 22
-    env.hosts = env.hosts = ["%s:%s" % (hostname,port)]
     env.branch = 'staging'
+
+def production():
+    env.user = 'developer'
+    hostname = 's-pacifico.coas.oregonstate.edu'
+    port = 22
+    env.hosts = env.hosts = ["%s:%s" % (hostname,port)]
+    env.branch = 'master'
 
 def install_prereqs():
     #handle selinux

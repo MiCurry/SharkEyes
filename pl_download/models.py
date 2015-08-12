@@ -220,7 +220,7 @@ class DataFileManager(models.Manager):
     @classmethod
     def get_next_few_days_files_from_db(cls):
         next_few_days_of_files = DataFile.objects.filter(
-            model_date__gte=(timezone.now()-timedelta(days=2)).date(),
+            model_date__gte=(timezone.now()-timedelta(days=9)).date(),
             model_date__lte=(timezone.now()+timedelta(days=4)).date()
         )
 
@@ -245,8 +245,6 @@ class DataFileManager(models.Manager):
         today = timezone.now().date()
 
         #Look back at the past 3 days of datafiles
-        #TODO WAVE: specify the TYPE too
-    #    recent_netcdf_files = DataFile.objects.filter(model_date__range=[three_days_ago, today], type='NCDF')
 
         #Just for ROMS model
         recent_netcdf_files = DataFile.objects.filter(model_date__range=[three_days_ago, today])
