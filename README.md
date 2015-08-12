@@ -17,7 +17,7 @@ Desktop:
 ###Setup
 
 ###	Installation
-	####	Prereqs
+	###	Prereqs
 All these requirements should be cross platform. If you're on Windows, you can also use the Git Bash for these over Command Prompt (lets you use Linux-based commands).
 Throughout these steps are mentioned the project directory, which is the directory that you clone from GitHub that contains manage.py and the hidden .git directory.
 Anything you see below in italics is a command that can be entered via the commandline.
@@ -48,8 +48,8 @@ If you run into an error, there is a list of common problems that we encountered
 	-	Finally, create a media/ directory at the same level as your project directory. For the example directory structure listed above, it'd be at ~/code/media/, since the repo you just cloned is at~/code/src/ if you specified git clone git@github.com:seacast/SharkEyes.git   /code/src .
 
 
-	####	Virtual Machine
-	#####	Bringing the virtual machine online
+	###	Virtual Machine
+	###	Bringing the virtual machine online
 	-	While at this point you can just run vagrant up to download and configure the centos box, it's recommended to first download the base box manually.
 	-	To download box base manually, you can do vagrant box add centos65 https://github.com/2creatives/vagrant-centos/releases/download/v6.5.3/centos65-x86_64-20140116.box
 	-	Then do >> vagrant up to bring the box online. You'll need to be in or below the directory where the vagrantfile is located. With our running example, you'd need to be in ~/code/src/.
@@ -57,7 +57,7 @@ If you run into an error, there is a list of common problems that we encountered
 	-	Also check that your local project folder has been mounted in the VM at /vagrant/, by running vagrant ssh and cd’ing into the /vagrant directory.  This makes it easy to edit code in PyCharm or Sublime or something locally, and then run it in the VM without having to copy it.
 	-	(Windows users, this would be a good place to check that trying to resume after a vagrant suspend doesn't wipe your VM. There's a bug in some versions of VirtualBox that causes it to lose track of suspended VMs, and then you have to start from scratch. (Look for it unpacking the box again. If it is, then it lost it.) If this is the case, always use vagrant halt.)
 
-	#####	Configuring the VM:
+	###	Configuring the VM:
 Ok, so you've got the vagrant vm up and running. Great! We use fabric to provision the VM and set it up with everything we need. This will take a while to download and compile everything we need, so you can leave it for a bit, but unfortunately it'll need some babysitting at the end.
 Setup passwords:
 We store the passwords in a separate file that we keep out of source control. Make some up now. You'll need them later in setup, but you can always reference the file you're about to create.
@@ -72,7 +72,8 @@ Ok, awesome, vagrant works and you have passwords setup. Now to run the setup sc
 
 
 
-    ####  Database: the MySQL part will prompt you to setup. Please refer to the complete documentation for this process. That documentation includes thorough explanation of how to setup passwords, which we do not want to have under version control but is helpful to use during your set-up.
+    ###  Database:
+    the MySQL part will prompt you to setup. Please refer to the complete documentation for this process. That documentation includes thorough explanation of how to setup passwords, which we do not want to have under version control but is helpful to use during your set-up.
 
 	-	Once that finishes, do fab vagrant deploy to run the Django setup scripts and run the database migrations.
 	-	Then do fab vagrant startdev and do what it says to bring all the background services online. You'll need to run this anytime you cold boot the VM. (If you're just resuming, it should be fine.)   (no need to do this if installing on Staging or Production server)
@@ -83,7 +84,7 @@ source /opt/sharkeyes/env_sharkeyes/bin/activate
 ./manage.py runserver 0.0.0.0:8000
 
 
-	####	PyCharm
+	###	PyCharm
 	-	From PyCharm go File->Open and choose the project directory. It should recognize stuff, give it a chance to do that.
 	-	Then you need to setup the project interpreter to use the interpreter in your virtual machine. Make sure the VM is up before doing this:
 	-	Go to PyCharm Preferences -> Project Interpretor
