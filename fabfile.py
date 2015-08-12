@@ -58,6 +58,7 @@ def staging():
     env.hosts = env.hosts = ["%s:%s" % (hostname,port)]
     env.branch = 'staging'
 
+
 def production():
     env.user = 'developer'
     hostname = 's-pacifico.coas.oregonstate.edu'
