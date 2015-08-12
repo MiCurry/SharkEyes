@@ -60,7 +60,7 @@ class OverlayManager(models.Manager):
 #TODO put in the ISBASE
       
         next_few_days_of_overlays = Overlay.objects.filter(
-            applies_at_datetime__gte=timezone.now()-timedelta(hours=2),
+            applies_at_datetime__gte=timezone.now()-timedelta(days=7),
             applies_at_datetime__lte=timezone.now()+timedelta(days=4),
             is_tiled=True,
         )
@@ -217,8 +217,9 @@ class OverlayManager(models.Manager):
 
         U = 10.*np.cos(np.deg2rad(directions_mod))
         V = 10.*np.sin(np.deg2rad(directions_mod))
-        print "U:", U[:10, :10]
-        print "\n\n\n\n\n\n\nV:", V[:10, :10]
+
+        print "height:", all_day_height[:10, :10]
+        #print "\n\n\n\n\n\n\nV:", V[:10, :10]
 
         #print "\n\n\n\n\n\n\n\nDIRECTION"
         #for each in directions:

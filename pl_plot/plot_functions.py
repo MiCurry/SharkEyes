@@ -47,10 +47,9 @@ def wave_direction_function(ax, data_file, bmap, key_ax, forecast_index):
 
     # The sine and cosine functions expect Radians, so we use the deg2rad function to convert the
     # directions, which are in Degrees.
-    # Multiple the U and the V, each, by 'height' in order to SCALE the vectors. Right now
-    # they are just unit vectors.
-    U = np.cos(np.deg2rad(directions_mod))
-    V = np.sin(np.deg2rad(directions_mod))
+    # Multiplying the U and the V, each, by 'height' in order to SCALE the vectors.
+    U = height*np.cos(np.deg2rad(directions_mod))
+    V = height*np.sin(np.deg2rad(directions_mod))
 
     U_downsampled = crop_and_downsample_wave(U, WAVE_DIRECTION_DOWNSAMPLE)
     V_downsampled = crop_and_downsample_wave(V, WAVE_DIRECTION_DOWNSAMPLE)
@@ -61,9 +60,28 @@ def wave_direction_function(ax, data_file, bmap, key_ax, forecast_index):
     y_zoomed = crop_and_downsample_wave(y, WAVE_DIRECTION_DOWNSAMPLE)
 
     bmap.drawmapboundary(linewidth=0.0, ax=ax)
-    overlay = bmap.quiver(x_zoomed, y_zoomed, U_downsampled, V_downsampled, ax=ax, color='black')
+    overlay = bmap.quiver(x_zoomed, y_zoomed, U_downsampled, V_downsampled, ax=ax, color='black', units='inches')
 
-    quiverkey1 = key_ax.quiverkey(overlay, 3.75, .4, 2, "Wave Direction", labelpos='S', labelcolor='white',
+    # Set up the conversions to feet from meters
+    half = 0.5*METERS_TO_FEET
+    one = 1.0*METERS_TO_FEET
+    two = 2.0*METERS_TO_FEET
+    three = 3.0*METERS_TO_FEET
+    five = 5.0*METERS_TO_FEET
+
+    # Print a half-meter arrow, with a legend saying this is half a meter
+    quiverkey1 = key_ax.quiverkey(overlay, 1, .4, 0.5, "Wave Height: %.1f ft" % half,
+                                  labelpos='S', labelcolor='white',
+                                  color='white', labelsep=.5, coordinates='axes')
+    quiverkey2 = key_ax.quiverkey(overlay, 4, .4, 1.0, "%.1f ft" % one, labelpos='S', labelcolor='white',
+                                  color='white', labelsep=.5, coordinates='axes')
+    quiverkey3 = key_ax.quiverkey(overlay, 6, .4, 2.0, "%.1f ft" % two, labelpos='S', labelcolor='white',
+                                  color='white', labelsep=.5, coordinates='axes')
+
+    quiverkey4 = key_ax.quiverkey(overlay, 8, .4, 3.0, "%.1f ft" % three, labelpos='S', labelcolor='white',
+                                  color='white', labelsep=.5, coordinates='axes')
+
+    quiverkey5 = key_ax.quiverkey(overlay, 10, .4, 5.0, "%.1f ft" % five, labelpos='S', labelcolor='white',
                                   color='white', labelsep=.5, coordinates='axes')
 
     key_ax.set_axis_off()
@@ -78,6 +96,11 @@ def wave_direction_function(ax, data_file, bmap, key_ax, forecast_index):
 # Data points over 1000 usually mark land
 def wave_height_function(ax, data_file, bmap, key_ax, forecast_index):
 
+     # Need to convert each point from meters to feet
+     def meters_to_feet(height):
+        return height * METERS_TO_FEET
+     vectorized_conversion = numpy.vectorize(meters_to_feet)
+
      #grab longitude and latitude from netCDF file if we are using the old OuterGrid format which was lower resolution
      #longs = data_file.variables['longitude'][:]
      #lats = data_file.variables['latitude'][:]
@@ -90,8 +113,6 @@ def wave_height_function(ax, data_file, bmap, key_ax, forecast_index):
      #get the wave height data from netCDF file
      all_day = data_file.variables['HTSGW_surface'][:, :, :]
 
-     just_this_forecast = all_day[forecast_index][:1, :]
-
      #convert/mesh the latitude and longitude data into 2D arrays to be used by contourf below
      x,y = numpy.meshgrid(longs,lats)
 
@@ -99,7 +120,11 @@ def wave_height_function(ax, data_file, bmap, key_ax, forecast_index):
      #heights is measured in meters, if a data point is over 1000 meters it is either not valid or it represents land
      #so we are masking all data over 1000
      #heights = numpy.ma.masked_greater(all_day[forecast_index][:][:], 1000)
-     heights = np.ma.masked_array(all_day[forecast_index][:, :],np.isnan(all_day[forecast_index][:,:]))
+
+     heights_masked = np.ma.masked_array(all_day[forecast_index][:, :],np.isnan(all_day[forecast_index][:,:]))
+
+     # Need to convert each height given in meters into FEET
+     heights = vectorized_conversion(heights_masked)
 
      #get the max and min period wave period for the day: used to set color contours
      #min_period = int(math.floor(numpy.amin(heights))) # This was used when we determined min period for a certain day
@@ -267,7 +292,7 @@ def currents_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio)
     bmap.drawmapboundary(linewidth=0.0, ax=ax)
     overlay = bmap.quiver(x, y, u_zoomed, v_zoomed, ax=ax, color='black')
 
-    # TODO this key for the knots seems to be hardcoded and completely inaccurate.
+    # TODO I assume this key is based on converting meters-per-second to Knots. Would be good to verify.
     quiverkey = key_ax.quiverkey(overlay, .95, .4, 0.5*.5144, ".5 knots", labelpos='S', labelcolor='white',
                                  color='white', labelsep=.5, coordinates='axes')
     quiverkey1 = key_ax.quiverkey(overlay, 3.75, .4, 1*.5144, "1 knot", labelpos='S', labelcolor='white',

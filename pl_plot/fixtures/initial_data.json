@@ -60,10 +60,10 @@
         "model": "pl_plot.overlaydefinition",
         "pk": 6,
         "fields": {
-            "display_name_long": "Wave Direction",
+            "display_name_long": "Wave Direction/Height",
             "is_base": true,
             "type": "V",
-            "display_name_short": "Wave Direction",
+            "display_name_short": "Wave Direction/Height",
             "function_name": "wave_direction_function"
         }
     }
