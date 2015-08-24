@@ -20,7 +20,7 @@ import numpy as np
 import datetime
 
 # This is how long old files (overlay items in the database, and corresponding items in UNCHOPPED folder)
-HOW_LONG_TO_KEEP_FILES = 5
+HOW_LONG_TO_KEEP_FILES = 9
 
 
 class OverlayManager(models.Manager):
@@ -66,7 +66,7 @@ class OverlayManager(models.Manager):
         )
 
         next_few_days_of_sst_overlays = next_few_days_of_overlays.filter(definition_id__in=[1, 3])
-        next_few_days_of_wave_overlays = next_few_days_of_overlays.filter(definition_id__in=[4, 6])
+        next_few_days_of_wave_overlays = next_few_days_of_overlays.filter(definition_id__in=[4, 6, 7])
 
         # Get the newest overlay for each Model type and time. This assumes that for a certain model date,
         # a larger ID value
@@ -117,9 +117,10 @@ class OverlayManager(models.Manager):
         #Add the SST and currents plot commands
         task_list = [cls.make_plot.s(od_id, time_index, file_id, immutable=True) for od_id in [1, 3]]
 
-        #Add the commands to plot wave Height (4) and Direction (6)
+        #Add the commands to plot wave Height (4) and Direction (6), and Period (7)
         task_list.append(cls.make_wave_watch_plot.s(4, time_index, file_id, immutable=True))
         task_list.append(cls.make_wave_watch_plot.s(6, time_index, file_id, immutable=True))
+        task_list.append(cls.make_wave_watch_plot.s(7, time_index, file_id, immutable=True))
         job = task_list
         return job
 
@@ -141,6 +142,7 @@ class OverlayManager(models.Manager):
                     if t % 4 == 0:
                         task_list.append(cls.make_wave_watch_plot.subtask(args=(4, t, fid), immutable=True))
                         task_list.append(cls.make_wave_watch_plot.subtask(args=(6, t, fid), immutable=True))
+                        task_list.append(cls.make_wave_watch_plot.subtask(args=(7, t, fid), immutable=True))
 
             else:
                 plotter = Plotter(datafile.file.name)
@@ -229,6 +231,39 @@ class OverlayManager(models.Manager):
         #for each in directions_mod:
             #print each
 
+    @staticmethod
+    def get_period_data(forecast_index, file_id):
+        datafile = DataFile.objects.get(pk=file_id)
+        file = netcdf_file(os.path.join(settings.MEDIA_ROOT, settings.WAVE_WATCH_DIR, datafile.file.name))
+        variable_names_in_file = file.variables.keys()
+        print variable_names_in_file
+
+        all_day_period = file.variables['PERPW_surface'][forecast_index][:,:]
+        #print all_day_period
+        #all_day_times = file.variables['time'][forecast_index][:,:]
+        #print "times: "
+        #for each in all_day_times:
+            #print each
+
+
+        print "Period of waves, in seconds:", all_day_period
+
+
+    # Helper data to view the variable names from a generic NetCDF file such as NASA's Altimetry data.
+    @staticmethod
+    def get_alt_data():
+        # This assumes that you have a NetCDF file names JA2...nc in your Media directory on your local machine.
+        file = netcdf_file(os.path.join(settings.MEDIA_ROOT, 'JA2_GPSOPR_2PdS178_070_20130504_194255_20130504_211615.nc'))
+        variable_names_in_file = file.variables.keys()
+        print "variables: ", variable_names_in_file
+
+        # I assume this is the altimetry, but am not sure what units it is in.
+        data = file.variables['alt'][:10]
+        sea_surface = file.variables['mean_sea_surface'][:10]
+        bathymetry = data = file.variables['bathymetry'][:10]
+        print data
+        print sea_surface
+        print bathymetry
 
 
     @staticmethod
@@ -243,7 +278,12 @@ class OverlayManager(models.Manager):
     @staticmethod
     @shared_task(name='pl_plot.make_wave_watch_plot')
     def make_wave_watch_plot(overlay_definition_id, time_index=0, file_id =None):
-        # TODO set the zoom levels for the wave Direction, similar to currents
+
+         # zoom level 2 is zoomed-out, 10 is most zoomed-in. So we are thining the less-zoomed maps MORE (4)
+        #zoom_levels_for_currents = [('2-7', 4), ('8-10', 2)]  # Team 1 says this is a hack. Team 2 is unsure why it is a hack.
+        zoom_levels_for_direction = [('2-5', 20), ('6-8', 15),  ('9-11', 10), ('12', 5)]
+        zoom_levels_for_others = [(None, None)]
+
         overlay_ids = []
 
         #grab the latest forecast file
@@ -290,25 +330,33 @@ class OverlayManager(models.Manager):
         #Set a new tile directory name for each forecast_index
         tile_dir = "tiles_{0}_{1}".format(overlay_definition.function_name, uuid4())
 
-        #return overlaydefinition object; 4 is for wave watch
+        #return overlaydefinition object; 4 is for wave height, 6 for wave direction, 7 for wave period
         overlay_definition = OverlayDefinition.objects.get(pk=overlay_definition_id)
 
-        plot_filename, key_filename = plotter.make_plot(getattr(plot_functions, overlay_definition.function_name),
-                        forecast_index=time_index, storage_dir=settings.UNCHOPPED_STORAGE_DIR,
-                        generated_datetime=generated_datetime)
+        if overlay_definition_id == 6:
+            zoom_levels = zoom_levels_for_direction
+        else:
+            zoom_levels = zoom_levels_for_others
 
-        overlay = Overlay(
-            file=os.path.join(settings.UNCHOPPED_STORAGE_DIR, plot_filename),
-            key=os.path.join(settings.KEY_STORAGE_DIR, key_filename),
-            created_datetime=timezone.now(),  #saves UTC correctly in database
-            applies_at_datetime=applies_at_datetime,
-            tile_dir = tile_dir,
-            zoom_levels = None,
-            is_tiled = False,
-            definition_id=overlay_definition_id,
-        )
-        overlay.save()
-        overlay_ids.append(overlay.id)
+        tile_dir = "tiles_{0}_{1}".format(overlay_definition.function_name, uuid4())
+
+        for zoom_level in zoom_levels:
+            plot_filename, key_filename = plotter.make_plot(getattr(plot_functions, overlay_definition.function_name),
+                        forecast_index=time_index, storage_dir=settings.UNCHOPPED_STORAGE_DIR,
+                        generated_datetime=generated_datetime, downsample_ratio=zoom_level[1], zoom_levels=zoom_level[0])
+
+            overlay = Overlay(
+                file=os.path.join(settings.UNCHOPPED_STORAGE_DIR, plot_filename),
+                key=os.path.join(settings.KEY_STORAGE_DIR, key_filename),
+                created_datetime=timezone.now(),  #saves UTC correctly in database
+                applies_at_datetime=applies_at_datetime,
+                tile_dir = tile_dir,
+                zoom_levels = zoom_level[0],
+                is_tiled = False,
+                definition_id=overlay_definition_id,
+            )
+            overlay.save()
+            overlay_ids.append(overlay.id)
 
         # # This code was used to view what is contained in the netCDF file
         # file = netcdf_file(os.path.join(settings.MEDIA_ROOT, settings.WAVE_WATCH_DIR, datafile.file.name))
@@ -325,7 +373,8 @@ class OverlayManager(models.Manager):
     def make_plot(overlay_definition_id, time_index=0, file_id=None):
 
         # zoom level 2 is zoomed-out, 10 is most zoomed-in. So we are thining the less-zoomed maps MORE (4)
-        zoom_levels_for_currents = [('2-7', 4), ('8-10', 2)]  # Team 1 says this is a hack. Team 2 is unsure why it is a hack.
+        #zoom_levels_for_currents = [('2-7', 4), ('8-10', 2)]  # Team 1 says this is a hack. Team 2 is unsure why it is a hack.
+        zoom_levels_for_currents = [('2-5', 8), ('6-7', 4), ('8-10', 2), ('12', 1)]
         zoom_levels_for_others = [(None, None)]
 
         if file_id is None:

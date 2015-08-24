@@ -35,7 +35,9 @@ def tile_overlay(overlay_id):
     if overlay.zoom_levels is not None and len(overlay.zoom_levels) > 0:
         zoom_levels = overlay.zoom_levels
     else:
-        zoom_levels ='2-10' #default zoom levels
+        # This corresponds to being able to zoom in (and see the overlays) to where the Google maps
+        # scale is about 1-mile per half-inch
+        zoom_levels ='2-12' #default zoom levels
 
     full_tile_dir = os.path.join(settings.MEDIA_ROOT, settings.TILE_STORAGE_DIR, overlay.tile_dir)
     vrt_path = os.path.join(settings.MEDIA_ROOT, settings.VRT_STORAGE_DIR, "{0}.vrt".format(uuid4()))
@@ -88,7 +90,9 @@ def tile_wave_watch_overlay(overlay_id):
     if overlay.zoom_levels is not None and len(overlay.zoom_levels) > 0:
         zoom_levels = overlay.zoom_levels
     else:
-        zoom_levels ='2-10' #default zoom levels
+        # This corresponds to being able to zoom in (and see the overlays) to where the Google maps
+        # scale is about 1-mile per half-inch
+        zoom_levels ='2-12' #default zoom levels
 
     full_tile_dir = os.path.join(settings.MEDIA_ROOT, settings.TILE_STORAGE_DIR, overlay.tile_dir)
     vrt_path = os.path.join(settings.MEDIA_ROOT, settings.VRT_STORAGE_DIR, "{0}.vrt".format(uuid4()))

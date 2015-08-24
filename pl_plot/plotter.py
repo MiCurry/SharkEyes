@@ -36,7 +36,7 @@ class WaveWatchPlotter:
 
 #make a plot, with the Function to use specified, the storage directory specified, and the Index (ie 0--85 forecasts)
 # based on the title of the file
-    def make_plot(self, plot_function, forecast_index,storage_dir, generated_datetime):
+    def make_plot(self, plot_function, forecast_index,storage_dir, generated_datetime, zoom_levels, downsample_ratio=None):
 
         fig = pyplot.figure()
         key_fig = pyplot.figure(facecolor=settings.OVERLAY_KEY_COLOR)
@@ -57,17 +57,30 @@ class WaveWatchPlotter:
                        llcrnrlon=longs[0][0], urcrnrlon=longs[-1][-1],
                       ax=ax, epsg=4326)
 
-
-        # TODO this will call the correct function based on what type of definition this was called by
-        plot_function(ax=ax, data_file=self.data_file, forecast_index=forecast_index, bmap=bmap, key_ax=key_ax)
+        plot_function(ax=ax, data_file=self.data_file, forecast_index=forecast_index, bmap=bmap, key_ax=key_ax, downsample_ratio=downsample_ratio)
 
         plot_filename = "{0}_{1}_{2}_{3}.png".format(plot_function.__name__,forecast_index,generated_datetime, uuid4())
         key_filename = "{0}_key_{1}_{2}.png".format(plot_function.__name__,generated_datetime, uuid4())
 
+# [('2-5', 20), ('6-8', 15),  ('9-11', 10), ('12', 5)]
+# Might need to determine DPI differently for the wave color maps
+        if zoom_levels == '9-11' :
+            DPI = 1800
+        elif zoom_levels == '12':
+            DPI = 2400
+        elif zoom_levels == '6-8':
+            DPI = 1200 # Original
 
+        else:
+            DPI = 800
+
+        # Chaning the DPI sometimes seems to cause an error when Tiling using gdal2tiles. For instance I tried
+        # dpi=2000 and got a strange error. Internet sources suggest that there may be some sort of off-by-one
+        # error when the size of the image given to gdal is irregular in some way. Moving DPI to 1800 fixed the
+        # issue.
         fig.savefig(
              os.path.join(settings.MEDIA_ROOT, storage_dir, plot_filename),
-             dpi=1200, bbox_inches='tight', pad_inches=0,
+             dpi=DPI, bbox_inches='tight', pad_inches=0,
              transparent=True, frameon=False)
         pyplot.close(fig)
 
