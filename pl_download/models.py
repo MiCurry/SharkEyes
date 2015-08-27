@@ -24,7 +24,7 @@ import datetime
 
 CATALOG_XML_NAME = "catalog.xml"
 XML_NAMESPACE = "{http://www.unidata.ucar.edu/namespaces/thredds/InvCatalog/v1.0}"
-HOW_LONG_TO_KEEP_FILES = 9
+HOW_LONG_TO_KEEP_FILES = 5
 
 
 def get_ingria_xml_tree():
@@ -220,7 +220,7 @@ class DataFileManager(models.Manager):
     @classmethod
     def get_next_few_days_files_from_db(cls):
         next_few_days_of_files = DataFile.objects.filter(
-            model_date__gte=(timezone.now()-timedelta(days=9)).date(),
+            model_date__gte=(timezone.now()-timedelta(days=2)).date(),
             model_date__lte=(timezone.now()+timedelta(days=4)).date()
         )
 

@@ -20,7 +20,7 @@ import numpy as np
 import datetime
 
 # This is how long old files (overlay items in the database, and corresponding items in UNCHOPPED folder)
-HOW_LONG_TO_KEEP_FILES = 9
+HOW_LONG_TO_KEEP_FILES = 5
 
 
 class OverlayManager(models.Manager):
@@ -58,9 +58,9 @@ class OverlayManager(models.Manager):
 
         # Pick how many days into the future and past we want to display overlays for
 #TODO put in the ISBASE
-      
+ #TODO different numbers of day ranges for Staging and Production
         next_few_days_of_overlays = Overlay.objects.filter(
-            applies_at_datetime__gte=timezone.now()-timedelta(days=7),
+            applies_at_datetime__gte=timezone.now()-timedelta(days=2),
             applies_at_datetime__lte=timezone.now()+timedelta(days=4),
             is_tiled=True,
         )
