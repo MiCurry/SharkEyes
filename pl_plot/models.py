@@ -63,8 +63,6 @@ class OverlayManager(models.Manager):
     def get_next_few_days_of_tiled_overlays(cls):
 
         # Pick how many days into the future and past we want to display overlays for
-#TODO put in the ISBASE
-
         next_few_days_of_overlays = Overlay.objects.filter(
             applies_at_datetime__gte=timezone.now()-timedelta(days=PAST_DAYS_OF_FILES_TO_DISPLAY),
             applies_at_datetime__lte=timezone.now()+timedelta(days=4),
