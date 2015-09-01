@@ -15,12 +15,16 @@ np.set_printoptions(threshold=np.inf) # This is helpful for testing purposes:
 
 NUM_COLOR_LEVELS = 80
 NUM_COLOR_LEVELS_FOR_WAVES = 120
-WAVE_DIRECTION_DOWNSAMPLE = 20
+#WAVE_DIRECTION_DOWNSAMPLE = 20
 
 #These heights are in meters
 MIN_WAVE_HEIGHT = 0
 MAX_WAVE_HEIGHT = 7
 METERS_TO_FEET = 3.28
+
+# Min and max time for a single wave to pass
+MIN_WAVE_PERIOD = 3
+MAX_WAVE_PERIOD = 26
 
 
 def get_rho_mask(data_file):
@@ -29,7 +33,7 @@ def get_rho_mask(data_file):
     rho_mask[201:202, 133:135] = 1
     return rho_mask
 
-def wave_direction_function(ax, data_file, bmap, key_ax, forecast_index):
+def wave_direction_function(ax, data_file, bmap, key_ax, forecast_index, downsample_ratio):
     all_day_height = data_file.variables['HTSGW_surface'][:, :, :]
     all_day_direction = data_file.variables['DIRPW_surface'][:,:,:]
     lats = data_file.variables['latitude'][:, :]
@@ -51,16 +55,19 @@ def wave_direction_function(ax, data_file, bmap, key_ax, forecast_index):
     U = height*np.cos(np.deg2rad(directions_mod))
     V = height*np.sin(np.deg2rad(directions_mod))
 
-    U_downsampled = crop_and_downsample_wave(U, WAVE_DIRECTION_DOWNSAMPLE)
-    V_downsampled = crop_and_downsample_wave(V, WAVE_DIRECTION_DOWNSAMPLE)
+    U_downsampled = crop_and_downsample_wave(U, downsample_ratio)
+    V_downsampled = crop_and_downsample_wave(V, downsample_ratio)
 
     x, y = bmap(longs, lats)
 
-    x_zoomed = crop_and_downsample_wave(x, WAVE_DIRECTION_DOWNSAMPLE)
-    y_zoomed = crop_and_downsample_wave(y, WAVE_DIRECTION_DOWNSAMPLE)
+    x_zoomed = crop_and_downsample_wave(x, downsample_ratio)
+    y_zoomed = crop_and_downsample_wave(y, downsample_ratio)
 
     bmap.drawmapboundary(linewidth=0.0, ax=ax)
-    overlay = bmap.quiver(x_zoomed, y_zoomed, U_downsampled, V_downsampled, ax=ax, color='black', units='inches')
+    # Some documentation here: http://matplotlib.org/api/pyplot_summary.html
+    overlay = bmap.quiver(x_zoomed, y_zoomed, U_downsampled, V_downsampled, ax=ax, units='inches',
+                          color='black', scale=75.0, headwidth=2, headlength=3,
+                          headaxislength=2.5, minlength=0.5, minshaft=.9)
 
     # Set up the conversions to feet from meters
     half = 0.5*METERS_TO_FEET
@@ -68,6 +75,7 @@ def wave_direction_function(ax, data_file, bmap, key_ax, forecast_index):
     two = 2.0*METERS_TO_FEET
     three = 3.0*METERS_TO_FEET
     five = 5.0*METERS_TO_FEET
+    six = 6.0*METERS_TO_FEET
 
     # Print a half-meter arrow, with a legend saying this is half a meter
     quiverkey1 = key_ax.quiverkey(overlay, 1, .4, 0.5, "Wave Height: %.1f ft" % half,
@@ -75,13 +83,16 @@ def wave_direction_function(ax, data_file, bmap, key_ax, forecast_index):
                                   color='white', labelsep=.5, coordinates='axes')
     quiverkey2 = key_ax.quiverkey(overlay, 4, .4, 1.0, "%.1f ft" % one, labelpos='S', labelcolor='white',
                                   color='white', labelsep=.5, coordinates='axes')
-    quiverkey3 = key_ax.quiverkey(overlay, 6, .4, 2.0, "%.1f ft" % two, labelpos='S', labelcolor='white',
+    quiverkey3 = key_ax.quiverkey(overlay, 5.4, .4, 2.0, "%.1f ft" % two, labelpos='S', labelcolor='white',
                                   color='white', labelsep=.5, coordinates='axes')
 
-    quiverkey4 = key_ax.quiverkey(overlay, 8, .4, 3.0, "%.1f ft" % three, labelpos='S', labelcolor='white',
+    quiverkey4 = key_ax.quiverkey(overlay, 6.8, .4, 3.0, "%.1f ft" % three, labelpos='S', labelcolor='white',
                                   color='white', labelsep=.5, coordinates='axes')
 
-    quiverkey5 = key_ax.quiverkey(overlay, 10, .4, 5.0, "%.1f ft" % five, labelpos='S', labelcolor='white',
+    quiverkey5 = key_ax.quiverkey(overlay, 8.5, .4, 5.0, "%.1f ft" % five, labelpos='S', labelcolor='white',
+                                  color='white', labelsep=.5, coordinates='axes')
+
+    quiverkey6 = key_ax.quiverkey(overlay, 10.3, .4, 6.0, "%.1f ft" % six, labelpos='S', labelcolor='white',
                                   color='white', labelsep=.5, coordinates='axes')
 
     key_ax.set_axis_off()
@@ -94,7 +105,7 @@ def wave_direction_function(ax, data_file, bmap, key_ax, forecast_index):
 # Wave direction is measured in Degrees, where 360 means waves are coming from the north, traveling southward.
 # 350 would mean waves are traveling from the north-west, headed south-east.
 # Data points over 1000 usually mark land
-def wave_height_function(ax, data_file, bmap, key_ax, forecast_index):
+def wave_height_function(ax, data_file, bmap, key_ax, forecast_index, downsample_ratio):
 
      # Need to convert each point from meters to feet
      def meters_to_feet(height):
@@ -163,6 +174,61 @@ def wave_height_function(ax, data_file, bmap, key_ax, forecast_index):
      cbar.ax.xaxis.set_ticks(locations)
      cbar.ax.xaxis.set_ticklabels(labels)
      cbar.set_label("Wave Height (feet)")
+
+# Plot the period of the waves as a color map.
+def wave_period_function(ax, data_file, bmap, key_ax, forecast_index, downsample_ratio):
+
+     #grab longitude and latitude from netCDF file if we are using the old OuterGrid format which was lower resolution
+     #longs = data_file.variables['longitude'][:]
+     #lats = data_file.variables['latitude'][:]
+
+     # If we are using the file with merged fields (both high-res and low-res data) provided
+     # by Tuba and Gabriel
+     longs = [item for sublist in data_file.variables['longitude'][:1] for item in sublist]
+     lats = data_file.variables['latitude'][:, 0]
+
+     #get the wave period data from netCDF file
+     all_day = data_file.variables['PERPW_surface'][:, :, :]
+
+     #convert/mesh the latitude and longitude data into 2D arrays to be used by contourf below
+     x,y = numpy.meshgrid(longs,lats)
+
+     # Mask all of the data points that are "nan" (not a number) in the data file; these represent land
+     period_masked = np.ma.masked_array(all_day[forecast_index][:, :],np.isnan(all_day[forecast_index][:,:]))
+
+     # Min time in seconds: the fishermen suggested a period range of 4--25 seconds.
+     min_period = MIN_WAVE_PERIOD
+
+     # Max time
+     max_period = MAX_WAVE_PERIOD
+
+     #Allocates colors to the data by setting the range of the data and by setting color increments
+     contour_range = max_period - min_period
+     contour_range_inc = float(contour_range)/NUM_COLOR_LEVELS_FOR_WAVES
+
+     #Now the contour range
+     color_levels = []
+     for i in xrange(NUM_COLOR_LEVELS_FOR_WAVES+1):
+         color_levels.append(min_period+1 + i * contour_range_inc)
+
+     #Fill the contours with the colors
+     overlay = bmap.contourf(x, y, period_masked, color_levels, ax=ax, extend='both', cmap=get_modified_jet_colormap_for_waves())
+
+     #Create the color bar
+     cbar = pyplot.colorbar(overlay, orientation='horizontal', cax=key_ax)
+     cbar.ax.tick_params(labelsize=10)
+     cbar.ax.xaxis.label.set_color('white')
+     cbar.ax.xaxis.set_tick_params(labelcolor='white')
+
+     #todo DIVISION by ZERO sometimes causes a warning
+     locations = numpy.arange(0, 1.01, 1.0/(NUM_COLOR_LEVELS_FOR_WAVES))[::10]    # we just want every 10th label
+     float_labels = numpy.arange(min_period, max_period + 0.01, contour_range_inc)[::10]
+
+     labels = ["%.1f" % num for num in float_labels]
+     cbar.ax.xaxis.set_ticks(locations)
+     cbar.ax.xaxis.set_ticklabels(labels)
+     cbar.set_label("Wave Period (seconds)")
+
 
 
 
@@ -323,8 +389,6 @@ def wind_function(ax, data_file, bmap, key_ax, forecast_index, downsample_ratio)
     # average nearby points to align grid, and add the edge column/row so it's the right size.
     winds_u = numpy.reshape(winds_u, (428, 614))
     right_column = winds_u[:, -1:]
-    print winds_u.shape
-    print right_column.shape
     winds_u_adjusted = ndimage.generic_filter(scipy.hstack((winds_u, right_column)),
                                                  compute_average, footprint=[[1], [1]], mode='reflect')
     winds_v = numpy.reshape(winds_v, (428, 614))
@@ -355,7 +419,7 @@ def wind_function(ax, data_file, bmap, key_ax, forecast_index, downsample_ratio)
 
 def crop_and_downsample(source_array, downsample_ratio, average=True):
     ys, xs = source_array.shape
-    print "shape is ", source_array.shape
+    #print "shape is ", source_array.shape
     cropped_array = source_array[:ys - (ys % int(downsample_ratio)), :xs - (xs % int(downsample_ratio))]
     if average:
         zoomed_array = scipy.nanmean(numpy.concatenate(

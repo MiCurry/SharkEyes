@@ -38,7 +38,7 @@ def do_pipeline():
     list_of_chains = []
 
     for pt in plot_task_list:
-        if pt.args[0] != 4 and pt.args[0] != 6:
+        if pt.args[0] != 4 and pt.args[0] != 6 and pt.args[0] != 7:
             # chaining passes the result of first function to second function
             list_of_chains.append(chain(pt, tile_overlay.s()))
 

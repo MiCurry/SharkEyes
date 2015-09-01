@@ -20,11 +20,16 @@ from ftplib import FTP
 from django.db import models
 from scipy.io import netcdf_file
 import datetime
+from django.conf import settings
 
 
 CATALOG_XML_NAME = "catalog.xml"
 XML_NAMESPACE = "{http://www.unidata.ucar.edu/namespaces/thredds/InvCatalog/v1.0}"
-HOW_LONG_TO_KEEP_FILES = 5
+HOW_LONG_TO_KEEP_FILES = settings.HOW_LONG_TO_KEEP_FILES
+
+#This is how many days' worth of older forecasts to grab from the database
+PAST_DAYS_OF_FILES_TO_DISPLAY = settings.PAST_DAYS_OF_FILES_TO_DISPLAY
+
 
 
 def get_ingria_xml_tree():
@@ -220,7 +225,7 @@ class DataFileManager(models.Manager):
     @classmethod
     def get_next_few_days_files_from_db(cls):
         next_few_days_of_files = DataFile.objects.filter(
-            model_date__gte=(timezone.now()-timedelta(days=9)).date(),
+            model_date__gte=(timezone.now()-timedelta(days=PAST_DAYS_OF_FILES_TO_DISPLAY+1)).date(),
             model_date__lte=(timezone.now()+timedelta(days=4)).date()
         )
 
