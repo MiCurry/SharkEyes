@@ -18,9 +18,15 @@ import numpy
 import shutil
 import numpy as np
 import datetime
+from django.conf import settings
 
 # This is how long old files (overlay items in the database, and corresponding items in UNCHOPPED folder)
-HOW_LONG_TO_KEEP_FILES = 5
+HOW_LONG_TO_KEEP_FILES = settings.HOW_LONG_TO_KEEP_FILES
+
+#This is how many days' worth of older forecasts to display
+PAST_DAYS_OF_FILES_TO_DISPLAY = settings.PAST_DAYS_OF_FILES_TO_DISPLAY
+
+
 
 
 class OverlayManager(models.Manager):
@@ -44,7 +50,7 @@ class OverlayManager(models.Manager):
         # and that the newer one is better.
 
         next_few_days_of_overlays = Overlay.objects.filter(
-            applies_at_datetime__gte=timezone.now()-timedelta(hours=2),
+            applies_at_datetime__gte=timezone.now()-timedelta(days=PAST_DAYS_OF_FILES_TO_DISPLAY),
             applies_at_datetime__lte=timezone.now()+timedelta(days=4)
         )
         and_the_newest_for_each = next_few_days_of_overlays.values('definition', 'applies_at_datetime', 'zoom_levels')\
@@ -58,9 +64,9 @@ class OverlayManager(models.Manager):
 
         # Pick how many days into the future and past we want to display overlays for
 #TODO put in the ISBASE
- #TODO different numbers of day ranges for Staging and Production
+
         next_few_days_of_overlays = Overlay.objects.filter(
-            applies_at_datetime__gte=timezone.now()-timedelta(days=2),
+            applies_at_datetime__gte=timezone.now()-timedelta(days=PAST_DAYS_OF_FILES_TO_DISPLAY),
             applies_at_datetime__lte=timezone.now()+timedelta(days=4),
             is_tiled=True,
         )

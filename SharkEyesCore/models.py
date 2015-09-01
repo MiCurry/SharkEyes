@@ -1,6 +1,9 @@
 from django.db import models
 from django.core.mail import send_mail
 
+# This import is so that we can access the email recipients from the settings_local file for whatever server we are on
+from django.conf import settings
+
 class FeedbackHistory (models.Model):
     feedback_title = models.CharField(max_length=2000)
     feedback_comments = models.CharField(max_length=2000)
@@ -11,12 +14,16 @@ class FeedbackHistory (models.Model):
         # Only get the items that have not yet been sent.
         # This does not have error handling in case an email fails to send.
         feedback_items = FeedbackHistory.objects.filter(sent=False)
+
+        # Based on which server we are on, determine who to send the feedback to. Comments on
+        # Production go to Flaxen, comments on Staging go to Bethany Carlson or other developer for
+        # testing purposes.
+        recipient = settings.RECIPIENT
         for each in feedback_items:
             # Use the Django framework's send_mail function to create the email
             # pattern Subject, Body, From, To(as a list)
-            #TODO set this to be sent to Flaxen
-            send_mail('[Seacast Feedback] '+ each.feedback_title, each.feedback_comments, 'seacast.mail@gmail.com',
-                ['carlsbet@onid.oregonstate.edu'], fail_silently=False)
+            send_mail('[Seacast Feedback] '+ each.feedback_title, each.feedback_comments,
+                      'seacast.mail@gmail.com',  [recipient], fail_silently=False)
             each.sent = True
             each.save()
 
@@ -101,6 +108,8 @@ class FeedbackQuestionaire (models.Model):
             wave = [item for item in each.ACCURACY_TYPE if str(each.wave_accuracy) in item]
             wave_accuracy = str([item[1] for item in wave])
 
+            recipient = settings.RECIPIENT
+
             # Use the Django framework's send_mail function to create the email
             # pattern Subject, Body, From, To(as a list)
             send_mail('[Seacast Survey] ', '\nLocation: '+location+ '\nUsage Frequency: '+ str(frequency) +
@@ -111,7 +120,7 @@ class FeedbackQuestionaire (models.Model):
                       + '\nWhat is liked about Seacast: ' + str(each.usage_likes)
                       + '\nSuggestions to change: ' + str(each.usage_suggestion)
                       + '\nOther models to incorporate: ' + str(each.usage_model_suggestion) ,
-                      'seacast.mail@gmail.com',  ['carlsbet@onid.oregonstate.edu'], fail_silently=False)
+                      'seacast.mail@gmail.com',  [recipient], fail_silently=False)
             each.sent = True
             each.save()
 

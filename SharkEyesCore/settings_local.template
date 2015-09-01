@@ -38,3 +38,19 @@ SECRET_KEY = ''
 DEBUG = False
 
 TEMPLATE_DEBUG = False
+
+# Setup for the email
+EMAIL_BACKEND='django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST='smtp.gmail.com'
+EMAIL_PORT=587
+EMAIL_HOST_USER=''
+EMAIL_HOST_PASSWORD=''
+EMAIL_USE_TLS=True
+
+# Set this to your email address so that you can test the feedback delivery system
+RECIPIENT=''
+
+# Determines when to delete files, based on the space capability of the specific server
+HOW_LONG_TO_KEEP_FILES=5
+
+PAST_DAYS_OF_FILES_TO_DISPLAY=2
