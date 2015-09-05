@@ -121,7 +121,7 @@ CELERY_IMPORTS = ('SharkEyesCore.tasks',)
 CELERYBEAT_SCHEDULE = {
    'plot_pipeline': {
        'task': 'sharkeyescore.pipeline',
-       'schedule': timedelta(hours=1),
+       'schedule': timedelta(hours=2),
        'args': ()
    },
 }
