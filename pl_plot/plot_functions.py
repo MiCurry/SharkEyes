@@ -166,7 +166,7 @@ def wave_height_function(ax, data_file, bmap, key_ax, forecast_index, downsample
      cbar.ax.xaxis.label.set_color('white')
      cbar.ax.xaxis.set_tick_params(labelcolor='white')
 
-     #todo DIVISION by ZERO sometimes causes a warning
+     #todo DIVISION by ZERO sometimes causes a warning but it doesn't seem to cause any problems
      locations = numpy.arange(0, 1.01, 1.0/(NUM_COLOR_LEVELS_FOR_WAVES))[::10]    # we just want every 10th label
      float_labels = numpy.arange(min_period, max_period + 0.01, contour_range_inc)[::10]
 
@@ -220,7 +220,6 @@ def wave_period_function(ax, data_file, bmap, key_ax, forecast_index, downsample
      cbar.ax.xaxis.label.set_color('white')
      cbar.ax.xaxis.set_tick_params(labelcolor='white')
 
-     #todo DIVISION by ZERO sometimes causes a warning
      locations = numpy.arange(0, 1.01, 1.0/(NUM_COLOR_LEVELS_FOR_WAVES))[::10]    # we just want every 10th label
      float_labels = numpy.arange(min_period, max_period + 0.01, contour_range_inc)[::10]
 
@@ -277,6 +276,8 @@ def sst_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
     cbar.set_label("Fahrenheit")
 
 
+# We are not using the Salt model at this time.
+
 def salt_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
      # salt has dimensions ('ocean_time', 's_rho', 'eta_rho', 'xi_rho')
     # s_rho corresponds to layers, of which there are 30, so we take the top one.
@@ -319,9 +320,6 @@ def salt_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
     cbar.set_label("Salinity (PSU)")
 
 
-
-
-
 def currents_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
     def compute_average(array):
         avg = numpy.average(array)
@@ -356,9 +354,13 @@ def currents_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio)
     x, y = bmap(longs_zoomed, lats_zoomed)
 
     bmap.drawmapboundary(linewidth=0.0, ax=ax)
-    overlay = bmap.quiver(x, y, u_zoomed, v_zoomed, ax=ax, color='black')
 
-    # TODO I assume this key is based on converting meters-per-second to Knots. Would be good to verify.
+    overlay = bmap.quiver(x, y, u_zoomed, v_zoomed, ax=ax, color='black', units='inches',
+                          scale=10.0, headwidth=2, headlength=3,
+                          headaxislength=2.5, minlength=0.5, minshaft=.9)
+
+    # TODO I assume this .5144 value is based on converting meters-per-second to Knots.
+    # TODO Would be good to verify, and set it as a constant.
     quiverkey = key_ax.quiverkey(overlay, .95, .4, 0.5*.5144, ".5 knots", labelpos='S', labelcolor='white',
                                  color='white', labelsep=.5, coordinates='axes')
     quiverkey1 = key_ax.quiverkey(overlay, 3.75, .4, 1*.5144, "1 knot", labelpos='S', labelcolor='white',

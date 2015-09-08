@@ -389,7 +389,7 @@ class OverlayManager(models.Manager):
          # performance decreases as we create more images.
         # ORIGINAL:
         #  zoom_levels_for_currents = [('2-5', 8), ('6-7', 4), ('8-10', 2), ('12', 1)]
-        zoom_levels_for_currents = [('2-7', 8),  ('8-12', 2)]
+        zoom_levels_for_currents = [('2-7', 8),  ('8-12', 4)]
         zoom_levels_for_others = [(None, None)]
 
         if file_id is None:
