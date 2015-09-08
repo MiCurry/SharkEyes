@@ -285,7 +285,12 @@ class OverlayManager(models.Manager):
 
          # zoom level 2 is zoomed-out, 10 is most zoomed-in. So we are thining the less-zoomed maps MORE (4)
         #zoom_levels_for_currents = [('2-7', 4), ('8-10', 2)]  # Team 1 says this is a hack. Team 2 is unsure why it is a hack.
-        zoom_levels_for_direction = [('2-5', 20), ('6-8', 15),  ('9-11', 10), ('12', 5)]
+        # TODO: re-instate this code so that we have different levels of thinning dependng on which
+        # zoom level we are at.
+         # Each item in this list adds to how many images we create per overlay. And
+         # performance decreases as we create more images.
+        # zoom_levels_for_direction = [('2-5', 20), ('6-8', 15),  ('9-11', 10), ('12', 5)]
+        zoom_levels_for_direction = [('2-8', 20), ('9-10', 15),  ('11-12', 5)]
         zoom_levels_for_others = [(None, None)]
 
         overlay_ids = []
@@ -377,8 +382,14 @@ class OverlayManager(models.Manager):
     def make_plot(overlay_definition_id, time_index=0, file_id=None):
 
         # zoom level 2 is zoomed-out, 10 is most zoomed-in. So we are thining the less-zoomed maps MORE (4)
-        #zoom_levels_for_currents = [('2-7', 4), ('8-10', 2)]  # Team 1 says this is a hack. Team 2 is unsure why it is a hack.
-        zoom_levels_for_currents = [('2-5', 8), ('6-7', 4), ('8-10', 2), ('12', 1)]
+        #zoom_levels_for_currents = [('2-7', 4), ('8-10', 2)]  # This was what we did the first year.
+        # TODO: re-instate this code so that we have different levels of thinning dependng on which
+        # zoom level we are at.
+         # Each item in this list adds to how many images we create per overlay. And
+         # performance decreases as we create more images.
+        # ORIGINAL:
+        #  zoom_levels_for_currents = [('2-5', 8), ('6-7', 4), ('8-10', 2), ('12', 1)]
+        zoom_levels_for_currents = [('2-7', 8),  ('8-12', 4)]
         zoom_levels_for_others = [(None, None)]
 
         if file_id is None:
@@ -398,7 +409,7 @@ class OverlayManager(models.Manager):
         for zoom_level in zoom_levels:
             # Make a plot with downsampling of 4, and with 2
             plot_filename, key_filename = plotter.make_plot(getattr(plot_functions, overlay_definition.function_name),
-                                                            time_index=time_index, downsample_ratio=zoom_level[1])
+                                                            time_index=time_index, downsample_ratio=zoom_level[1], zoom_levels=zoom_level[0])
 
             overlay = Overlay(
                 file=os.path.join(settings.UNCHOPPED_STORAGE_DIR, plot_filename),
