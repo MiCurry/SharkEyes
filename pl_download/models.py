@@ -20,6 +20,7 @@ from ftplib import FTP
 from django.db import models
 from scipy.io import netcdf_file
 import datetime
+from django.conf import settings
 
 
 
@@ -226,7 +227,6 @@ class DataFileManager(models.Manager):
     @classmethod
     def get_next_few_days_files_from_db(cls):
         next_few_days_of_files = DataFile.objects.filter(
-            # should be around 9
             model_date__gte=(timezone.now()-timedelta(days=PAST_DAYS_OF_FILES_TO_DISPLAY+1)).date(),
             model_date__lte=(timezone.now()+timedelta(days=4)).date()
         )

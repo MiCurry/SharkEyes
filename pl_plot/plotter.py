@@ -36,7 +36,7 @@ class WaveWatchPlotter:
 
 #make a plot, with the Function to use specified, the storage directory specified, and the Index (ie 0--85 forecasts)
 # based on the title of the file
-    def make_plot(self, plot_function, forecast_index,storage_dir, generated_datetime):
+    def make_plot(self, plot_function, forecast_index,storage_dir, generated_datetime, zoom_levels, downsample_ratio=None):
 
         fig = pyplot.figure()
         key_fig = pyplot.figure(facecolor=settings.OVERLAY_KEY_COLOR)
@@ -57,17 +57,44 @@ class WaveWatchPlotter:
                        llcrnrlon=longs[0][0], urcrnrlon=longs[-1][-1],
                       ax=ax, epsg=4326)
 
-
-        # TODO this will call the correct function based on what type of definition this was called by
-        plot_function(ax=ax, data_file=self.data_file, forecast_index=forecast_index, bmap=bmap, key_ax=key_ax)
+        plot_function(ax=ax, data_file=self.data_file, forecast_index=forecast_index, bmap=bmap, key_ax=key_ax, downsample_ratio=downsample_ratio)
 
         plot_filename = "{0}_{1}_{2}_{3}.png".format(plot_function.__name__,forecast_index,generated_datetime, uuid4())
         key_filename = "{0}_key_{1}_{2}.png".format(plot_function.__name__,generated_datetime, uuid4())
 
+#
 
+        # TODO: set the resolution higher for the zoomed-in overlays. The code below
+        # seems to set the resolution properly, but at the expense of performance: it takes
+        # 5 minutes to plot the biggest images, which is two long if we don't have better
+        # parallelization.
+        # if zoom_levels == '9-11' :
+        #     DPI = 1800
+        # elif zoom_levels == '12':
+        #     DPI = 2400
+        # elif zoom_levels == '6-8':
+        #     DPI = 1200 # Original
+        #
+        # else:
+        #     DPI = 800
+
+        # There needs to be a case of each of these zoom-level ranges:  [('2-8', 20), ('9-10', 15),  ('11-12', 5)]
+        # which comes from the pl_plot/models file
+        if zoom_levels == '11-12':
+            DPI = 1800
+        elif zoom_levels == '9-10':
+            DPI = 1200 # Original
+        else:
+            DPI = 800
+
+
+        # Changing the DPI sometimes seems to cause an error when Tiling using gdal2tiles. For instance I tried
+        # dpi=2000 and got a strange error. Internet sources suggest that there may be some sort of off-by-one
+        # error when the size of the image given to gdal is irregular in some way. Moving DPI to 1800 fixed the
+        # issue.
         fig.savefig(
              os.path.join(settings.MEDIA_ROOT, storage_dir, plot_filename),
-             dpi=1200, bbox_inches='tight', pad_inches=0,
+             dpi=DPI, bbox_inches='tight', pad_inches=0,
              transparent=True, frameon=False)
         pyplot.close(fig)
 
@@ -153,7 +180,7 @@ class Plotter:
 
 
 
-    def make_plot(self, plot_function, time_index=0, downsample_ratio=None): #todo hack for expo
+    def make_plot(self, plot_function, zoom_levels, time_index=0,  downsample_ratio=None):
 
         fig = pyplot.figure()
         key_fig = pyplot.figure(facecolor=settings.OVERLAY_KEY_COLOR)
@@ -178,9 +205,19 @@ class Plotter:
         plot_filename = "{0}_{1}.png".format(plot_function.__name__, uuid4())
         key_filename = "{0}_key_{1}.png".format(plot_function.__name__, uuid4())
 
+         # TODO: set the resolution higher for the zoomed-in overlays. But we don't need
+        # the original 1200 dpi for the zoomed-out images (where zoom level is 3-5, for instance)
+        # There needs to be a case for each of these sets of zoom levels:  zoom_levels_for_currents = [('2-7', 8),  ('8-12', 2)]
+        if zoom_levels == '8-12':
+            DPI = 1800
+        elif zoom_levels == '2-7':
+            DPI = 800 # Original is 1200 dpi
+
+
+
         fig.savefig(
             os.path.join(settings.MEDIA_ROOT, settings.UNCHOPPED_STORAGE_DIR, plot_filename),
-            dpi=1200, bbox_inches='tight', pad_inches=0,
+            dpi=DPI, bbox_inches='tight', pad_inches=0,
             transparent=True, frameon=False)
         pyplot.close(fig)
 

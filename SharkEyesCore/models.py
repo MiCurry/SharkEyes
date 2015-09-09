@@ -17,6 +17,17 @@ class FeedbackHistory (models.Model):
         # This does not have error handling in case an email fails to send.
         feedback_items = FeedbackHistory.objects.filter(sent=False)
 
+<<<<<<< HEAD
+        # Based on which server we are on, determine who to send the feedback to. Comments on
+        # Production go to Flaxen, comments on Staging go to Bethany Carlson or other developer for
+        # testing purposes.
+        recipient = settings.RECIPIENT
+        for each in feedback_items:
+            # Use the Django framework's send_mail function to create the email
+            # pattern Subject, Body, From, To(as a list)
+            send_mail('[Seacast Feedback] '+ each.feedback_title, each.feedback_comments,
+                      'seacast.mail@gmail.com',  [recipient], fail_silently=False)
+=======
          # Based on which server we are on, determine who to send the feedback to. Comments on
         # Production go to Flaxen, comments on Staging go to Bethany Carlson or other developer for
         # testing purposes.
@@ -28,6 +39,7 @@ class FeedbackHistory (models.Model):
             #TODO set this to be sent to Flaxen
             send_mail('[Seacast Feedback] '+ each.feedback_title, each.feedback_comments, 'seacast.mail@gmail.com',
                 [recipient], fail_silently=False)
+>>>>>>> master
             each.sent = True
             each.save()
 
