@@ -27,8 +27,6 @@ HOW_LONG_TO_KEEP_FILES = settings.HOW_LONG_TO_KEEP_FILES
 PAST_DAYS_OF_FILES_TO_DISPLAY = settings.PAST_DAYS_OF_FILES_TO_DISPLAY
 
 
-
-
 class OverlayManager(models.Manager):
     @staticmethod
     def get_all_base_definition_ids():

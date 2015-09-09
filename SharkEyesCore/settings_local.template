@@ -53,4 +53,5 @@ RECIPIENT=''
 # Determines when to delete files, based on the space capability of the specific server
 HOW_LONG_TO_KEEP_FILES=5
 
+
 PAST_DAYS_OF_FILES_TO_DISPLAY=2
