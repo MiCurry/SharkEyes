@@ -15,6 +15,7 @@ def home(request):
     #Wind overlay is different from the main overlay due to the time intervals
     #wind_overlays_view_data = overlays_view_data.filter(definition_id=5)
 
+
     datetimes = [ i.applies_at_datetime.astimezone(tz.tzlocal()).strftime('%D, %I %p') for i in overlays_view_data ]
 
     #winddatetimes = [ i.applies_at_datetime.astimezone(tz.tzlocal()).strftime('%D, %I %p') for i in wind_overlays_view_data ]
@@ -32,8 +33,8 @@ def home(request):
 
     num_defs = len(OverlayDefinition.objects.filter(is_base=True, id__in=[1,3,4, 6, 7]))
 
-
     list_of_times = datetimes[:len(datetimes)/num_defs]
+
 
     #list_of_wind_times = winddatetimes[:len(winddatetimes)/num_wind_defs]
 
