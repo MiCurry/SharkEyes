@@ -66,8 +66,8 @@
             "display_name_short": "Wave Direction/Height",
             "function_name": "wave_direction_function"
         }
-    },
-    {
+    }
+  /*  {
         "model": "pl_plot.overlaydefinition",
         "pk": 7,
         "fields": {
@@ -77,5 +77,5 @@
             "display_name_short": "Wave Period",
             "function_name": "wave_period_function"
         }
-    }
+    } */
 ]

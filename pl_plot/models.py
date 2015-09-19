@@ -71,7 +71,8 @@ class OverlayManager(models.Manager):
         next_few_days_of_currents_overlays = next_few_days_of_overlays.filter(definition_id=3)
         next_few_days_of_height_overlays = next_few_days_of_overlays.filter(definition_id=4)
         next_few_days_of_direction_overlays = next_few_days_of_overlays.filter(definition_id=6)
-        next_few_days_of_period_overlays = next_few_days_of_overlays.filter(definition_id=7)
+        # TODO wave periodd
+        # next_few_days_of_period_overlays = next_few_days_of_overlays.filter(definition_id=7)
 
         # Get the newest overlay for each Model type and time. This assumes that for a certain model date,
         # a larger ID value
@@ -96,9 +97,10 @@ class OverlayManager(models.Manager):
             .annotate(newest_id=Max('id'))
         direction_ids = and_the_newest_for_each_direction.values_list('newest_id', flat=True)
 
-        and_the_newest_for_each_period = next_few_days_of_period_overlays.values('definition_id', 'applies_at_datetime')\
-            .annotate(newest_id=Max('id'))
-        period_ids = and_the_newest_for_each_period.values_list('newest_id', flat=True)
+        # TODO wave period
+        #and_the_newest_for_each_period = next_few_days_of_period_overlays.values('definition_id', 'applies_at_datetime')\
+          #  .annotate(newest_id=Max('id'))
+        #period_ids = and_the_newest_for_each_period.values_list('newest_id', flat=True)
 
 
         # Filter out only the most recent overlay for each type and time
@@ -107,44 +109,40 @@ class OverlayManager(models.Manager):
         newest_height_overlays_to_display = next_few_days_of_height_overlays.filter(id__in=height_ids).order_by('definition', 'applies_at_datetime')
         newest_currents_overlays_to_display = next_few_days_of_currents_overlays.filter(id__in=currents_ids).order_by('definition', 'applies_at_datetime')
         newest_direction_overlays_to_display = next_few_days_of_direction_overlays.filter(id__in=direction_ids).order_by('definition', 'applies_at_datetime')
-        newest_period_overlays_to_display = next_few_days_of_period_overlays.filter(id__in=period_ids).order_by('definition', 'applies_at_datetime')
+       #TODO wave period
+       #  newest_period_overlays_to_display = next_few_days_of_period_overlays.filter(id__in=period_ids).order_by('definition', 'applies_at_datetime')
 
 
         height_dates = newest_height_overlays_to_display.values_list( 'applies_at_datetime', flat=True)
         sst_dates = newest_sst_overlays_to_display.values_list( 'applies_at_datetime', flat=True)
         currents_dates = newest_currents_overlays_to_display.values_list( 'applies_at_datetime', flat=True)
         direction_dates = newest_direction_overlays_to_display.values_list( 'applies_at_datetime', flat=True)
-        period_dates = newest_period_overlays_to_display.values_list( 'applies_at_datetime', flat=True)
+        #TODO wave period
+        # period_dates = newest_period_overlays_to_display.values_list( 'applies_at_datetime', flat=True)
 
 
         #Get the distinct dates where there is an SST, currents, and also a wave direction, period and height overlay
         date_overlap = next_few_days_of_overlays.filter(applies_at_datetime__in=list(sst_dates))\
             .filter(applies_at_datetime__in=list(height_dates)).filter(applies_at_datetime__in=list(currents_dates))\
-            .filter(applies_at_datetime__in=list(direction_dates)).filter(applies_at_datetime__in=list(period_dates))\
-            .values_list('applies_at_datetime', flat=True).distinct()
+            .filter(applies_at_datetime__in=list(direction_dates)).values_list('applies_at_datetime', flat=True).distinct() # wave period: .filter(applies_at_datetime__in=list(period_dates))\
+
 
         # Now get the actual overlays where there is an overlap
         overlapped_sst_items_to_display = newest_sst_overlays_to_display.filter(applies_at_datetime__in=list(date_overlap))
         overlapped_currents_items_to_display = newest_currents_overlays_to_display.filter(applies_at_datetime__in=list(date_overlap))
         overlapped_direction_items_to_display = newest_direction_overlays_to_display.filter(applies_at_datetime__in=list(date_overlap))
         overlapped_height_items_to_display = newest_height_overlays_to_display.filter(applies_at_datetime__in=list(date_overlap))
-        overlapped_period_items_to_display = newest_period_overlays_to_display.filter(applies_at_datetime__in=list(date_overlap))
+        #TODO wave period
+        # overlapped_period_items_to_display = newest_period_overlays_to_display.filter(applies_at_datetime__in=list(date_overlap))
 
 
         #Join the two sets
         all_items_to_display = overlapped_sst_items_to_display \
                                | overlapped_height_items_to_display |  overlapped_direction_items_to_display \
-                               | overlapped_period_items_to_display | overlapped_currents_items_to_display
-        for each in overlapped_height_items_to_display:
-            print  each.definition.display_name_long, each.tile_dir, each.applies_at_datetime
-        for each in overlapped_sst_items_to_display:
-            print  each.definition.display_name_long, each.tile_dir, each.applies_at_datetime
-        for each in overlapped_currents_items_to_display:
-            print  each.definition.display_name_long, each.tile_dir, each.applies_at_datetime
-        for each in overlapped_period_items_to_display:
-            print  each.definition.display_name_long, each.tile_dir, each.applies_at_datetime
-        for each in overlapped_direction_items_to_display:
-            print  each.definition.display_name_long, each.tile_dir, each.applies_at_datetime
+            | overlapped_currents_items_to_display
+                              # | overlapped_period_items_to_display
+
+
         # Send the items back to the SharkEyesCore/views.py file, which preps the main page to be loaded.
         return all_items_to_display
 
@@ -164,7 +162,8 @@ class OverlayManager(models.Manager):
         #Add the commands to plot wave Height (4) and Direction (6), and Period (7)
         task_list.append(cls.make_wave_watch_plot.s(4, time_index, file_id, immutable=True))
         task_list.append(cls.make_wave_watch_plot.s(6, time_index, file_id, immutable=True))
-        task_list.append(cls.make_wave_watch_plot.s(7, time_index, file_id, immutable=True))
+        # TODO wave period
+        # task_list.append(cls.make_wave_watch_plot.s(7, time_index, file_id, immutable=True))
         job = task_list
         return job
 
@@ -186,7 +185,8 @@ class OverlayManager(models.Manager):
                     if t % 4 == 0:
                         task_list.append(cls.make_wave_watch_plot.subtask(args=(4, t, fid), immutable=True))
                         task_list.append(cls.make_wave_watch_plot.subtask(args=(6, t, fid), immutable=True))
-                        task_list.append(cls.make_wave_watch_plot.subtask(args=(7, t, fid), immutable=True))
+                        #TODO wave period
+                        # task_list.append(cls.make_wave_watch_plot.subtask(args=(7, t, fid), immutable=True))
 
             else:
                 plotter = Plotter(datafile.file.name)
@@ -293,7 +293,7 @@ class OverlayManager(models.Manager):
         print "Period of waves, in seconds:", all_day_period
 
 
-    # Helper data to view the variable names from a generic NetCDF file such as NASA's Altimetry data.
+    # Helper function to view the variable names from a generic NetCDF file such as NASA's Altimetry data.
     @staticmethod
     def get_alt_data():
         # This assumes that you have a NetCDF file names JA2...nc in your Media directory on your local machine.
