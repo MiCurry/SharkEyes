@@ -15,6 +15,7 @@ def home(request):
     #Wind overlay is different from the main overlay due to the time intervals
     #wind_overlays_view_data = overlays_view_data.filter(definition_id=5)
 
+
     datetimes = [ i.applies_at_datetime.astimezone(tz.tzlocal()).strftime('%D, %I %p') for i in overlays_view_data ]
 
     #winddatetimes = [ i.applies_at_datetime.astimezone(tz.tzlocal()).strftime('%D, %I %p') for i in wind_overlays_view_data ]
@@ -27,21 +28,22 @@ def home(request):
 
    # num_wind_defs = len(OverlayDefinition.objects.filter(is_base=True).exclude(display_name_short="SST").exclude(display_name_short="Currents"))
 
-    # Team 2 says: at this time we want SST (1), currents (3), and Wave (4) only. Modify this as
+    # Team 2 says: Modify this as
     # you add new models.
+    # TODO: add 7 back in if you want to add in the wave period model
 
-    num_defs = len(OverlayDefinition.objects.filter(is_base=True, id__in=[1,3,4, 6, 7]))
-
+    num_defs = len(OverlayDefinition.objects.filter(is_base=True, id__in=[1,3,4, 6]))
 
     list_of_times = datetimes[:len(datetimes)/num_defs]
+
 
     #list_of_wind_times = winddatetimes[:len(winddatetimes)/num_wind_defs]
 
 
     #context = {'overlays': overlays_view_data, 'defs': OverlayDefinition.objects.filter(is_base=True).exclude(id=4), 'times':list_of_times, 'windoverlays': wind_overlays_view_data, 'winddefs': OverlayDefinition.objects.filter(id=5), 'windtimes':list_of_wind_times}
 
-
-    context = {'overlays': overlays_view_data, 'defs': OverlayDefinition.objects.filter(is_base=True, id__in=[1,3,4, 6, 7]), 'times':list_of_times }
+# TODO: add 7 back in if you want to add in the wave period model
+    context = {'overlays': overlays_view_data, 'defs': OverlayDefinition.objects.filter(is_base=True, id__in=[1,3,4, 6]), 'times':list_of_times }
 
     return render(request, 'index.html', context)
 

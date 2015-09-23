@@ -210,7 +210,7 @@ class Plotter:
         # There needs to be a case for each of these sets of zoom levels:  zoom_levels_for_currents = [('2-7', 8),  ('8-12', 2)]
         if zoom_levels == '8-12':
             DPI = 1800
-        elif zoom_levels == '2-7':
+        else:
             DPI = 800 # Original is 1200 dpi
 
 
