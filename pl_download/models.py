@@ -145,7 +145,7 @@ class DataFileManager(models.Manager):
             url = urljoin(settings.WAVE_WATCH_URL, file_name)
 
             # The date in local_filename is actually 1 day LATER than the file actually applies at
-            local_filename = "{0}_{1}_{2}.nc".format("OuterGrid", modified_datetime, uuid4())
+            local_filename = "{0}_{1}_{2}.nc".format("OuterGrid", initial_datetime, uuid4())
             urllib.urlretrieve(url=url, filename=os.path.join(destination_directory, local_filename))
 
 
