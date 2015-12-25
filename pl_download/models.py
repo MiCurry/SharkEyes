@@ -19,7 +19,6 @@ from operator import __or__ as OR
 from ftplib import FTP
 from django.db import models
 from scipy.io import netcdf_file
-import datetime
 from django.conf import settings
 
 
@@ -74,7 +73,7 @@ class DataFileManager(models.Manager):
             if not server_filename.startswith('ocean_his'):
                 continue
             date_string_from_filename = server_filename.split('_')[-1]
-            model_date = datetime.datetime.strptime(date_string_from_filename, "%d-%b-%Y.nc").date()   # this could fail, need error handling badly
+            model_date = datetime.strptime(date_string_from_filename, "%d-%b-%Y.nc").date()   # this could fail, need error handling badly
             modified_datetime = extract_modified_datetime_from_xml(elem)
 
             for day_to_retrieve in days_to_retrieve:
@@ -181,48 +180,78 @@ class DataFileManager(models.Manager):
             return []
 
     @staticmethod
-    @shared_task(name='pl_download.get_latest_wind_files')
-    def get_latest_wind_files():
+    @shared_task(name='pl_download.get_wind_file')
+    def get_wind_file():
+        #Define directory where to store wind netcds files
+        destination_directoray = os.path.join(settings.MEDIA_ROOT, settings.WIND_DIR)
 
-        #TODO: set up a check to see if new files are available
-        #list of the new file ids created in this function
-        new_file_ids = []
+        dataset = open_url(settings.WIND_URL)
 
-        #directory of where files will be saved at
-        destination_directory = os.path.join(settings.MEDIA_ROOT, settings.WIND_DIR)
-
-        url = settings.WIND_URL
-
-        dataset = open_url(url) #yay thredds servers
-
-        dates = dataset['time']
-        dateString = dates.units #dates.units lists how far back the forecast goes (13 days from current)
-        dateString = dateString[11:] #[11:] to get rid of text before the date
+        dateString = dataset.time.units[11:] #Date from which of forecasts avaible: normally 13 days in the past
         modified_datetime = datetime.strptime(dateString, "%Y-%m-%dT%H:%M:%SZ").date() #strip date
-        current_datetime = (datetime.strptime(dateString, "%Y-%m-%dT%H:%M:%SZ")+timedelta(days=13)).date() #should give us the current day
+        current_datetime = modified_datetime+timedelta(days=13) #should give us the current day
 
         local_filename = "{0}_{1}.nc".format("WIND", modified_datetime, uuid4())
 
         matches_old_file = DataFile.objects.filter(
-           model_date=current_datetime,
-           type='WIND'
+            model_date=current_datetime,
+            type='NAMS'
         )
-        if not matches_old_file:
 
-            datafile = DataFile(
-                type='WIND',
-                download_datetime=timezone.now(),
-                generated_datetime=current_datetime,
-                model_date=current_datetime,
-                file=local_filename,
-            )
-            datafile.save()
+        datafile = DataFile(
+            type='WIND',
+            download_datetime=timezone.now(),
+            generated_datetime=current_datetime,
+            model_date=current_datetime,
+            file=local_filename,
+        )
+        datafile.save()
 
-            new_file_ids.append(datafile.id)
+        return datafile.id
 
-            return new_file_ids
-        else:
-            return []
+    # @staticmethod
+    # @shared_task(name='pl_download.get_latest_wind_files')
+    # def get_latest_wind_files():
+    #
+    #     #TODO: set up a check to see if new files are available
+    #     #list of the new file ids created in this function
+    #     new_file_ids = []
+    #
+    #     #directory of where files will be saved at
+    #     destination_directory = os.path.join(settings.MEDIA_ROOT, settings.WIND_DIR)
+    #
+    #     url = settings.WIND_URL
+    #
+    #     dataset = open_url(url) #yay thredds servers
+    #
+    #     dates = dataset['time']
+    #     dateString = dates.units #dates.units lists how far back the forecast goes (13 days from current)
+    #     dateString = dateString[11:] #[11:] to get rid of text before the date
+    #     modified_datetime = datetime.strptime(dateString, "%Y-%m-%dT%H:%M:%SZ").date() #strip date
+    #     current_datetime = (datetime.strptime(dateString, "%Y-%m-%dT%H:%M:%SZ")+timedelta(days=13)).date() #should give us the current day
+    #
+    #     local_filename = "{0}_{1}.nc".format("WIND", modified_datetime, uuid4())
+    #
+    #     matches_old_file = DataFile.objects.filter(
+    #        model_date=current_datetime,
+    #        type='WIND'
+    #     )
+    #     if not matches_old_file:
+    #
+    #         datafile = DataFile(
+    #             type='WIND',
+    #             download_datetime=timezone.now(),
+    #             generated_datetime=current_datetime,
+    #             model_date=current_datetime,
+    #             file=local_filename,
+    #         )
+    #         datafile.save()
+    #
+    #         new_file_ids.append(datafile.id)
+    #
+    #         return new_file_ids
+    #     else:
+    #         return []
 
     @classmethod
     def get_next_few_days_files_from_db(cls):
@@ -256,34 +285,6 @@ class DataFileManager(models.Manager):
         #Just for ROMS model
         recent_netcdf_files = DataFile.objects.filter(model_date__range=[three_days_ago, today])
 
-
-        # empty lists return false
-        if not recent_netcdf_files:
-            return True
-
-        local_file_modified_datetime = recent_netcdf_files.latest('generated_datetime').generated_datetime
-
-        tree = get_ingria_xml_tree()
-        tags = tree.iter(XML_NAMESPACE + 'dataset')
-
-        for elem in tags:
-            if not elem.get('name').startswith('ocean_his'):
-                continue
-            server_file_modified_datetime = extract_modified_datetime_from_xml(elem)
-            if server_file_modified_datetime <= local_file_modified_datetime:
-                return False
-
-        return True
-
-
-    # Not using this right now, because we moved Wave datafiles to the DataFile class
-    @classmethod
-    def is_new_wave_watch_file_to_download(cls):
-        three_days_ago = timezone.now().date()-timedelta(days=3)
-        today = timezone.now().date()
-
-        #Look back at the past 3 days of datafiles
-        recent_netcdf_files = WaveWatchDataFile.objects.filter(generated_datetime__range=[three_days_ago, today])
 
         # empty lists return false
         if not recent_netcdf_files:
