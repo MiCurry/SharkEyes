@@ -61,7 +61,7 @@ class DataFileManager(models.Manager):
 
         # download new file for next few days
         days_to_retrieve = [timezone.now().date(),
-                            timezone.now().date()+timedelta(days=1),
+                             timezone.now().date()+timedelta(days=1),
                             timezone.now().date()+timedelta(days=2),
                             timezone.now().date()+timedelta(days=3)]
         files_to_retrieve = []
@@ -183,7 +183,8 @@ class DataFileManager(models.Manager):
     @shared_task(name='pl_download.get_wind_file')
     def get_wind_file():
         #Define directory where to store wind netcds files
-        destination_directoray = os.path.join(settings.MEDIA_ROOT, settings.WIND_DIR)
+
+        destination_directory = os.path.join(settings.MEDIA_ROOT, settings.WIND_DIR)
 
         dataset = open_url(settings.WIND_URL)
 
@@ -191,7 +192,10 @@ class DataFileManager(models.Manager):
         modified_datetime = datetime.strptime(dateString, "%Y-%m-%dT%H:%M:%SZ").date() #strip date
         current_datetime = modified_datetime+timedelta(days=13) #should give us the current day
 
+
         local_filename = "{0}_{1}.nc".format("WIND", modified_datetime, uuid4())
+        url = urljoin(settings.WIND_DIR, local_filename)
+        urllib.urlretrieve(url=url, filename=os.path.join(destination_directory, local_filename))
 
         matches_old_file = DataFile.objects.filter(
             model_date=current_datetime,
