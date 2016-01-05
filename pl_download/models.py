@@ -33,7 +33,7 @@ HOW_LONG_TO_KEEP_FILES = settings.HOW_LONG_TO_KEEP_FILES
 PAST_DAYS_OF_FILES_TO_DISPLAY = settings.PAST_DAYS_OF_FILES_TO_DISPLAY
 
 
-
+#Whats this function do?
 def get_ingria_xml_tree():
     # todo: need to handle if the xml file isn't available
     xml_url = urljoin(settings.BASE_NETCDF_URL, CATALOG_XML_NAME)
@@ -69,27 +69,39 @@ class DataFileManager(models.Manager):
         tree = get_ingria_xml_tree()    # yes, we just did this to see if there's a new file. refactor later.
         tags = tree.iter(XML_NAMESPACE + 'dataset')
 
+        print "Before for loop for date"
         for elem in tags:
             server_filename = elem.get('name')
             if not server_filename.startswith('ocean_his'):
                 continue
             date_string_from_filename = server_filename.split('_')[-1]
-            model_date = datetime.datetime.strptime(date_string_from_filename, "%d-%b-%Y.nc").date()   # this could fail, need error handling badly
+            try:
+                print "In try", date_string_from_filename
+                model_date = datetime.datetime.strptime(date_string_from_filename, "%d-%b-%Y.nc").date()   # this could fail, need error handling badly
+            except:
+                print server_filename
+                continue
             modified_datetime = extract_modified_datetime_from_xml(elem)
+
 
             for day_to_retrieve in days_to_retrieve:
                 if model_date - day_to_retrieve == timedelta(days=0):
                     files_to_retrieve.append((server_filename, model_date, modified_datetime))
-
         destination_directory = os.path.join(settings.MEDIA_ROOT, settings.NETCDF_STORAGE_DIR)
+
+        print files_to_retrieve
 
         new_file_ids = []
 
         for server_filename, model_date, modified_datetime in files_to_retrieve:
+            print "Start for loop"
             url = urljoin(settings.BASE_NETCDF_URL, server_filename)
+            print url
             local_filename = "{0}_{1}.nc".format(model_date, uuid4())
+            print local_filename
             urllib.urlretrieve(url=url, filename=os.path.join(destination_directory, local_filename)) # this also needs a try/catch
-
+            print "Inside the for loop! Yay!"
+            print server_filename
             datafile = DataFile(
                 type='NCDF',
                 download_datetime=timezone.now(),
