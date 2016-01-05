@@ -100,7 +100,9 @@ WIND_STORAGE_DIR = "wind_forecasts"
 MEDIA_ROOT = "/opt/sharkeyes/media/"
 MEDIA_URL = "/media/"
 
-BASE_NETCDF_URL = "http://ingria.coas.oregonstate.edu/opendap/ACTZ/"
+
+#BASE_NETCDF_URL = "http://ingria.coas.oregonstate.edu/opendap/ACTZ/"
+BASE_NETCDF_URL = "http://ingria.coas.oregonstate.edu/opendap/ORWA/"
 WAVE_WATCH_URL = "ftp://cil-www.oce.orst.edu/pub/outgoing/ww3data/"
 FTP_WAVE_WAVE_URL = "cil-wwww.oce.orst.edu"
 WIND_URL = "http://thredds.ucar.edu/thredds/dodsC/grib/NCEP/NAM/CONUS_12km/conduit/Best"
