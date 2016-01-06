@@ -33,7 +33,7 @@ HOW_LONG_TO_KEEP_FILES = settings.HOW_LONG_TO_KEEP_FILES
 PAST_DAYS_OF_FILES_TO_DISPLAY = settings.PAST_DAYS_OF_FILES_TO_DISPLAY
 
 
-
+#Whats this function do?
 def get_ingria_xml_tree():
     # todo: need to handle if the xml file isn't available
     xml_url = urljoin(settings.BASE_NETCDF_URL, CATALOG_XML_NAME)
@@ -69,27 +69,39 @@ class DataFileManager(models.Manager):
         tree = get_ingria_xml_tree()    # yes, we just did this to see if there's a new file. refactor later.
         tags = tree.iter(XML_NAMESPACE + 'dataset')
 
+        print "Before for loop for date"
         for elem in tags:
             server_filename = elem.get('name')
             if not server_filename.startswith('ocean_his'):
                 continue
             date_string_from_filename = server_filename.split('_')[-1]
-            model_date = datetime.datetime.strptime(date_string_from_filename, "%d-%b-%Y.nc").date()   # this could fail, need error handling badly
+            try:
+                print "In try", date_string_from_filename
+                model_date = datetime.datetime.strptime(date_string_from_filename, "%d-%b-%Y.nc").date()   # this could fail, need error handling badly
+            except:
+                print server_filename
+                continue
             modified_datetime = extract_modified_datetime_from_xml(elem)
+
 
             for day_to_retrieve in days_to_retrieve:
                 if model_date - day_to_retrieve == timedelta(days=0):
                     files_to_retrieve.append((server_filename, model_date, modified_datetime))
-
         destination_directory = os.path.join(settings.MEDIA_ROOT, settings.NETCDF_STORAGE_DIR)
+
+        print files_to_retrieve
 
         new_file_ids = []
 
         for server_filename, model_date, modified_datetime in files_to_retrieve:
+            print "Start for loop"
             url = urljoin(settings.BASE_NETCDF_URL, server_filename)
+            print url
             local_filename = "{0}_{1}.nc".format(model_date, uuid4())
+            print local_filename
             urllib.urlretrieve(url=url, filename=os.path.join(destination_directory, local_filename)) # this also needs a try/catch
-
+            print "Inside the for loop! Yay!"
+            print server_filename
             datafile = DataFile(
                 type='NCDF',
                 download_datetime=timezone.now(),
@@ -145,7 +157,7 @@ class DataFileManager(models.Manager):
             url = urljoin(settings.WAVE_WATCH_URL, file_name)
 
             # The date in local_filename is actually 1 day LATER than the file actually applies at
-            local_filename = "{0}_{1}_{2}.nc".format("OuterGrid", modified_datetime, uuid4())
+            local_filename = "{0}_{1}_{2}.nc".format("OuterGrid", initial_datetime, uuid4())
             urllib.urlretrieve(url=url, filename=os.path.join(destination_directory, local_filename))
 
 
@@ -178,50 +190,6 @@ class DataFileManager(models.Manager):
         #Must have already downloaded this file
         else:
             ftp.quit()
-            return []
-
-    @staticmethod
-    @shared_task(name='pl_download.get_latest_wind_files')
-    def get_latest_wind_files():
-
-        #TODO: set up a check to see if new files are available
-        #list of the new file ids created in this function
-        new_file_ids = []
-
-        #directory of where files will be saved at
-        destination_directory = os.path.join(settings.MEDIA_ROOT, settings.WIND_DIR)
-
-        url = settings.WIND_URL
-
-        dataset = open_url(url) #yay thredds servers
-
-        dates = dataset['time']
-        dateString = dates.units #dates.units lists how far back the forecast goes (13 days from current)
-        dateString = dateString[11:] #[11:] to get rid of text before the date
-        modified_datetime = datetime.strptime(dateString, "%Y-%m-%dT%H:%M:%SZ").date() #strip date
-        current_datetime = (datetime.strptime(dateString, "%Y-%m-%dT%H:%M:%SZ")+timedelta(days=13)).date() #should give us the current day
-
-        local_filename = "{0}_{1}.nc".format("WIND", modified_datetime, uuid4())
-
-        matches_old_file = DataFile.objects.filter(
-           model_date=current_datetime,
-           type='WIND'
-        )
-        if not matches_old_file:
-
-            datafile = DataFile(
-                type='WIND',
-                download_datetime=timezone.now(),
-                generated_datetime=current_datetime,
-                model_date=current_datetime,
-                file=local_filename,
-            )
-            datafile.save()
-
-            new_file_ids.append(datafile.id)
-
-            return new_file_ids
-        else:
             return []
 
     @classmethod
