@@ -47,6 +47,8 @@ def home(request):
 
     return render(request, 'index.html', context)
 
+def oops(request):
+    return render(request, 'oops.html')
 
 def about(request):
     return render(request, 'about.html')
