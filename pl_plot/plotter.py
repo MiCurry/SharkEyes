@@ -187,7 +187,9 @@ class Plotter:
         ax = fig.add_subplot(111)  # one subplot in the figure
         key_ax = key_fig.add_axes([0.1, 0.2, 0.6, 0.05]) # this might be bad for when we have other types of plots
 
-
+        # Temporary hard coded values to ensure the plotted data is the right size. Previously
+        # we used the dimensions provided by the file itself, but the change in provided data has changed the size of the
+        # image.
         #longs = self.data_file.variables['lon_rho'][0, :] # only needed to set up longs
         longs = [-129.0, -123.726199391]
         #lats = self.data_file.variables['lat_rho'][:, 0] # only needed to set up lats
