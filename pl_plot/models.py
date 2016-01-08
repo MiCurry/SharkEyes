@@ -211,6 +211,7 @@ class OverlayManager(models.Manager):
         return task_list
 
 
+
     @classmethod
     def get_tasks_for_base_plots_for_next_few_days(cls):
         file_ids = [datafile.id for datafile in DataFileManager.get_next_few_days_files_from_db()]

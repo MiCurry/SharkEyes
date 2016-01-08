@@ -6,20 +6,5 @@ import os
 import matplotlib
 matplotlib.use('Agg')   # set matplotlib backend to not use xwindow as early as possible in app startup
 
-def setup_dirs():
-    # make sure we have a place to put stuff.
-    for directory in [
-                        settings.NETCDF_STORAGE_DIR,
-                        settings.UNCHOPPED_STORAGE_DIR,
-                        settings.VRT_STORAGE_DIR,
-                        settings.TILE_STORAGE_DIR,
-                        settings.WAVE_WATCH_STORAGE_DIR,
-                        settings.WIND_DIR,
-                        settings.KEY_STORAGE_DIR]:
-        dest = os.path.join(settings.MEDIA_ROOT, directory)
-        if not os.path.exists(dest):
-            os.makedirs(dest)
-
 def run():
-   # setup_dirs() this is done by fabric now.
     pass
