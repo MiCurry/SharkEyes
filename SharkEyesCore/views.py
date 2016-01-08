@@ -24,15 +24,16 @@ def home(request):
     # a complete hack! it just divides a list of all of the times for all the overlays by the number
     # of defs to get a singular list of overlay times
 
-  #  num_defs = len(OverlayDefinition.objects.filter(is_base=True).exclude(display_name_short="Wind"))
+    #  num_defs = len(OverlayDefinition.objects.filter(is_base=True).exclude(display_name_short="Wind"))
 
-   # num_wind_defs = len(OverlayDefinition.objects.filter(is_base=True).exclude(display_name_short="SST").exclude(display_name_short="Currents"))
+    # num_wind_defs = len(OverlayDefinition.objects.filter(is_base=True).exclude(display_name_short="SST").exclude(display_name_short="Currents"))
 
     # Team 2 says: Modify this as
     # you add new models.
     # TODO: add 7 back in if you want to add in the wave period model
 
-    num_defs = len(OverlayDefinition.objects.filter(is_base=True, id__in=[1,3,4, 6]))
+    #num_defs = len(OverlayDefinition.objects.filter(is_base=True, id__in=[1,3,4, 6]))
+    num_defs = len(OverlayDefinition.objects.filter(is_base=True, id__in=[1,3]))
 
     list_of_times = datetimes[:len(datetimes)/num_defs]
 
@@ -42,8 +43,9 @@ def home(request):
 
     #context = {'overlays': overlays_view_data, 'defs': OverlayDefinition.objects.filter(is_base=True).exclude(id=4), 'times':list_of_times, 'windoverlays': wind_overlays_view_data, 'winddefs': OverlayDefinition.objects.filter(id=5), 'windtimes':list_of_wind_times}
 
-# TODO: add 7 back in if you want to add in the wave period model
-    context = {'overlays': overlays_view_data, 'defs': OverlayDefinition.objects.filter(is_base=True, id__in=[1,3,4, 6]), 'times':list_of_times }
+    # TODO: add 7 back in if you want to add in the wave period model
+    #context = {'overlays': overlays_view_data, 'defs': OverlayDefinition.objects.filter(is_base=True, id__in=[1,3,4, 6]), 'times':list_of_times }
+    context = {'overlays': overlays_view_data, 'defs': OverlayDefinition.objects.filter(is_base=True, id__in=[1,3]), 'times':list_of_times }
 
     return render(request, 'index.html', context)
 
