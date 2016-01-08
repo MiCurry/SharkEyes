@@ -32,7 +32,7 @@ HOW_LONG_TO_KEEP_FILES = settings.HOW_LONG_TO_KEEP_FILES
 PAST_DAYS_OF_FILES_TO_DISPLAY = settings.PAST_DAYS_OF_FILES_TO_DISPLAY
 
 
-
+#Whats this function do?
 def get_ingria_xml_tree():
     # todo: need to handle if the xml file isn't available
     xml_url = urljoin(settings.BASE_NETCDF_URL, CATALOG_XML_NAME)
@@ -57,6 +57,7 @@ class DataFileManager(models.Manager):
     #FETCH FILES FOR CURRENTS AND SST
     def fetch_new_files():
         if not DataFileManager.is_new_file_to_download():
+            print "No New Files Available."
             return []
 
         # download new file for next few days
@@ -64,6 +65,13 @@ class DataFileManager(models.Manager):
                              timezone.now().date()+timedelta(days=1),
                             timezone.now().date()+timedelta(days=2),
                             timezone.now().date()+timedelta(days=3)]
+
+        print "NetCDF File Dates To Attempt Retrieval Of:"
+        print "\t" + str(days_to_retrieve[0])
+        print "\t" + str(days_to_retrieve[1])
+        print "\t" + str(days_to_retrieve[2])
+        print "\t" + str(days_to_retrieve[3])
+
         files_to_retrieve = []
         tree = get_ingria_xml_tree()    # yes, we just did this to see if there's a new file. refactor later.
         tags = tree.iter(XML_NAMESPACE + 'dataset')
@@ -79,7 +87,6 @@ class DataFileManager(models.Manager):
             for day_to_retrieve in days_to_retrieve:
                 if model_date - day_to_retrieve == timedelta(days=0):
                     files_to_retrieve.append((server_filename, model_date, modified_datetime))
-
         destination_directory = os.path.join(settings.MEDIA_ROOT, settings.NETCDF_STORAGE_DIR)
 
         new_file_ids = []
@@ -87,8 +94,8 @@ class DataFileManager(models.Manager):
         for server_filename, model_date, modified_datetime in files_to_retrieve:
             url = urljoin(settings.BASE_NETCDF_URL, server_filename)
             local_filename = "{0}_{1}.nc".format(model_date, uuid4())
+            print "Retrieving: " + str(local_filename)
             urllib.urlretrieve(url=url, filename=os.path.join(destination_directory, local_filename)) # this also needs a try/catch
-
             datafile = DataFile(
                 type='NCDF',
                 download_datetime=timezone.now(),
@@ -288,7 +295,6 @@ class DataFileManager(models.Manager):
 
         #Just for ROMS model
         recent_netcdf_files = DataFile.objects.filter(model_date__range=[three_days_ago, today])
-
 
         # empty lists return false
         if not recent_netcdf_files:

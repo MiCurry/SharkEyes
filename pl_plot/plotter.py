@@ -188,8 +188,14 @@ class Plotter:
         key_ax = key_fig.add_axes([0.1, 0.2, 0.6, 0.05]) # this might be bad for when we have other types of plots
 
 
-        longs = self.data_file.variables['lon_rho'][0, :]
-        lats = self.data_file.variables['lat_rho'][:, 0]
+        #longs = self.data_file.variables['lon_rho'][0, :] # only needed to set up longs
+        longs = [-129.0, -123.726199391]
+        #lats = self.data_file.variables['lat_rho'][:, 0] # only needed to set up lats
+        lats = [40.5840806224, 47.499]
+
+        print "Latitude Longitude plot area"
+        print "\tlats[0]: " + str(lats[0]) + " longs[0]: " + str(longs[0])
+        print "\tlats[-1]: " + str(lats[-1])+ " longs[-1]: " + str(longs[-1])
 
         # window cropped by picking lat and lon corners
         bmap = Basemap(projection='merc',

@@ -366,6 +366,14 @@ def restartsite():
     print("!-"*50)
     prompt("And you're good to go! Hit enter to continue.")
 
+def stopSite():
+    sudo('service mysqld stop')
+    sudo('service rabbitmq-server stop')
+    sudo('service celeryd stop')
+    sudo('service celerybeat stop')
+    sudo('service celeryevcam stop')
+    print("!-"*50)
+    prompt("And you're good to go! Hit enter to continue.")
 
 def startdev():
     # starts everything that needs to run for the dev environment
