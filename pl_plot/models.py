@@ -10,7 +10,7 @@ from django.utils import timezone
 from celery import shared_task
 from pl_plot import plot_functions
 from pl_plot.plotter import Plotter, WaveWatchPlotter
-from pl_download.models import DataFile, DataFileManager,WaveWatchDataFile
+from pl_download.models import DataFile, DataFileManager
 from django.db.models.aggregates import Max
 from uuid import uuid4
 from scipy.io import netcdf_file
@@ -109,8 +109,8 @@ class OverlayManager(models.Manager):
         newest_height_overlays_to_display = next_few_days_of_height_overlays.filter(id__in=height_ids).order_by('definition', 'applies_at_datetime')
         newest_currents_overlays_to_display = next_few_days_of_currents_overlays.filter(id__in=currents_ids).order_by('definition', 'applies_at_datetime')
         newest_direction_overlays_to_display = next_few_days_of_direction_overlays.filter(id__in=direction_ids).order_by('definition', 'applies_at_datetime')
-       #TODO wave period
-       #  newest_period_overlays_to_display = next_few_days_of_period_overlays.filter(id__in=period_ids).order_by('definition', 'applies_at_datetime')
+        #TODO wave period
+        #  newest_period_overlays_to_display = next_few_days_of_period_overlays.filter(id__in=period_ids).order_by('definition', 'applies_at_datetime')
 
 
         height_dates = newest_height_overlays_to_display.values_list( 'applies_at_datetime', flat=True)
@@ -126,7 +126,6 @@ class OverlayManager(models.Manager):
             .filter(applies_at_datetime__in=list(height_dates)).filter(applies_at_datetime__in=list(currents_dates))\
             .filter(applies_at_datetime__in=list(direction_dates)).values_list('applies_at_datetime', flat=True).distinct() # wave period: .filter(applies_at_datetime__in=list(period_dates))\
 
-
         # Now get the actual overlays where there is an overlap
         overlapped_sst_items_to_display = newest_sst_overlays_to_display.filter(applies_at_datetime__in=list(date_overlap))
         overlapped_currents_items_to_display = newest_currents_overlays_to_display.filter(applies_at_datetime__in=list(date_overlap))
@@ -141,7 +140,6 @@ class OverlayManager(models.Manager):
                                | overlapped_height_items_to_display |  overlapped_direction_items_to_display \
             | overlapped_currents_items_to_display
                               # | overlapped_period_items_to_display
-
 
         # Send the items back to the SharkEyesCore/views.py file, which preps the main page to be loaded.
         return all_items_to_display
@@ -197,6 +195,7 @@ class OverlayManager(models.Manager):
                     #using EXTEND because we are adding multiple items: might also be able to use APPEND
                     task_list.extend(cls.make_plot.subtask(args=(od_id, t, fid), immutable=True) for od_id in [1, 3])
         return task_list
+
 
 
     @classmethod
