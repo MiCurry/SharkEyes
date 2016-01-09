@@ -10,7 +10,7 @@ from django.utils import timezone
 from celery import shared_task
 from pl_plot import plot_functions
 from pl_plot.plotter import Plotter, WaveWatchPlotter
-from pl_download.models import DataFile, DataFileManager,WaveWatchDataFile
+from pl_download.models import DataFile, DataFileManager
 from django.db.models.aggregates import Max
 from uuid import uuid4
 from scipy.io import netcdf_file
