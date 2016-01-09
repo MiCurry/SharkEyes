@@ -245,7 +245,7 @@ class DataFileManager(models.Manager):
         today = timezone.now().date()
 
         #Look back at the past 3 days of datafiles
-        recent_netcdf_files = WaveWatchDataFile.objects.filter(generated_datetime__range=[three_days_ago, today])
+        recent_netcdf_files = WaveWatchDataFile.objects.filter(type="NCDF", generated_datetime__range=[three_days_ago, today])
 
         # empty lists return false
         if not recent_netcdf_files:
