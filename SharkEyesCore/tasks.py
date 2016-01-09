@@ -8,16 +8,19 @@ from pl_chop.tasks import tile_wave_watch_overlay
 from SharkEyesCore.models import FeedbackHistory
 from SharkEyesCore.models import FeedbackQuestionaire
 
+#------------------------------------------
+# SharkEyesCore\tasks.py
+#
+#
+#
 
-@shared_task(name='sharkeyescore.add')
-def add(a, b):
-    #time.sleep(5)
-    return a + b
-
-
+#----------------------------------------
+# do_pipeline()
+#
+#
 @shared_task(name='sharkeyescore.pipeline')
 def do_pipeline():
-    # Clean up old files from database and disk
+    # Cleaning up old files from the database and the disk
     DataFileManager.delete_old_files()
     OverlayManager.delete_old_files()
 
@@ -25,6 +28,9 @@ def do_pipeline():
     FeedbackHistory.send_feedback_forms()
     FeedbackQuestionaire.send_feedback_survey()
 
+    # Downloading the latest datafiles for our models. See the appropriate functions
+    # (pl_download/models.py.DataFileManager.get_latest_wave_watch_files() and
+    #  pl_download/models.py.DataFileManager.fetch_new_files()) respectavily
     wave_watch_files = DataFileManager.get_latest_wave_watch_files()
     other_files = DataFileManager.fetch_new_files()   # not calling as a task so it runs inline
 
@@ -35,7 +41,8 @@ def do_pipeline():
     # get the list of plotting tasks based on the files we just downloaded.
     plot_task_list = OverlayManager.get_tasks_for_base_plots_for_next_few_days()
 
-    list_of_chains = []
+
+    list_of_chains = [] #What is this?
 
     for pt in plot_task_list:
         if pt.args[0] != 4 and pt.args[0] != 6: # TODO wave period:  and pt.args[0] != 7:

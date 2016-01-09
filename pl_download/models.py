@@ -82,16 +82,15 @@ class DataFileManager(models.Manager):
                 continue
             date_string_from_filename = server_filename.split('_')[-1]
             model_date = datetime.strptime(date_string_from_filename, "%d-%b-%Y.nc").date()   # this could fail, need error handling badly
-            modified_datetime = extract_modified_datetime_from_xml(elem)
 
             for day_to_retrieve in days_to_retrieve:
                 if model_date - day_to_retrieve == timedelta(days=0):
-                    files_to_retrieve.append((server_filename, model_date, modified_datetime))
+                    files_to_retrieve.append((server_filename, model_date))
         destination_directory = os.path.join(settings.MEDIA_ROOT, settings.NETCDF_STORAGE_DIR)
 
         new_file_ids = []
 
-        for server_filename, model_date, modified_datetime in files_to_retrieve:
+        for server_filename, model_date in files_to_retrieve:
             url = urljoin(settings.BASE_NETCDF_URL, server_filename)
             local_filename = "{0}_{1}.nc".format(model_date, uuid4())
             print "Retrieving: " + str(local_filename)
@@ -99,7 +98,7 @@ class DataFileManager(models.Manager):
             datafile = DataFile(
                 type='NCDF',
                 download_datetime=timezone.now(),
-                generated_datetime=modified_datetime,
+                generated_datetime=model_date,
                 model_date=model_date,
                 file=local_filename,
             )
@@ -190,11 +189,12 @@ class DataFileManager(models.Manager):
     @shared_task(name='pl_download.get_wind_file')
     def get_wind_file():
         #Define directory where to store wind netcds files
-
         destination_directory = os.path.join(settings.MEDIA_ROOT, settings.WIND_DIR)
 
+        # Opening/saving the OPENdAP File into the
         dataset = open_url(settings.WIND_URL)
 
+        # Finding the correct dates of the model
         dateString = dataset.time.units[11:] #Date from which of forecasts avaible: normally 13 days in the past
         modified_datetime = datetime.strptime(dateString, "%Y-%m-%dT%H:%M:%SZ").date() #strip date
         current_datetime = modified_datetime+timedelta(days=13) #should give us the current day
@@ -204,11 +204,13 @@ class DataFileManager(models.Manager):
         url = urljoin(settings.WIND_DIR, local_filename)
         urllib.urlretrieve(url=url, filename=os.path.join(destination_directory, local_filename))
 
+        # Check to see if we've download this file before
         matches_old_file = DataFile.objects.filter(
             model_date=current_datetime,
             type='NAMS'
         )
 
+        # Saving the file to the database
         datafile = DataFile(
             type='WIND',
             download_datetime=timezone.now(),
@@ -294,7 +296,7 @@ class DataFileManager(models.Manager):
         #Look back at the past 3 days of datafiles
 
         #Just for ROMS model
-        recent_netcdf_files = DataFile.objects.filter(model_date__range=[three_days_ago, today])
+        recent_netcdf_files = DataFile.objects.filter(type="ncdf", model_date__range=[three_days_ago, today])
 
         # empty lists return false
         if not recent_netcdf_files:
