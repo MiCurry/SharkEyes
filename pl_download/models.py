@@ -214,11 +214,15 @@ class DataFileManager(models.Manager):
     def is_new_file_to_download(cls):
         three_days_ago = timezone.now().date()-timedelta(days=3)
         today = timezone.now().date()
+        #print "date today: " + str(today)
+        #print "date 3-day: " + str(three_days_ago)
 
         #Look back at the past 3 days of datafiles
 
         #Just for ROMS model
         recent_netcdf_files = DataFile.objects.filter(type="NCDF", model_date__range=[three_days_ago, today])
+        #print "number of elements recen datafiles: " + str(len(recent_netcdf_files))
+        #print recent_netcdf_files
 
         # empty lists return false
         if not recent_netcdf_files:
@@ -230,13 +234,17 @@ class DataFileManager(models.Manager):
         tags = tree.iter(XML_NAMESPACE + 'dataset')
 
         for elem in tags:
+            #print "file name: " + str(elem.get('name'))
             if not elem.get('name').startswith('ocean_his'):
                 continue
             server_file_modified_datetime = extract_modified_datetime_from_xml(elem)
-            if server_file_modified_datetime <= local_file_modified_datetime:
-                return False
+            #print "\tserver file time: " + str(server_file_modified_datetime)
+            #print "\tlocal file time: " + str(local_file_modified_datetime)
+            #print "\tserver <= local: " + str(server_file_modified_datetime <= local_file_modified_datetime)
+            if server_file_modified_datetime > local_file_modified_datetime:
+                return True
 
-        return True
+        return False
 
     @classmethod
     def delete_old_files(cls):
