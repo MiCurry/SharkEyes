@@ -241,7 +241,7 @@ class DataFileManager(models.Manager):
             #print "\tserver file time: " + str(server_file_modified_datetime)
             #print "\tlocal file time: " + str(local_file_modified_datetime)
             #print "\tserver <= local: " + str(server_file_modified_datetime <= local_file_modified_datetime)
-            if server_file_modified_datetime > local_file_modified_datetime:
+            if server_file_modified_datetime.date > local_file_modified_datetime.date:
                 return True
 
         return False
