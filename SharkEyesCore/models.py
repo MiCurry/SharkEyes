@@ -126,7 +126,7 @@ class FeedbackQuestionaire (models.Model):
                       + '\nHow Seacast compares to other forecasting systems: '+ str(each.usage_comparison)
                       + '\nWhat is liked about Seacast: ' + str(each.usage_likes)
                       + '\nSuggestions to change: ' + str(each.usage_suggestion)
-                      + '\nOther models to incorporate: ' + str(each.usage_model_suggestion) ,
+                      + '\nOther information to incorporate: ' + str(each.usage_model_suggestion) ,
                       'seacast.mail@gmail.com',  [recipient], fail_silently=False)
             each.sent = True
             each.save()
