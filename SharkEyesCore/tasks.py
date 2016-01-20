@@ -36,6 +36,7 @@ def do_pipeline():
 
     # If no new files were returned, don't plot or tile anything.
     if not wave_watch_files and not other_files:
+        print "No New Files Available, Quitting."
         return None
 
     # get the list of plotting tasks based on the files we just downloaded.

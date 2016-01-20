@@ -32,14 +32,13 @@ HOW_LONG_TO_KEEP_FILES = settings.HOW_LONG_TO_KEEP_FILES
 PAST_DAYS_OF_FILES_TO_DISPLAY = settings.PAST_DAYS_OF_FILES_TO_DISPLAY
 
 
-#Whats this function do?
+#gets list of avalible files on ftp site (SST)
 def get_ingria_xml_tree():
     # todo: need to handle if the xml file isn't available
     xml_url = urljoin(settings.BASE_NETCDF_URL, CATALOG_XML_NAME)
     catalog_xml = urllib2.urlopen(xml_url)
     tree = ElementTree.parse(catalog_xml)
     return tree
-
 
 def extract_modified_datetime_from_xml(elem):
     modified_datetime_string = elem.find(XML_NAMESPACE + 'date').text
@@ -57,7 +56,7 @@ class DataFileManager(models.Manager):
     #FETCH FILES FOR CURRENTS AND SST
     def fetch_new_files():
         if not DataFileManager.is_new_file_to_download():
-            print "No New Files Available."
+            print "No New SST Files Available."
             return []
 
         # download new file for next few days
@@ -146,6 +145,7 @@ class DataFileManager(models.Manager):
             type='WAVE'
         )
         if not matches_old_file:
+            print "new wavewatch"
             #Create File Name and Download actual File into media folder
             url = urljoin(settings.WAVE_WATCH_URL, file_name)
 
@@ -182,6 +182,7 @@ class DataFileManager(models.Manager):
 
         #Must have already downloaded this file
         else:
+            print "No New Wave Watch Files."
             ftp.quit()
             return []
 
@@ -292,11 +293,15 @@ class DataFileManager(models.Manager):
     def is_new_file_to_download(cls):
         three_days_ago = timezone.now().date()-timedelta(days=3)
         today = timezone.now().date()
+        #print "date today: " + str(today)
+        #print "date 3-day: " + str(three_days_ago)
 
         #Look back at the past 3 days of datafiles
 
         #Just for ROMS model
-        recent_netcdf_files = DataFile.objects.filter(type="ncdf", model_date__range=[three_days_ago, today])
+        recent_netcdf_files = DataFile.objects.filter(type="NCDF", model_date__range=[three_days_ago, today])
+        #print "number of elements recen datafiles: " + str(len(recent_netcdf_files))
+        #print recent_netcdf_files
 
         # empty lists return false
         if not recent_netcdf_files:
@@ -308,13 +313,17 @@ class DataFileManager(models.Manager):
         tags = tree.iter(XML_NAMESPACE + 'dataset')
 
         for elem in tags:
+            #print "file name: " + str(elem.get('name'))
             if not elem.get('name').startswith('ocean_his'):
                 continue
             server_file_modified_datetime = extract_modified_datetime_from_xml(elem)
-            if server_file_modified_datetime <= local_file_modified_datetime:
-                return False
+            #print "\tserver file time: " + str(server_file_modified_datetime)
+            #print "\tlocal file time: " + str(local_file_modified_datetime)
+            #print "\tserver <= local: " + str(server_file_modified_datetime <= local_file_modified_datetime)
+            if server_file_modified_datetime.date() > local_file_modified_datetime.date():
+                return True
 
-        return True
+        return False
 
     @classmethod
     def delete_old_files(cls):
@@ -329,19 +338,6 @@ class DataFileManager(models.Manager):
             DataFile.delete(filename) # Custom delete method for DataFiles: this deletes the actual files from disk too
 
         return True
-
-
-#not using this right now. Better to just use DataFile for new model types rather than making a new class.
-class WaveWatchDataFile(models.Model):
-    DATA_FILE_TYPES = (
-        ('NCDF', "NetCDF"),
-    )
-    type = models.CharField(max_length=10, choices=DATA_FILE_TYPES, default='NCDF')
-    download_datetime = models.DateTimeField()
-    generated_datetime = models.DateTimeField()
-    file = models.FileField(upload_to=settings.NETCDF_STORAGE_DIR, null=True)
-
-
 
 class DataFile(models.Model):
     DATA_FILE_TYPES = (
