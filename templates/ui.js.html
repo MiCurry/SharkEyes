@@ -78,12 +78,35 @@ function initialize() {
       });
     //a hack to make sure the scale is in miles...
     var scaleInterval = setInterval(function() {
-  var scale = $(".gm-style-cc:not(.gmnoprint):contains(' km')");
-  if (scale.length) {
-    scale.click();
-    clearInterval(scaleInterval);
-  }
-}, 100);
+        var scale = $(".gm-style-cc:not(.gmnoprint):contains(' km')");
+        if (scale.length) {
+            scale.click();
+            clearInterval(scaleInterval);
+        }
+    }, 100);
+    var contentString = '';
+    var infowindow;
+    $.getJSON('http://tidesandcurrents.noaa.gov/api/datagetter?product=predictions&application=NOS.COOPS.TAC.WL&date=latest&datum=STND&station=9435380&time_zone=GMT&units=english&interval=&format=json', function(data){
+        console.log(data);
+        console.log('here');
+        console.log(data.predictions.length);
+        for (var i = 0; i < data.predictions.length; i++){
+            console.log('I got here');
+            var item = data.predictions[i];
+            contentString += item.t + " " + item.v; console.log(contentString);
+        }
+        infowindow = new google.maps.InfoWindow({
+        content: contentString
+        });
+    })
+    var marker = new google.maps.Marker({
+	    position: new google.maps.LatLng(44.627107, -124.068863),
+        map: map,
+        title: 'South Beach Station'
+    });
+    marker.addListener('click', function(){
+        infowindow.open(map, marker);
+    });
  }
 //end initialize
 // converts google maps lat/long event decimal coordinates to hexidecimal and
