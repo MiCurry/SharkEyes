@@ -86,6 +86,7 @@ function initialize() {
     }, 100);
     // Code to create the tide information markers and populate the data from noaa. These can probably be refactored to be far more elegant, but this is alpha functionality.
     // South Beach Newport Marker
+    var image = 'http://www.swellinfo.com/assets/images/tide_icon.gif';
     var southBeachContent = '<p>' + '<b>' + 'South Beach Station Tides' + '</b>' + '</p>' + '<br>';
     var southBeachInfoWindow;
     $.getJSON('http://tidesandcurrents.noaa.gov/api/datagetter?product=predictions&application=NOS.COOPS.TAC.WL&date=latest&datum=MLLW&station=9435380&time_zone=lst&units=english&interval=&format=json', function(data){
@@ -100,6 +101,7 @@ function initialize() {
     var southBeachMarker = new google.maps.Marker({
 	    position: new google.maps.LatLng(44.627107, -124.068863),
         map: map,
+        icon: image,
         title: 'South Beach Station, Newport OR'
     });
     southBeachMarker.addListener('click', function(){
@@ -121,6 +123,7 @@ function initialize() {
     var AstoriaMarker = new google.maps.Marker({
 	    position: new google.maps.LatLng(46.191186, -124.011807),
         map: map,
+        icon: image,
         title: 'Astoria, Astoria OR'
     });
     AstoriaMarker.addListener('click', function(){
@@ -142,6 +145,7 @@ function initialize() {
     var coosMarker = new google.maps.Marker({
 	    position: new google.maps.LatLng(43.368178, -124.396843),
         map: map,
+        icon: image,
         title: 'Coos Bay, Coos Bay OR'
     });
     coosMarker.addListener('click', function(){
