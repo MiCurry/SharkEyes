@@ -4,6 +4,7 @@ from celery import shared_task
 from urlparse import urljoin
 from django.utils import timezone
 from pydap.client import open_url
+from pydap.responses.netcdf import save
 import urllib
 from scipy.io import netcdf_file
 import os
@@ -232,8 +233,6 @@ class DataFileManager(models.Manager):
         print "Generated Date:", datafile.generated_datetime
         print "Model Date: ", datafile.model_date
         print "File: ", datafile.file
-
-
 
         return datafile.id
 
