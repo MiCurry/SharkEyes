@@ -186,6 +186,12 @@ class DataFileManager(models.Manager):
             ftp.quit()
             return []
 
+
+    # --------------------------------
+    # def get_wind_file()
+    # This one is being worked on by Miles!
+
+
     @staticmethod
     @shared_task(name='pl_download.get_wind_file')
     def get_wind_file():
@@ -200,28 +206,40 @@ class DataFileManager(models.Manager):
         modified_datetime = datetime.strptime(dateString, "%Y-%m-%dT%H:%M:%SZ").date() #strip date
         current_datetime = modified_datetime+timedelta(days=13) #should give us the current day
 
+        filename = "{0}_{1}.nc".format("WIND", modified_datetime, uuid4())
+        dest_file = os.path.join(destination_directory, filename)
+        urllib.urlretrieve(url = settings.WIND_URL, filename = dest_file)
 
-        local_filename = "{0}_{1}.nc".format("WIND", modified_datetime, uuid4())
-        url = urljoin(settings.WIND_DIR, local_filename)
-        urllib.urlretrieve(url=url, filename=os.path.join(destination_directory, local_filename))
 
         # Check to see if we've download this file before
         matches_old_file = DataFile.objects.filter(
             model_date=current_datetime,
             type='NAMS'
         )
-
         # Saving the file to the database
         datafile = DataFile(
             type='WIND',
             download_datetime=timezone.now(),
             generated_datetime=current_datetime,
             model_date=current_datetime,
-            file=local_filename,
+            file=dest_file,
         )
         datafile.save()
 
+        print "Wind Data File"
+        print "Type: ", datafile.type
+        print "Download Date: ", datafile.download_datetime
+        print "Generated Date:", datafile.generated_datetime
+        print "Model Date: ", datafile.model_date
+        print "File: ", datafile.file
+
+
+
         return datafile.id
+
+    #--------------------------------
+    # def get_wind_file()
+    # This is the onld one!
 
     # @staticmethod
     # @shared_task(name='pl_download.get_latest_wind_files')
