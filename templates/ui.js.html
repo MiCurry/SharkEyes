@@ -84,30 +84,72 @@ function initialize() {
             clearInterval(scaleInterval);
         }
     }, 100);
-    var contentString = '';
-    var infowindow;
-    $.getJSON('http://tidesandcurrents.noaa.gov/api/datagetter?product=predictions&application=NOS.COOPS.TAC.WL&date=latest&datum=STND&station=9435380&time_zone=GMT&units=english&interval=&format=json', function(data){
-        console.log(data);
-        console.log('here');
-        console.log(data.predictions.length);
+    // Code to create the tide information markers and populate the data from noaa these can probably be refactored to be far more elegant, but this is alpha functionality
+    // South Beach Newport Marker
+    var southBeachContent = '<p>' + '<b>' + 'South Beach Station Tides' + '</b>' + '</p>' + '<br>';
+    var southBeachInfoWindow;
+    $.getJSON('http://tidesandcurrents.noaa.gov/api/datagetter?product=predictions&application=NOS.COOPS.TAC.WL&date=latest&datum=MLLW&station=9435380&time_zone=lst&units=english&interval=&format=json', function(data){
         for (var i = 0; i < data.predictions.length; i++){
-            console.log('I got here');
             var item = data.predictions[i];
-            contentString += item.t + " " + item.v; console.log(contentString);
+            southBeachContent += '<p>' + item.t + '   ' + 'Water Level:' + ' ' + item.v + '</p>' + '<br>';
         }
-        infowindow = new google.maps.InfoWindow({
-        content: contentString
+        southBeachInfoWindow = new google.maps.InfoWindow({
+        content: southBeachContent
         });
     })
-    var marker = new google.maps.Marker({
+    var southBeachMarker = new google.maps.Marker({
 	    position: new google.maps.LatLng(44.627107, -124.068863),
         map: map,
-        title: 'South Beach Station'
+        title: 'South Beach Station, Newport OR'
     });
-    marker.addListener('click', function(){
-        infowindow.open(map, marker);
+    southBeachMarker.addListener('click', function(){
+        southBeachInfoWindow.open(map, southBeachMarker);
+    });
+
+    //Astoria Marker
+    var AstoriaContent = '<p>' + '<b>' + 'Astoria Station Tides' + '</b>' + '</p>' + '<br>';
+    var AstoriaInfoWindow;
+    $.getJSON('http://tidesandcurrents.noaa.gov/api/datagetter?product=predictions&application=NOS.COOPS.TAC.WL&date=latest&datum=MLLW&station=9439040&time_zone=lst&units=english&interval=&format=json', function(data){
+        for (var i = 0; i < data.predictions.length; i++){
+            var item = data.predictions[i];
+            AstoriaContent += '<p>' + item.t + '   ' + 'Water Level:' + ' ' + item.v + '</p>' + '<br>';
+        }
+        AstoriaInfoWindow = new google.maps.InfoWindow({
+        content: AstoriaContent
+        });
+    })
+    var AstoriaMarker = new google.maps.Marker({
+	    position: new google.maps.LatLng(46.191186, -124.011807),
+        map: map,
+        title: 'Astoria, Astoria OR'
+    });
+    AstoriaMarker.addListener('click', function(){
+        AstoriaInfoWindow.open(map, AstoriaMarker);
+    });
+
+    //Coos Bay Marker
+    var coosContent = '<p>' + '<b>' + 'Coos Bay Tides' + '</b>' + '</p>' + '<br>';
+    var coosInfoWindow;
+    $.getJSON('http://tidesandcurrents.noaa.gov/api/datagetter?product=predictions&application=NOS.COOPS.TAC.WL&date=latest&datum=MLLW&station=9432780&time_zone=lst&units=english&interval=&format=json', function(data){
+        for (var i = 0; i < data.predictions.length; i++){
+            var item = data.predictions[i];
+            coosContent += '<p>' + item.t + '   ' + 'Water Level:' + ' ' + item.v + '</p>' + '<br>';
+        }
+        coosInfoWindow = new google.maps.InfoWindow({
+        content: coosContent
+        });
+    })
+    var coosMarker = new google.maps.Marker({
+	    position: new google.maps.LatLng(43.368178, -124.396843),
+        map: map,
+        title: 'Coos Bay, Coos Bay OR'
+    });
+    coosMarker.addListener('click', function(){
+        coosInfoWindow.open(map, coosMarker);
     });
  }
+
+
 //end initialize
 // converts google maps lat/long event decimal coordinates to hexidecimal and
 // displays it
