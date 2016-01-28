@@ -201,6 +201,14 @@ class DataFileManager(models.Manager):
 
         # Opening/saving the OPENdAP File into the
         dataset = open_url(settings.WIND_URL)
+        # times = dataset.time.units[11:]
+        # u_var = dataset.get("u-comp_of_wind_height_above_ground")
+        # v_var = dataset.get("v-comp_of_wind_height_above_ground")
+        #
+        # dataset.clear()
+        # dataset[u_comp_of_wind_height_above_ground] = u_var
+        # dataset[v_comp_of_wind_height_above_ground] = v_var
+        # dataset[times] = times
 
         # Finding the correct dates of the model
         dateString = dataset.time.units[11:] #Date from which of forecasts avaible: normally 13 days in the past
@@ -210,7 +218,6 @@ class DataFileManager(models.Manager):
         filename = "{0}_{1}.nc".format("WIND", modified_datetime, uuid4())
         dest_file = os.path.join(destination_directory, filename)
         urllib.urlretrieve(url = settings.WIND_URL, filename = dest_file)
-
 
         # Check to see if we've download this file before
         matches_old_file = DataFile.objects.filter(
@@ -226,6 +233,7 @@ class DataFileManager(models.Manager):
             file=dest_file,
         )
         datafile.save()
+        save(dataset, filename)
 
         print "Wind Data File"
         print "Type: ", datafile.type

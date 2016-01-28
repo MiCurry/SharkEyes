@@ -416,6 +416,32 @@ class OverlayManager(models.Manager):
         # value = numpy.shape(file.variables['HTSGW_surface'][:])
         return overlay_ids
 
+
+
+    # make_wind_plot(int database_id = NONE, int time_index = 0);
+    #   @param: overlay_definition_id   The id of the file that is wished to be plotted.
+    #       Leaving empty or NONE returns a plot of the current time and day's forecast.
+    #   @param: time_index The time of the model which is wished to be plotted. Default is 0.
+    #
+    #
+    @staticmethod
+    @shared_task(name='pl_plot.make_wave_watch_plot')
+    def make_wind_plot(database_id=None, time_index):
+
+        if database_id == None or database_id == 0:
+            database_id = DataFile.objects.filter(type == 'WIND').filter
+
+
+
+
+
+
+
+
+
+
+
+
     @staticmethod
     @shared_task(name='pl_plot.make_plot')
     def make_plot(overlay_definition_id, time_index=0, file_id=None):
