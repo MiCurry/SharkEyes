@@ -202,9 +202,9 @@ class Plotter:
         #lats = self.data_file.variables['lat_rho'][:, 0] # only needed to set up lats
         lats = [40.5840806224, 47.499]
 
-        print "Latitude Longitude plot area"
+        '''print "Latitude Longitude plot area"
         print "\tlats[0]: " + str(lats[0]) + " longs[0]: " + str(longs[0])
-        print "\tlats[-1]: " + str(lats[-1])+ " longs[-1]: " + str(longs[-1])
+        print "\tlats[-1]: " + str(lats[-1])+ " longs[-1]: " + str(longs[-1])'''
 
         # window cropped by picking lat and lon corners
         bmap = Basemap(projection='merc',
