@@ -325,6 +325,8 @@ def currents_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio)
         avg = numpy.average(array)
         return numpy.nan if avg > 10**3 else avg
 
+    print "Currents Downsample Ratio:", downsample_ratio
+
     currents_u = data_file.variables['u'][time_index][29]
     currents_v = data_file.variables['v'][time_index][29]
     rho_mask = get_rho_mask(data_file)
@@ -370,18 +372,19 @@ def currents_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio)
     key_ax.set_axis_off()
 
 
-def wind_function(ax, data_file, bmap, key_ax, forecast_index, downsample_ratio):
+def wind_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
+    downsample_ratio = 10
+
     def compute_average(array):
         avg = numpy.average(array)
         return numpy.nan if avg > 10**3 else avg
 
     #forecast_index+104 because there are 13 days of backcasts that we do not need
-    winds_u = data_file['u-component_of_wind_height_above_ground'][forecast_index+104, 0, :, :]
-    winds_v = data_file['v-component_of_wind_height_above_ground'][forecast_index+104, 0, :, :]
-
+    winds_u = data_file['u-component_of_wind_height_above_ground'][time_index+104, 0, :, :]
+    winds_v = data_file['v-component_of_wind_height_above_ground'][time_index+104, 0, :, :]
 
     #values come from the text file and allow you to convert from the model's coordinate projection system
-    info = numpy.loadtxt('latlon.g218')
+    info = numpy.loadtxt('/opt/sharkeyes/src/latlon.g218')
     lats = numpy.reshape(info[:, 2], [614,428])
     longs = numpy.reshape(info[:, 3], [614,428])
 
@@ -418,6 +421,11 @@ def wind_function(ax, data_file, bmap, key_ax, forecast_index, downsample_ratio)
                                   color='white', labelsep=.5, coordinates='axes')
     key_ax.set_axis_off()
 
+
+# def crop_and_downSample(source_array, downsample_ratio, average=True)
+#
+#
+#
 
 def crop_and_downsample(source_array, downsample_ratio, average=True):
     ys, xs = source_array.shape

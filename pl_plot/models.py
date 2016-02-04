@@ -9,7 +9,7 @@ from datetime import datetime, time, tzinfo, timedelta
 from django.utils import timezone
 from celery import shared_task
 from pl_plot import plot_functions
-from pl_plot.plotter import Plotter, WaveWatchPlotter
+from pl_plot.plotter import Plotter, WaveWatchPlotter, WindPlotter
 from pl_download.models import DataFile, DataFileManager
 from django.db.models.aggregates import Max
 from uuid import uuid4
@@ -424,17 +424,12 @@ class OverlayManager(models.Manager):
     #   @param: time_index The time of the model which is wished to be plotted. Default is 0.
     #
     #
-    @staticmethod
-    @shared_task(name='pl_plot.make_wave_watch_plot')
-    def make_wind_plot(database_id=None, time_index):
-
-        if database_id == None or database_id == 0:
-            database_id = DataFile.objects.filter(type == 'WIND').filter
-
-
-
-
-
+    # @staticmethod
+    # @shared_task(name='pl_plot.make_wave_watch_plot')
+    # def make_wind_plot(database_id=None, time_index):
+    #
+    #     if database_id == None or database_id == 0:
+    #         database_id = DataFile.objects.filter(type == 'WIND').filter
 
 
 
@@ -458,10 +453,16 @@ class OverlayManager(models.Manager):
         zoom_levels_for_others = [(None, None)]
 
         if file_id is None:
-            datafile = DataFile.objects.latest('model_date')
+            datafile = DataFile.objects.latest('model_date') #EEEYE! SUPER BAD! Pulls any type of model!
         else:
             datafile = DataFile.objects.get(pk=file_id)
-        plotter = Plotter(datafile.file.name)
+
+        # Checking to see if the file is a netcdf or an OpenDap file
+        if overlay_definition_id == 5:
+            plotter = WindPlotter(datafile.file.name) # Wind is an OPenDaP Access not a netcdf file...
+        else:
+            plotter = Plotter(datafile.file.name)
+
         overlay_definition = OverlayDefinition.objects.get(pk=overlay_definition_id)
 
         if overlay_definition_id == 3:
