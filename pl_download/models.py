@@ -4,7 +4,6 @@ from celery import shared_task
 from urlparse import urljoin
 from django.utils import timezone
 from pydap.client import open_url
-from pydap.responses.netcdf import save
 import urllib
 from scipy.io import netcdf_file
 import os
