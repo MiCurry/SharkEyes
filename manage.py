@@ -7,15 +7,6 @@ if __name__ == "__main__":
 
     import SharkEyesCore.startup as startup
     startup.run()
-    from django.core.management import execute_from_command_line
-
-    execute_from_command_line(sys.argv)
-
-
-
-def setUP():
-    from pl_download.models import DataFileManager
-    from pl_plot.models import OverlayManager
 
     if sys.argv[-1] == "plot":
         from pl_download.models import DataFileManager
