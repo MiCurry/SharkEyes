@@ -3,7 +3,6 @@ from django.conf import settings
 from celery import shared_task
 from urlparse import urljoin
 from django.utils import timezone
-from pydap.client import open_url
 import urllib
 from scipy.io import netcdf_file
 import os
