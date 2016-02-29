@@ -1,6 +1,9 @@
 from django.db import models
 from django.core.mail import send_mail
 
+# SharkEyesCore\models.py
+# This file sets up FeedBackHistory and the FeedBackQuestion classes for the site.
+
 # This import is so that we can access the email recipients from the settings_local file for whatever server we are on
 from django.conf import settings
 
@@ -9,17 +12,13 @@ class FeedbackHistory (models.Model):
     feedback_comments = models.CharField(max_length=2000)
     sent = models.BooleanField(default=False)
 
-
-
     @classmethod
     def send_feedback_forms(cls):
         # Only get the items that have not yet been sent.
         # This does not have error handling in case an email fails to send.
         feedback_items = FeedbackHistory.objects.filter(sent=False)
 
-
-
-         # Based on which server we are on, determine who to send the feedback to. Comments on
+        # Based on which server we are on, determine who to send the feedback to. Comments on
         # Production go to Flaxen, comments on Staging go to Bethany Carlson or other developer for
         # testing purposes.
         recipient = settings.RECIPIENT
@@ -33,7 +32,6 @@ class FeedbackHistory (models.Model):
 
             each.sent = True
             each.save()
-
 
 class FeedbackQuestionaire (models.Model):
     ACCURACY_TYPE = (

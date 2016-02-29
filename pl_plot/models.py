@@ -9,7 +9,7 @@ from datetime import datetime, time, tzinfo, timedelta
 from django.utils import timezone
 from celery import shared_task
 from pl_plot import plot_functions
-from pl_plot.plotter import Plotter, WaveWatchPlotter
+from pl_plot.plotter import Plotter, WaveWatchPlotter, WindPlotter
 from pl_download.models import DataFile, DataFileManager
 from django.db.models.aggregates import Max
 from uuid import uuid4
@@ -58,91 +58,35 @@ class OverlayManager(models.Manager):
         return ids_of_these
 
     @classmethod
-    def get_next_few_days_of_tiled_overlays(cls):
+    def get_next_few_days_of_tiled_overlays(cls, models=[1]):
+        # return all the desired entries from database using this variable
+        display = Overlay.objects.none()
+        #print display
+        # know what dates to look for
+        dates = Overlay.objects.filter(applies_at_datetime__gte=timezone.now()-timedelta(days=PAST_DAYS_OF_FILES_TO_DISPLAY),
+                                       applies_at_datetime__lte=timezone.now()+timedelta(days=4),
+                                       is_tiled=True
+                                       ).values_list('applies_at_datetime', flat=True).distinct()
 
-        # Pick how many days into the future and past we want to display overlays for
-        next_few_days_of_overlays = Overlay.objects.filter(
-            applies_at_datetime__gte=timezone.now()-timedelta(days=PAST_DAYS_OF_FILES_TO_DISPLAY),
-            applies_at_datetime__lte=timezone.now()+timedelta(days=4),
-            is_tiled=True,
-        )
-        # Laborious stuff to ensure that we have an overlay for EACH model type
-        next_few_days_of_sst_overlays = next_few_days_of_overlays.filter(definition_id=1)
-        next_few_days_of_currents_overlays = next_few_days_of_overlays.filter(definition_id=3)
-        next_few_days_of_height_overlays = next_few_days_of_overlays.filter(definition_id=4)
-        next_few_days_of_direction_overlays = next_few_days_of_overlays.filter(definition_id=6)
-        # TODO wave periodd
-        # next_few_days_of_period_overlays = next_few_days_of_overlays.filter(definition_id=7)
-
-        # Get the newest overlay for each Model type and time. This assumes that for a certain model date,
-        # a larger ID value
-        # indicates a more recently-created (and hence more accurate) overlay.
-        # Note that a higher ID does NOT by itself indicate a more recent MODEL date
-        # because a datafile's time indexes get plotted asynchronously. I.e. tomorrow at 1 PM and tomorrow at 5 PM do not
-        # get plotted in that order, but two days' past forecast for tomorrow 1 PM will always get plotted before
-        # yesterday's forecast for tomorrow 1 PM.
-        and_the_newest_for_each_height = next_few_days_of_height_overlays.values('definition_id', 'applies_at_datetime')\
-            .annotate(newest_id=Max('id'))
-        height_ids = and_the_newest_for_each_height.values_list('newest_id', flat=True)
-
-        and_the_newest_for_each_sst = next_few_days_of_sst_overlays.values('definition_id', 'applies_at_datetime')\
-            .annotate(newest_id=Max('id'))
-        sst_ids = and_the_newest_for_each_sst.values_list('newest_id', flat=True)
-
-        and_the_newest_for_each_currents = next_few_days_of_currents_overlays.values('definition_id', 'applies_at_datetime')\
-            .annotate(newest_id=Max('id'))
-        currents_ids = and_the_newest_for_each_currents.values_list('newest_id', flat=True)
-
-        and_the_newest_for_each_direction = next_few_days_of_direction_overlays.values('definition_id', 'applies_at_datetime')\
-            .annotate(newest_id=Max('id'))
-        direction_ids = and_the_newest_for_each_direction.values_list('newest_id', flat=True)
-
-        # TODO wave period
-        #and_the_newest_for_each_period = next_few_days_of_period_overlays.values('definition_id', 'applies_at_datetime')\
-          #  .annotate(newest_id=Max('id'))
-        #period_ids = and_the_newest_for_each_period.values_list('newest_id', flat=True)
-
-
-        # Filter out only the most recent overlay for each type and time
-
-        newest_sst_overlays_to_display = next_few_days_of_sst_overlays.filter(id__in=sst_ids).order_by('definition', 'applies_at_datetime')
-        newest_height_overlays_to_display = next_few_days_of_height_overlays.filter(id__in=height_ids).order_by('definition', 'applies_at_datetime')
-        newest_currents_overlays_to_display = next_few_days_of_currents_overlays.filter(id__in=currents_ids).order_by('definition', 'applies_at_datetime')
-        newest_direction_overlays_to_display = next_few_days_of_direction_overlays.filter(id__in=direction_ids).order_by('definition', 'applies_at_datetime')
-        #TODO wave period
-        #  newest_period_overlays_to_display = next_few_days_of_period_overlays.filter(id__in=period_ids).order_by('definition', 'applies_at_datetime')
-
-
-        height_dates = newest_height_overlays_to_display.values_list( 'applies_at_datetime', flat=True)
-        sst_dates = newest_sst_overlays_to_display.values_list( 'applies_at_datetime', flat=True)
-        currents_dates = newest_currents_overlays_to_display.values_list( 'applies_at_datetime', flat=True)
-        direction_dates = newest_direction_overlays_to_display.values_list( 'applies_at_datetime', flat=True)
-        #TODO wave period
-        # period_dates = newest_period_overlays_to_display.values_list( 'applies_at_datetime', flat=True)
-
-
-        #Get the distinct dates where there is an SST, currents, and also a wave direction, period and height overlay
-        date_overlap = next_few_days_of_overlays.filter(applies_at_datetime__in=list(sst_dates))\
-            .filter(applies_at_datetime__in=list(height_dates)).filter(applies_at_datetime__in=list(currents_dates))\
-            .filter(applies_at_datetime__in=list(direction_dates)).values_list('applies_at_datetime', flat=True).distinct() # wave period: .filter(applies_at_datetime__in=list(period_dates))\
-
-        # Now get the actual overlays where there is an overlap
-        overlapped_sst_items_to_display = newest_sst_overlays_to_display.filter(applies_at_datetime__in=list(date_overlap))
-        overlapped_currents_items_to_display = newest_currents_overlays_to_display.filter(applies_at_datetime__in=list(date_overlap))
-        overlapped_direction_items_to_display = newest_direction_overlays_to_display.filter(applies_at_datetime__in=list(date_overlap))
-        overlapped_height_items_to_display = newest_height_overlays_to_display.filter(applies_at_datetime__in=list(date_overlap))
-        #TODO wave period
-        # overlapped_period_items_to_display = newest_period_overlays_to_display.filter(applies_at_datetime__in=list(date_overlap))
-
-
-        #Join the two sets
-        all_items_to_display = overlapped_sst_items_to_display \
-                               | overlapped_height_items_to_display |  overlapped_direction_items_to_display \
-            | overlapped_currents_items_to_display
-                              # | overlapped_period_items_to_display
-
-        # Send the items back to the SharkEyesCore/views.py file, which preps the main page to be loaded.
-        return all_items_to_display
+        for d in dates:
+            #print "date: "
+            #print d
+            over = Overlay.objects.filter(applies_at_datetime = d, is_tiled=True)
+            for m in models:
+                #print m
+                tile = over.filter(definition_id=m)
+                gen = tile.aggregate(Max('created_datetime'))['created_datetime__max']
+                if gen == None:
+                    #print "Nothing on this date for model..."
+                    continue
+                else:
+                    #print gen
+                    gen = gen - timedelta(days=1)
+                    #print gen
+                    add = tile.filter(created_datetime__gte=gen)
+                    #print add
+                    display = display | add
+        return display
 
 
     # these are for getting and running task groups
@@ -416,6 +360,27 @@ class OverlayManager(models.Manager):
         # value = numpy.shape(file.variables['HTSGW_surface'][:])
         return overlay_ids
 
+
+
+    # make_wind_plot(int database_id = NONE, int time_index = 0);
+    #   @param: overlay_definition_id   The id of the file that is wished to be plotted.
+    #       Leaving empty or NONE returns a plot of the current time and day's forecast.
+    #   @param: time_index The time of the model which is wished to be plotted. Default is 0.
+    #
+    #
+    # @staticmethod
+    # @shared_task(name='pl_plot.make_wave_watch_plot')
+    # def make_wind_plot(database_id=None, time_index):
+    #
+    #     if database_id == None or database_id == 0:
+    #         database_id = DataFile.objects.filter(type == 'WIND').filter
+
+
+
+
+
+
+
     @staticmethod
     @shared_task(name='pl_plot.make_plot')
     def make_plot(overlay_definition_id, time_index=0, file_id=None):
@@ -432,10 +397,16 @@ class OverlayManager(models.Manager):
         zoom_levels_for_others = [(None, None)]
 
         if file_id is None:
-            datafile = DataFile.objects.latest('model_date')
+            datafile = DataFile.objects.latest('model_date') #EEEYE! SUPER BAD! Pulls any type of model!
         else:
             datafile = DataFile.objects.get(pk=file_id)
-        plotter = Plotter(datafile.file.name)
+
+        # Checking to see if the file is a netcdf or an OpenDap file
+        if overlay_definition_id == 5:
+            plotter = WindPlotter(datafile.file.name) # Wind is an OPenDaP Access not a netcdf file...
+        else:
+            plotter = Plotter(datafile.file.name)
+
         overlay_definition = OverlayDefinition.objects.get(pk=overlay_definition_id)
 
         if overlay_definition_id == 3:

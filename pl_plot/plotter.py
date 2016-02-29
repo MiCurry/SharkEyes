@@ -118,7 +118,15 @@ class WindPlotter:
     def get_number_of_model_times(self):
         return 12
 
-    def make_plot(self, plot_function, forecast_index,storage_dir, generated_datetime, downsample_ratio=None):
+    def get_time_at_oceantime_index(self, index):
+        #Team 1 says todo add checking of times here. there's only three furthest out file
+        self.dataset = open_url(settings.WIND_URL)
+        dateString = self.dataset.time.units[11:] #Date from which of forecasts avaible: normally 13 days in the past
+        modified_datetime = datetime.strptime(dateString, "%Y-%m-%dT%H:%M:%SZ").date() #strip date
+        current_datetime = modified_datetime+timedelta(days=13) #should give us the current day
+        return current_datetime
+
+    def make_plot(self, plot_function, zoom_levels, time_index=0, downsample_ratio=None):
 
         fig = pyplot.figure()
         key_fig = pyplot.figure(facecolor=settings.OVERLAY_KEY_COLOR)
@@ -134,19 +142,22 @@ class WindPlotter:
                        llcrnrlon=-129, urcrnrlon=-123.7265625,
                        ax=ax, epsg=4326)
 
-        plot_function(ax=ax, data_file=self.data_file, forecast_index=forecast_index, bmap=bmap, key_ax=key_ax, downsample_ratio=downsample_ratio)
+        plot_function(ax=ax, data_file=self.data_file, time_index=time_index, bmap=bmap, key_ax=key_ax, downsample_ratio=downsample_ratio)
 
-        plot_filename = "{0}_{1}_{2}_{3}.png".format(plot_function.__name__,forecast_index,generated_datetime, uuid4())
-        key_filename = "{0}_key_{1}_{2}.png".format(plot_function.__name__,generated_datetime, uuid4())
+
+        generated_datetime = timezone.now().date() #The wind png is always generated at the time of the call
+
+        plot_filename = "{0}_{1}_{2}_{3}.png".format(plot_function.__name__, time_index, generated_datetime, uuid4())
+        key_filename = "{0}_key_{1}_{2}.png".format(plot_function.__name__, generated_datetime, uuid4())
 
 
         fig.savefig(
-             os.path.join(settings.MEDIA_ROOT, storage_dir, plot_filename),
+             os.path.join(settings.MEDIA_ROOT, settings.UNCHOPPED_STORAGE_DIR, plot_filename),
              dpi=1200, bbox_inches='tight', pad_inches=0,
              transparent=True, frameon=False)
         pyplot.close(fig)
 
-        if forecast_index == 0:
+        if time_index == 0:
             key_fig.savefig(
                  os.path.join(settings.MEDIA_ROOT, settings.KEY_STORAGE_DIR, key_filename),
                  dpi=500, bbox_inches='tight', pad_inches=0,
@@ -177,8 +188,6 @@ class Plotter:
 
     def get_number_of_model_times(self):
         return numpy.shape(self.data_file.variables['ocean_time'])[0]
-
-
 
     def make_plot(self, plot_function, zoom_levels, time_index=0,  downsample_ratio=None):
 
