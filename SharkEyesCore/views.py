@@ -24,7 +24,7 @@ def home(request):
     datetimes = overlays_view_data.values_list('applies_at_datetime', flat=True).distinct()
     print "datetimes"
     for d in datetimes:
-        print "    " + d
+        print "    " + str(d)
 
     context = {'overlays': overlays_view_data, 'defs': OverlayDefinition.objects.filter(is_base=True, id__in=models), 'times':datetimes }
 
