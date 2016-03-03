@@ -112,6 +112,7 @@ $(".overlay-toggle").click(function(e) {
         for (name in definitions) {
             if (name != type && definitions[name] == definitions[type]){
                 $("#" + name + ".toggle-checkbox").prop('checked', false);
+                remove_overlay(type);
             }
         }
         if(insert_overlay(textdate, type) != true) {
