@@ -1,5 +1,6 @@
 from django.db import models
 from django.core.mail import send_mail
+from django.utils import timezone
 
 # SharkEyesCore\models.py
 # This file sets up FeedBackHistory and the FeedBackQuestion classes for the site.
@@ -14,6 +15,7 @@ class FeedbackHistory (models.Model):
     feedback_name = models.CharField(max_length=2000, blank=True)
     feedback_email = models.CharField(max_length=2000, blank=True)
     feedback_phone = models.CharField(max_length=2000, blank=True)
+    feedback_date = models.CharField(max_length=100, default=timezone.now())
 
     @classmethod
     def send_feedback_forms(cls):

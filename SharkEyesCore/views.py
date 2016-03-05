@@ -5,6 +5,7 @@ import json
 from django.db import connection
 from django.db import IntegrityError, transaction
 from django.views.decorators.csrf import csrf_exempt
+from django.utils import timezone
 from django.http import HttpResponse
 
 
@@ -76,12 +77,13 @@ def save_feedback(request):
     feedback_name = json.loads(request.body)["name"]
     feedback_email = json.loads(request.body)["email"]
     feedback_phone = json.loads(request.body)["phone"]
+    feedback_date = timezone.now()
 
     try:
         #Establish DB Connection
         cursor = connection.cursor()
         #Execute SQL Query
-        cursor.execute("""INSERT INTO SharkEyesCore_feedbackhistory (feedback_title, feedback_comments, sent, feedback_name, feedback_email, feedback_phone) VALUES (%s, %s, %s, %s, %s, %s);""", (feedback_title, feedback_comment, sent, feedback_name, feedback_email, feedback_phone))
+        cursor.execute("""INSERT INTO SharkEyesCore_feedbackhistory (feedback_title, feedback_comments, sent, feedback_name, feedback_email, feedback_phone, feedback_date) VALUES (%s, %s, %s, %s, %s, %s, %s);""", (feedback_title, feedback_comment, sent, feedback_name, feedback_email, feedback_phone, feedback_date))
         #Nothing needs to be returned
     except IntegrityError as e:
         print "Error Message: "
