@@ -12,7 +12,7 @@ from django.http import HttpResponse
 def home(request):
     # TODO: add 7 back in if you want to add in the wave period model
     # maybe not sure how wind is stored in the database...
-    models = [1,3,4,6, 7]
+    models = [1,3,4,6,]
 
     overlays_view_data = OverlayManager.get_next_few_days_of_tiled_overlays(models)
     print
@@ -73,12 +73,15 @@ def save_feedback(request):
     feedback_title = json.loads(request.body)["title"]
     feedback_comment = json.loads(request.body)["comment"]
     sent = False  #By default, a survey has Not yet been delivered
+    feedback_name = json.loads(request.body)["name"]
+    feedback_email = json.loads(request.body)["email"]
+    feedback_phone = json.loads(request.body)["phone"]
 
     try:
         #Establish DB Connection
         cursor = connection.cursor()
         #Execute SQL Query
-        cursor.execute("""INSERT INTO SharkEyesCore_feedbackhistory (feedback_title, feedback_comments, sent ) VALUES (%s, %s, %s);""", (feedback_title, feedback_comment, sent))
+        cursor.execute("""INSERT INTO SharkEyesCore_feedbackhistory (feedback_title, feedback_comments, sent, feedback_name, feedback_email, feedback_phone) VALUES (%s, %s, %s, %s, %s, %s);""", (feedback_title, feedback_comment, sent, feedback_name, feedback_email, feedback_phone))
         #Nothing needs to be returned
     except IntegrityError as e:
         print "Error Message: "

@@ -30,7 +30,7 @@ def do_pipeline():
 
     # Downloading the latest datafiles for our models. See the appropriate functions
     # (pl_download/models.py.DataFileManager.get_latest_wave_watch_files() and
-    #  pl_download/models.py.DataFileManager.fetch_new_files()) respectavily
+    #  pl_download/models.py.DataFileManager.fetch_new_files()) respectively
     wave_watch_files = DataFileManager.get_latest_wave_watch_files()
     other_files = DataFileManager.fetch_new_files()   # not calling as a task so it runs inline
 
