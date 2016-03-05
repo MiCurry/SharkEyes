@@ -30,20 +30,10 @@ class FeedbackHistory (models.Model):
             # Use the Django framework's send_mail function to create the email
             # pattern Subject, Body, From, To(as a list)
             #TODO set this to be sent to Flaxen
-            send_mail('[Seacast Feedback]' , each.feedback_name + each.feedback_email + each.feedback_phone + each.feedback_title + each.feedback_comments, 'seacast.mail@gmail.com',
+            send_mail('[Seacast Feedback]' + each.feedback_title, '\nname: ' + each.feedback_name + '\nemail: ' + each.feedback_email + '\nphone: ' + each.feedback_phone + '\ncomments: ' + each.feedback_comments, 'seacast.mail@gmail.com',
                 [recipient], fail_silently=False)
             each.sent = True
             each.save()
-
-        # send_mail('[Seacast Survey] ', '\nLocation: '+location+ '\nUsage Frequency: '+ str(frequency) +
-         #           '\nDevice: '+ device + '\nGeneral Comments: ' + str(each.usage_comment) +
-          #          '\nSST accuracy: ' + sst_accuracy + '\nCurrents accuracy: ' + currents_accuracy
-           #           + '\nWind accuracy: ' + wind_accuracy + '\nWave accuracy: ' + wave_accuracy
-            #          + '\nHow Seacast compares to other forecasting systems: '+ str(each.usage_comparison)
-             #         + '\nWhat is liked about Seacast: ' + str(each.usage_likes)
-              #        + '\nSuggestions to change: ' + str(each.usage_suggestion)
-               #       + '\nOther information to incorporate: ' + str(each.usage_model_suggestion) ,
-               #       'seacast.mail@gmail.com',  [recipient], fail_silently=False)
 
 class FeedbackQuestionaire (models.Model):
     ACCURACY_TYPE = (
