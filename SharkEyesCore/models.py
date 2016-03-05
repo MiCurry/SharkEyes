@@ -30,7 +30,7 @@ class FeedbackHistory (models.Model):
             # Use the Django framework's send_mail function to create the email
             # pattern Subject, Body, From, To(as a list)
             #TODO set this to be sent to Flaxen
-            send_mail('[Seacast Feedback]' + each.feedback_title, '\nname: ' + each.feedback_name + '\nemail: ' + each.feedback_email + '\nphone: ' + each.feedback_phone + '\ncomments: ' + each.feedback_comments, 'seacast.mail@gmail.com',
+            send_mail('[Seacast Feedback] ' + each.feedback_title, '\nname: '+ each.feedback_name+ '\nemail: '+ each.feedback_email+ '\nphone: '+ each.feedback_phone+ '\ncomments: '+ each.feedback_comments, 'seacast.mail@gmail.com',
                 [recipient], fail_silently=False)
             each.sent = True
             each.save()
