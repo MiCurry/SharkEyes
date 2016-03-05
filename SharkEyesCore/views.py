@@ -70,9 +70,6 @@ def save_survey(request):
 @csrf_exempt
 def save_feedback(request):
     #Access feedback data to be saved into the database
-    feedback_name = json.loads(request.body)["name"]
-    feedback_phone = json.loads(request.body)["phone"]
-    feedback_email = json.loads(request.body)["email"]
     feedback_title = json.loads(request.body)["title"]
     feedback_comment = json.loads(request.body)["comment"]
     sent = False  #By default, a survey has Not yet been delivered
@@ -81,7 +78,7 @@ def save_feedback(request):
         #Establish DB Connection
         cursor = connection.cursor()
         #Execute SQL Query
-        cursor.execute("""INSERT INTO SharkEyesCore_feedbackhistory (feedback_name, feedback_phone, feedback_email, feedback_title, feedback_comments, sent ) VALUES (%s, %s, %s);""", (feedback_name, feedback_phone, feedback_email, feedback_title, feedback_comment, sent))
+        cursor.execute("""INSERT INTO SharkEyesCore_feedbackhistory (feedback_title, feedback_comments, sent ) VALUES (%s, %s, %s);""", (feedback_title, feedback_comment, sent))
         #Nothing needs to be returned
     except IntegrityError as e:
         print "Error Message: "
