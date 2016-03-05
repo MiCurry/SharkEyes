@@ -80,15 +80,16 @@ class DataFileManager(models.Manager):
                 continue
             date_string_from_filename = server_filename.split('_')[-1]
             model_date = datetime.strptime(date_string_from_filename, "%d-%b-%Y.nc").date()   # this could fail, need error handling badly
+            modified_datetime = extract_modified_datetime_from_xml(elem)
 
             for day_to_retrieve in days_to_retrieve:
                 if model_date - day_to_retrieve == timedelta(days=0):
-                    files_to_retrieve.append((server_filename, model_date))
+                    files_to_retrieve.append((server_filename, model_date, modified_datetime))
         destination_directory = os.path.join(settings.MEDIA_ROOT, settings.NETCDF_STORAGE_DIR)
 
         new_file_ids = []
 
-        for server_filename, model_date in files_to_retrieve:
+        for server_filename, model_date, modified_datetime in files_to_retrieve:
             url = urljoin(settings.BASE_NETCDF_URL, server_filename)
             local_filename = "{0}_{1}.nc".format(model_date, uuid4())
             print "Retrieving: " + str(local_filename)
@@ -96,7 +97,7 @@ class DataFileManager(models.Manager):
             datafile = DataFile(
                 type='NCDF',
                 download_datetime=timezone.now(),
-                generated_datetime=model_date,
+                generated_datetime=modified_datetime,
                 model_date=model_date,
                 file=local_filename,
             )
@@ -332,7 +333,7 @@ class DataFileManager(models.Manager):
             server_file_modified_datetime = extract_modified_datetime_from_xml(elem)
             #print "\tserver file time: " + str(server_file_modified_datetime)
             #print "\tlocal file time: " + str(local_file_modified_datetime)
-            #print "\tserver <= local: " + str(server_file_modified_datetime <= local_file_modified_datetime)
+            #print "\tserver > local: " + str(server_file_modified_datetime > local_file_modified_datetime)
             if server_file_modified_datetime.date() > local_file_modified_datetime.date():
                 return True
 
