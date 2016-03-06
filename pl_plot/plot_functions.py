@@ -196,6 +196,12 @@ def wave_period_function(ax, data_file, bmap, key_ax, forecast_index, downsample
      # Mask all of the data points that are "nan" (not a number) in the data file; these represent land
      period_masked = np.ma.masked_array(all_day[forecast_index][:, :],np.isnan(all_day[forecast_index][:,:]))
 
+     #This is the average wave period for the day
+     mean_val = np.mean(period_masked)
+
+     #This is the maximum wave period value for the day
+     max_val = np.amax(period_masked)
+
      # Min time in seconds: the fishermen suggested a period range of 4--25 seconds.
      min_period = MIN_WAVE_PERIOD
 
