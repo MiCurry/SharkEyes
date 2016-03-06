@@ -376,11 +376,6 @@ class OverlayManager(models.Manager):
     #         database_id = DataFile.objects.filter(type == 'WIND').filter
 
 
-
-
-
-
-
     @staticmethod
     @shared_task(name='pl_plot.make_plot')
     def make_plot(overlay_definition_id, time_index=0, file_id=None):

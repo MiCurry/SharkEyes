@@ -371,8 +371,55 @@ def currents_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio)
                                   color='white', labelsep=.5, coordinates='axes')
     key_ax.set_axis_off()
 
-
+# Check winds are going in the right direction
 def wind_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
+    var_u = 'u-component_of_wind_height_above_ground'
+    var_v = 'v-component_of_wind_height_above_ground'
+    landMask = 'Land_cover_0__sea_1__land_surface'
+    level = 1; #Sea Surface
+
+    """
+    Grabbing the u + v values at time_index, level = 0, x = nan, y = nan
+    nan = not a number
+    """
+    wind_u = data_file[var_u][time_index+104, 0, :, :]
+    wind_v = data_file[var_v][time_index+104, 0, :, :]
+    model_time = data_file['time']
+
+    tmp = numpy.loadtxt('/opt/sharkeyes/src/latlon.g218')
+    lat = numpy.reshape(tmp[:, 2], [614,428])
+    lon = numpy.reshape(tmp[:, 3], [614,428])
+
+    x, y = bmap(lon, lat)
+
+    wind_u = numpy.reshape(wind_u, (614, 428))
+    wind_v = numpy.reshape(wind_v, (614, 428))
+
+    print "AFTER RESHAPING:"
+    print "Number of Wind_u:", wind_u.shape
+    print "Number of Wind_v:", wind_v.shape
+    print "Lat:", lat.shape
+    print "Lon:", lon.shape
+    print "x:", x.shape ,"y", y.shape
+    ratio = 3
+    print "Ratio:", ratio
+
+    for i in range(0, len(lon)):
+        lon[i] = -lon[i]
+
+    bmap.drawmapboundary(linewidth=1.0, ax=ax)
+    bmap.drawparallels(np.arange(0, 360, 1), labels=[1,1,1,1])
+    bmap.drawmeridians(np.arange(0,360,1), labels=[1,1,1,1])
+    bmap.drawcoastlines()
+    bmap.barbs(         x[::ratio, ::ratio],
+                        y[::ratio, ::ratio],
+                        wind_u[::ratio, ::ratio],
+                        wind_v[::ratio, ::ratio],
+                        ax=ax,
+                        color='black')
+
+
+def wind_function_(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
     downsample_ratio = 10
 
     def compute_average(array):
@@ -390,6 +437,7 @@ def wind_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
 
     for i in range (0, len(longs)):
         longs[i] = -longs[i]
+
 
     # average nearby points to align grid, and add the edge column/row so it's the right size.
     winds_u = numpy.reshape(winds_u, (428, 614))
@@ -426,10 +474,10 @@ def wind_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
 #
 #
 #
-
 def crop_and_downsample(source_array, downsample_ratio, average=True):
+    # Gets the array deminsons
     ys, xs = source_array.shape
-    #print "shape is ", source_array.shape
+    print "shape is ", source_array.shape
     cropped_array = source_array[:ys - (ys % int(downsample_ratio)), :xs - (xs % int(downsample_ratio))]
     if average:
         zoomed_array = scipy.nanmean(numpy.concatenate(
