@@ -24,7 +24,7 @@ h2 {
 .sidebar {
   box-shadow: 0 0 7px rgba(0, 0, 0, 0.9);
   background-color: #fafafa;
-  width: 280px;
+  width: auto;
   height: 100%;
   position: absolute;
   top: 0px;

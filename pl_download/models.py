@@ -3,8 +3,6 @@ from django.conf import settings
 from celery import shared_task
 from urlparse import urljoin
 from django.utils import timezone
-from pydap.client import open_url
-from pydap.responses.netcdf import save
 import urllib
 from scipy.io import netcdf_file
 import os
@@ -82,15 +80,16 @@ class DataFileManager(models.Manager):
                 continue
             date_string_from_filename = server_filename.split('_')[-1]
             model_date = datetime.strptime(date_string_from_filename, "%d-%b-%Y.nc").date()   # this could fail, need error handling badly
+            modified_datetime = extract_modified_datetime_from_xml(elem)
 
             for day_to_retrieve in days_to_retrieve:
                 if model_date - day_to_retrieve == timedelta(days=0):
-                    files_to_retrieve.append((server_filename, model_date))
+                    files_to_retrieve.append((server_filename, model_date, modified_datetime))
         destination_directory = os.path.join(settings.MEDIA_ROOT, settings.NETCDF_STORAGE_DIR)
 
         new_file_ids = []
 
-        for server_filename, model_date in files_to_retrieve:
+        for server_filename, model_date, modified_datetime in files_to_retrieve:
             url = urljoin(settings.BASE_NETCDF_URL, server_filename)
             local_filename = "{0}_{1}.nc".format(model_date, uuid4())
             print "Retrieving: " + str(local_filename)
@@ -98,7 +97,7 @@ class DataFileManager(models.Manager):
             datafile = DataFile(
                 type='NCDF',
                 download_datetime=timezone.now(),
-                generated_datetime=model_date,
+                generated_datetime=modified_datetime,
                 model_date=model_date,
                 file=local_filename,
             )
@@ -131,7 +130,7 @@ class DataFileManager(models.Manager):
         ftp_dtm = ftp.sendcmd('MDTM' + " /pub/outgoing/ww3data/" + file_name)
 
         #convert ftp datetime format to a string datetime
-        initial_datetime = datetime.datetime.strptime(ftp_dtm[4:], "%Y%m%d%H%M%S").strftime("%Y-%m-%d")
+        initial_datetime = datetime.strptime(ftp_dtm[4:], "%Y%m%d%H%M%S").strftime("%Y-%m-%d")
 
         naive_datetime = parser.parse(initial_datetime)
         modified_datetime = timezone.make_aware(naive_datetime, timezone.utc)
@@ -142,7 +141,7 @@ class DataFileManager(models.Manager):
             # the date on which we download the file.
             # This is prone to fail. However, when we actually save the record in the database,
             # THAT model_date is guarenteed to be correct.
-            model_date=datetime.datetime.date( modified_datetime - timedelta(days=1)),
+            model_date=datetime.date( modified_datetime - timedelta(days=1)),
             type='WAVE'
         )
         if not matches_old_file:
@@ -160,10 +159,10 @@ class DataFileManager(models.Manager):
             # The times in the file are UTC in seconds since Jan 1, 1970.
             all_day_times = file.variables['time'][:]
 
-            basetime = datetime.datetime(1970,1,1,0,0,0)
+            basetime = datetime(1970,1,1,0,0,0)
 
             # Check the first value of the forecast
-            first_forecast_time = basetime + datetime.timedelta(all_day_times[0]/3600.0/24.0,0,0)
+            first_forecast_time = basetime + timedelta(all_day_times[0]/3600.0/24.0,0,0)
 
             #Save the File name into the Database
             datafile = DataFile(
@@ -334,7 +333,7 @@ class DataFileManager(models.Manager):
             server_file_modified_datetime = extract_modified_datetime_from_xml(elem)
             #print "\tserver file time: " + str(server_file_modified_datetime)
             #print "\tlocal file time: " + str(local_file_modified_datetime)
-            #print "\tserver <= local: " + str(server_file_modified_datetime <= local_file_modified_datetime)
+            #print "\tserver > local: " + str(server_file_modified_datetime > local_file_modified_datetime)
             if server_file_modified_datetime.date() > local_file_modified_datetime.date():
                 return True
 

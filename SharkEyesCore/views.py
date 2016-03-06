@@ -5,47 +5,29 @@ import json
 from django.db import connection
 from django.db import IntegrityError, transaction
 from django.views.decorators.csrf import csrf_exempt
+from django.utils import timezone
 from django.http import HttpResponse
 
 
 #This is where we associate the Javascript variables (overlays, defs etc) with the Django objects from the database.
 def home(request):
-    #overlays_view_data = OverlayManager.get_next_few_days_of_tiled_overlays().exclude(definition_id=5)
-    overlays_view_data = OverlayManager.get_next_few_days_of_tiled_overlays()
-    #Wind overlay is different from the main overlay due to the time intervals
-    #wind_overlays_view_data = overlays_view_data.filter(definition_id=5)
-
-
-    datetimes = [ i.applies_at_datetime.astimezone(tz.tzlocal()).strftime('%D, %I %p') for i in overlays_view_data ]
-
-    #winddatetimes = [ i.applies_at_datetime.astimezone(tz.tzlocal()).strftime('%D, %I %p') for i in wind_overlays_view_data ]
-
-
-    # a complete hack! it just divides a list of all of the times for all the overlays by the number
-    # of defs to get a singular list of overlay times
-
-    #  num_defs = len(OverlayDefinition.objects.filter(is_base=True).exclude(display_name_short="Wind"))
-
-    # num_wind_defs = len(OverlayDefinition.objects.filter(is_base=True).exclude(display_name_short="SST").exclude(display_name_short="Currents"))
-
-    # Team 2 says: Modify this as
-    # you add new models.
     # TODO: add 7 back in if you want to add in the wave period model
+    # maybe not sure how wind is stored in the database...
+    models = [1,3,4,6,]
 
-    num_defs = len(OverlayDefinition.objects.filter(is_base=True, id__in=[1,3,4, 6]))
-    #num_defs = len(OverlayDefinition.objects.filter(is_base=True, id__in=[1,3]))
+    overlays_view_data = OverlayManager.get_next_few_days_of_tiled_overlays(models)
+    print
+    print
+    print "overlay view data"
+    print str(len(overlays_view_data))
+    print overlays_view_data
 
-    list_of_times = datetimes[:len(datetimes)/num_defs]
+    datetimes = overlays_view_data.values_list('applies_at_datetime', flat=True).distinct()
+    print "datetimes"
+    for d in datetimes:
+        print "    " + str(d)
 
-
-    #list_of_wind_times = winddatetimes[:len(winddatetimes)/num_wind_defs]
-
-
-    #context = {'overlays': overlays_view_data, 'defs': OverlayDefinition.objects.filter(is_base=True).exclude(id=4), 'times':list_of_times, 'windoverlays': wind_overlays_view_data, 'winddefs': OverlayDefinition.objects.filter(id=5), 'windtimes':list_of_wind_times}
-
-    # TODO: add 7 back in if you want to add in the wave period model
-    context = {'overlays': overlays_view_data, 'defs': OverlayDefinition.objects.filter(is_base=True, id__in=[1,3,4, 6]), 'times':list_of_times }
-    #context = {'overlays': overlays_view_data, 'defs': OverlayDefinition.objects.filter(is_base=True, id__in=[1,3]), 'times':list_of_times }
+    context = {'overlays': overlays_view_data, 'defs': OverlayDefinition.objects.filter(is_base=True, id__in=models), 'times':datetimes }
 
     return render(request, 'index.html', context)
 
@@ -92,12 +74,16 @@ def save_feedback(request):
     feedback_title = json.loads(request.body)["title"]
     feedback_comment = json.loads(request.body)["comment"]
     sent = False  #By default, a survey has Not yet been delivered
+    feedback_name = json.loads(request.body)["name"]
+    feedback_email = json.loads(request.body)["email"]
+    feedback_phone = json.loads(request.body)["phone"]
+    feedback_date = timezone.now()
 
     try:
         #Establish DB Connection
         cursor = connection.cursor()
         #Execute SQL Query
-        cursor.execute("""INSERT INTO SharkEyesCore_feedbackhistory (feedback_title, feedback_comments, sent ) VALUES (%s, %s, %s);""", (feedback_title, feedback_comment, sent))
+        cursor.execute("""INSERT INTO SharkEyesCore_feedbackhistory (feedback_title, feedback_comments, sent, feedback_name, feedback_email, feedback_phone, feedback_date) VALUES (%s, %s, %s, %s, %s, %s, %s);""", (feedback_title, feedback_comment, sent, feedback_name, feedback_email, feedback_phone, feedback_date))
         #Nothing needs to be returned
     except IntegrityError as e:
         print "Error Message: "
