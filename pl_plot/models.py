@@ -105,7 +105,7 @@ class OverlayManager(models.Manager):
         task_list.append(cls.make_wave_watch_plot.s(4, time_index, file_id, immutable=True))
         task_list.append(cls.make_wave_watch_plot.s(6, time_index, file_id, immutable=True))
         # TODO wave period
-        # task_list.append(cls.make_wave_watch_plot.s(7, time_index, file_id, immutable=True))
+        task_list.append(cls.make_wave_watch_plot.s(7, time_index, file_id, immutable=True))
         job = task_list
         return job
 
@@ -128,7 +128,7 @@ class OverlayManager(models.Manager):
                         task_list.append(cls.make_wave_watch_plot.subtask(args=(4, t, fid), immutable=True))
                         task_list.append(cls.make_wave_watch_plot.subtask(args=(6, t, fid), immutable=True))
                         #TODO wave period
-                        # task_list.append(cls.make_wave_watch_plot.subtask(args=(7, t, fid), immutable=True))
+                        task_list.append(cls.make_wave_watch_plot.subtask(args=(7, t, fid), immutable=True))
 
             else:
                 plotter = Plotter(datafile.file.name)
