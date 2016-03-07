@@ -13,7 +13,8 @@ from django.http import HttpResponse
 def home(request):
     # TODO: add 7 back in if you want to add in the wave period model
     # maybe not sure how wind is stored in the database...
-    models = [1,3,4,6,]
+    models = [1,3,4,6]
+
 
     overlays_view_data = OverlayManager.get_next_few_days_of_tiled_overlays(models)
     print
