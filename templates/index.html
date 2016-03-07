@@ -37,11 +37,11 @@
     function feedback_click() {
         var title = $('#feedback_title').val();
         var comment = $('#feedback_comment').val();
-        $('#feedback_name').val("");
-        $('#feedback_email').val("");
-        $('#feedback_phone').val("");
-        if (title == "Please enter a title under 255 characters.") {
+        if (title == "Please enter a title.") {
             $('#feedback_title').val("");
+            $('#feedback_name').val("");
+            $('#feedback_email').val("");
+            $('#feedback_phone').val("");
         }
         if (comment == "Please enter a comment under 255 characters.") {
             $('#feedback_comment').val("");
