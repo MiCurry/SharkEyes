@@ -184,14 +184,14 @@ def wave_period_function(ax, data_file, bmap, key_ax, forecast_index, downsample
 
      # If we are using the file with merged fields (both high-res and low-res data) provided
      # by Tuba and Gabriel
-     #longs = [item for sublist in data_file.variables['longitude'][:1] for item in sublist]
-     #lats = data_file.variables['latitude'][:, 0]
+     longs = [item for sublist in data_file.variables['longitude'][:1] for item in sublist]
+     lats = data_file.variables['latitude'][:, 0]
 
      #get the wave period data from netCDF file
      all_day = data_file.variables['PERPW_surface'][:, :, :]
 
      #convert/mesh the latitude and longitude data into 2D arrays to be used by contourf below
-     #x,y = numpy.meshgrid(longs,lats)
+     x,y = numpy.meshgrid(longs,lats)
 
      # Mask all of the data points that are "nan" (not a number) in the data file; these represent land
      period_masked = np.ma.masked_array(all_day[forecast_index][:, :],np.isnan(all_day[forecast_index][:,:]))
@@ -206,22 +206,22 @@ def wave_period_function(ax, data_file, bmap, key_ax, forecast_index, downsample
      max_val = round(max_val, 2
                      )
      # Min time in seconds: the fishermen suggested a period range of 4--25 seconds.
-     #min_period = MIN_WAVE_PERIOD
+     min_period = MIN_WAVE_PERIOD
 
      # Max time
-     #max_period = MAX_WAVE_PERIOD
+     max_period = MAX_WAVE_PERIOD
 
      #Allocates colors to the data by setting the range of the data and by setting color increments
-     #contour_range = max_period - min_period
-     #contour_range_inc = float(contour_range)/NUM_COLOR_LEVELS_FOR_WAVES
+     contour_range = max_period - min_period
+     contour_range_inc = float(contour_range)/NUM_COLOR_LEVELS_FOR_WAVES
 
      #Now the contour range
-     #color_levels = []
-     #for i in xrange(NUM_COLOR_LEVELS_FOR_WAVES+1):
-     #    color_levels.append(min_period+1 + i * contour_range_inc)
+     color_levels = []
+     for i in xrange(NUM_COLOR_LEVELS_FOR_WAVES+1):
+         color_levels.append(min_period+1 + i * contour_range_inc)
 
      #Fill the contours with the colors
-     #overlay = bmap.contourf(x, y, period_masked, color_levels, ax=ax, extend='both', cmap=get_modified_jet_colormap_for_waves())
+     overlay = bmap.contourf(x, y, period_masked, color_levels, ax=ax, extend='both', cmap=get_modified_jet_colormap_for_waves())
 
      #Create the color bar
      #cbar = pyplot.colorbar(overlay, orientation='horizontal', cax=key_ax)
