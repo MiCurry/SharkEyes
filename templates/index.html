@@ -37,6 +37,9 @@
     function feedback_click() {
         var title = $('#feedback_title').val();
         var comment = $('#feedback_comment').val();
+        $('#feedback_name').val("");
+        $('#feedback_email').val("");
+        $('#feedback_phone').val("");
         if (title == "Please enter a title under 255 characters.") {
             $('#feedback_title').val("");
         }
@@ -81,11 +84,14 @@
             title: "Send Feedback",
             modal: "false",
             height: 550,
-            width: 650,
+            width: 600,
             position: "center",
             buttons: {
                 OK: function() {
                     //Receive Data from User Input
+                    var name = $('#feedback_name').val().toString();
+                    var email = $('#feedback_email').val().toString();
+                    var phone = $('#feedback_phone').val().toString();
                     var title = $('#feedback_title').val().toString();
                     var comment = $('#feedback_comment').val().toString();
 
@@ -94,7 +100,7 @@
                         && comment.length < 255 && comment.length > 0)
                     {
                         //Serialize Data to Json
-                        var myObj = {"title": title, "comment": comment};
+                        var myObj = {"name": name, "email": email, "phone": phone, "title": title, "comment": comment};
                         var jsonData = JSON.stringify(myObj);
 
                         //Send information to views.py to be saved into the database
@@ -105,6 +111,9 @@
                             datatype: "JSON",
                             success: function() {
                                 //clear feedback box
+                                $('#feedback_name').val("");
+                                $('#feedback_phone').val("");
+                                $('#feedback_email').val("");
                                 $('#feedback_title').val("");
                                 $('#feedback_comment').val("");
 
@@ -118,11 +127,14 @@
                     }
                     else {
 
-                        $('#feedback_title').val("Please enter a title under 255 characters.");
-                        $('#feedback_comment').val("Please enter a comment under 255 characters.");
+                        $('#feedback_title').val("Please enter a title.");
+                        $('#feedback_comment').val("Please enter a comment with less than 255 characters.");
                     }
                     },
                     Cancel: function() {
+                         $('#feedback_name').val("");
+                         $('#feedback_email').val("");
+                         $('#feedback_phone').val("");
                          $('#feedback_title').val("");
                          $('#feedback_comment').val("");
                         $( this ).dialog( "close" );
