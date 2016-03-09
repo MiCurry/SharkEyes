@@ -407,10 +407,6 @@ def wind_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
     for i in range(0, len(lon)):
         lon[i] = -lon[i]
 
-    bmap.drawmapboundary(linewidth=1.0, ax=ax)
-    bmap.drawparallels(np.arange(0, 360, 1), labels=[1,1,1,1])
-    bmap.drawmeridians(np.arange(0,360,1), labels=[1,1,1,1])
-    bmap.drawcoastlines()
     bmap.barbs(         x[::ratio, ::ratio],
                         y[::ratio, ::ratio],
                         wind_u[::ratio, ::ratio],
