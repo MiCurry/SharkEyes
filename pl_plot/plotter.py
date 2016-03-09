@@ -108,9 +108,6 @@ class WaveWatchPlotter:
 class WindPlotter:
     data_file = None
 
-    def __init__(self, file_name):
-        self.load_file(file_name)
-
     def load_file(self, file_name):
         #This should have some form of error handling as it can fail
         self.data_file = open_url(settings.WIND_URL)
