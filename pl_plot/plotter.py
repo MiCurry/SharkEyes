@@ -38,6 +38,12 @@ class WaveWatchPlotter:
 # based on the title of the file
     def make_plot(self, plot_function, forecast_index,storage_dir, generated_datetime, zoom_levels, downsample_ratio=None):
 
+        print "This is storage_dir"
+        print storage_dir
+        period_flag = 0
+        if storage_dir == "":
+            period_flag = 1
+
         fig = pyplot.figure()
         key_fig = pyplot.figure(facecolor=settings.OVERLAY_KEY_COLOR)
 
@@ -59,7 +65,8 @@ class WaveWatchPlotter:
 
         plot_function(ax=ax, data_file=self.data_file, forecast_index=forecast_index, bmap=bmap, key_ax=key_ax, downsample_ratio=downsample_ratio)
 
-        plot_filename = "{0}_{1}_{2}_{3}.png".format(plot_function.__name__,forecast_index,generated_datetime, uuid4())
+        if period_flag == 0:
+            plot_filename = "{0}_{1}_{2}_{3}.png".format(plot_function.__name__,forecast_index,generated_datetime, uuid4())
         key_filename = "{0}_key_{1}_{2}.png".format(plot_function.__name__,generated_datetime, uuid4())
 
 #
@@ -92,18 +99,23 @@ class WaveWatchPlotter:
         # dpi=2000 and got a strange error. Internet sources suggest that there may be some sort of off-by-one
         # error when the size of the image given to gdal is irregular in some way. Moving DPI to 1800 fixed the
         # issue.
-        fig.savefig(
-             os.path.join(settings.MEDIA_ROOT, storage_dir, plot_filename),
-             dpi=DPI, bbox_inches='tight', pad_inches=0,
-             transparent=True, frameon=False)
-        pyplot.close(fig)
+        if period_flag == 0:
+            fig.savefig(
+                 os.path.join(settings.MEDIA_ROOT, storage_dir, plot_filename),
+                 dpi=DPI, bbox_inches='tight', pad_inches=0,
+                 transparent=True, frameon=False)
+            pyplot.close(fig)
 
         key_fig.savefig(
                  os.path.join(settings.MEDIA_ROOT, settings.KEY_STORAGE_DIR, key_filename),
                  dpi=500, bbox_inches='tight', pad_inches=0,
                  transparent=True, facecolor=key_fig.get_facecolor())
         pyplot.close(key_fig)
-        return plot_filename, key_filename
+
+        if period_flag == 0:
+            return plot_filename, key_filename
+        else:
+            return key_filename
 
 class WindPlotter:
     data_file = None

@@ -225,8 +225,8 @@ def wave_period_function(ax, data_file, bmap, key_ax, forecast_index, downsample
 
      #Create the color bar
      #cbar = pyplot.colorbar(overlay, orientation='horizontal', cax=key_ax)
-     print 'got here'
-     textBox = pyplot.text(0, 0,"Wave Period Average: " + str(mean_val) + " WavePeriod Max: " + str(max_val), withdash=False, backgroundcolor='white', color='black')
+     print 'Making the period Image'
+     textBox = pyplot.text(0, 0,"Wave period in seconds" "Average period: " + str(mean_val) + " Max period: " + str(max_val), withdash=False, backgroundcolor='white', color='black')
      #cbar.ax.tick_params(labelsize=10)
      #cbar.ax.xaxis.label.set_color('white')
      #cbar.ax.xaxis.set_tick_params(labelcolor='white')
