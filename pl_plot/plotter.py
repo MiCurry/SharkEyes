@@ -38,10 +38,8 @@ class WaveWatchPlotter:
 # based on the title of the file
     def make_plot(self, plot_function, forecast_index,storage_dir, generated_datetime, zoom_levels, downsample_ratio=None):
 
-        print "This is storage_dir"
-        print storage_dir
-        period_flag = 0
-        if storage_dir == "":
+        period_flag = 0 #This is used to determine whether or not we are plotting wave period
+        if storage_dir == "": # Wave period has no storage_dir so if it is blank we are plotting wave period
             period_flag = 1
 
         fig = pyplot.figure()
@@ -62,14 +60,13 @@ class WaveWatchPlotter:
                        llcrnrlat=lats[0][0], urcrnrlat=lats[-1][0],
                        llcrnrlon=longs[0][0], urcrnrlon=longs[-1][-1],
                       ax=ax, epsg=4326)
-
-        plot_function(ax=ax, data_file=self.data_file, forecast_index=forecast_index, bmap=bmap, key_ax=key_ax, downsample_ratio=downsample_ratio)
-
         if period_flag == 0:
+            plot_function(ax=ax, data_file=self.data_file, forecast_index=forecast_index, bmap=bmap, key_ax=key_ax, downsample_ratio=downsample_ratio)
+        else:
+            plot_function(data_file=self.data_file, forecast_index=forecast_index)
+        if period_flag == 0: #Wave period does not need a plot_filename, so only do this if the model is not wave period
             plot_filename = "{0}_{1}_{2}_{3}.png".format(plot_function.__name__,forecast_index,generated_datetime, uuid4())
         key_filename = "{0}_key_{1}_{2}.png".format(plot_function.__name__,generated_datetime, uuid4())
-
-#
 
         # TODO: set the resolution higher for the zoomed-in overlays. The code below
         # seems to set the resolution properly, but at the expense of performance: it takes
@@ -94,18 +91,19 @@ class WaveWatchPlotter:
         else:
             DPI = 800
 
-
         # Changing the DPI sometimes seems to cause an error when Tiling using gdal2tiles. For instance I tried
         # dpi=2000 and got a strange error. Internet sources suggest that there may be some sort of off-by-one
         # error when the size of the image given to gdal is irregular in some way. Moving DPI to 1800 fixed the
         # issue.
-        if period_flag == 0:
+
+        if period_flag == 0: #This saves a figure to the media folder. Only do this if the model is not wave period.
             fig.savefig(
                  os.path.join(settings.MEDIA_ROOT, storage_dir, plot_filename),
                  dpi=DPI, bbox_inches='tight', pad_inches=0,
                  transparent=True, frameon=False)
             pyplot.close(fig)
 
+        #This saves the key. Every model needs this.
         key_fig.savefig(
                  os.path.join(settings.MEDIA_ROOT, settings.KEY_STORAGE_DIR, key_filename),
                  dpi=500, bbox_inches='tight', pad_inches=0,
@@ -115,7 +113,7 @@ class WaveWatchPlotter:
         if period_flag == 0:
             return plot_filename, key_filename
         else:
-            return key_filename
+            return key_filename #Wave period only needs key_filename
 
 class WindPlotter:
     data_file = None

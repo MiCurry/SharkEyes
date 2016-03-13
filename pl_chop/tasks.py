@@ -80,7 +80,8 @@ def tile_wave_watch_overlay(overlay_id):
     #the id's in the database progresses upwards from 1. If overlays are deleted, the new
     # overlays start numbering where the old ones
     #left  off. Ie if we delete items 1-100, the new overlays will start numbering at 101.
-    print overlay_id
+
+    #We do not want to tile wave period which is overlay_id 7.
     if overlay_id != 7:
         overlay = Overlay.objects.get(pk=overlay_id)
         image = overlay.file
@@ -121,5 +122,7 @@ def tile_wave_watch_overlay(overlay_id):
         overlay.is_tiled = True     # this could be a overlay.update(tile_dir=tile_dir) in django 1.7
         overlay.save()
         return overlay.tile_dir
+
+    #If the model being processed is wave period do nothing
     else:
         return ""

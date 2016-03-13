@@ -175,72 +175,32 @@ def wave_height_function(ax, data_file, bmap, key_ax, forecast_index, downsample
      cbar.ax.xaxis.set_ticklabels(labels)
      cbar.set_label("Wave Height (feet)")
 
-# Plot the period of the waves as a color map.
-def wave_period_function(ax, data_file, bmap, key_ax, forecast_index, downsample_ratio):
+# Plot the period of the waves as daily average and maximum integer values.
+def wave_period_function(data_file, forecast_index):
+     #This is a hopefully temporary solution to implementing wave period. This replaces the colorbar key that used to
+     #exist for the now removed wave period color map. This makes an image with the wave period values that is displayed in the
+     #same spot as a colormap key. When make_wave_watch_plot() is called with 7 this figure is automatically named and placed in the
+     #/media/keys folder.
 
-     #grab longitude and latitude from netCDF file if we are using the old OuterGrid format which was lower resolution
-     #longs = data_file.variables['longitude'][:]
-     #lats = data_file.variables['latitude'][:]
-
-     # If we are using the file with merged fields (both high-res and low-res data) provided
-     # by Tuba and Gabriel
-     #longs = [item for sublist in data_file.variables['longitude'][:1] for item in sublist]
-     #lats = data_file.variables['latitude'][:, 0]
-
-     #get the wave period data from netCDF file
+     #get the wave period data from a netCDF file
      all_day = data_file.variables['PERPW_surface'][:, :, :]
-
-     #convert/mesh the latitude and longitude data into 2D arrays to be used by contourf below
-     #x,y = numpy.meshgrid(longs,lats)
 
      # Mask all of the data points that are "nan" (not a number) in the data file; these represent land
      period_masked = np.ma.masked_array(all_day[forecast_index][:, :],np.isnan(all_day[forecast_index][:,:]))
 
      #This is the average wave period for the day
      mean_val = np.mean(period_masked)
+     #The mean val is calculated to a large number of decimal places. This rounds it to two.
      mean_val = round(mean_val, 2)
-
 
      #This is the maximum wave period value for the day
      max_val = np.amax(period_masked)
-     max_val = round(max_val, 2
-                     )
-     # Min time in seconds: the fishermen suggested a period range of 4--25 seconds.
-     #min_period = MIN_WAVE_PERIOD
+     #This rounds the max value just like the average
+     max_val = round(max_val, 2)
 
-     # Max time
-     #max_period = MAX_WAVE_PERIOD
-
-     #Allocates colors to the data by setting the range of the data and by setting color increments
-     #contour_range = max_period - min_period
-     #contour_range_inc = float(contour_range)/NUM_COLOR_LEVELS_FOR_WAVES
-
-     #Now the contour range
-     #color_levels = []
-     #for i in xrange(NUM_COLOR_LEVELS_FOR_WAVES+1):
-     #    color_levels.append(min_period+1 + i * contour_range_inc)
-
-     #Fill the contours with the colors
-     #overlay = bmap.contourf(x, y, period_masked, color_levels, ax=ax, extend='both', cmap=get_modified_jet_colormap_for_waves())
-
-     #Create the color bar
-     #cbar = pyplot.colorbar(overlay, orientation='horizontal', cax=key_ax)
-     print 'Making the period Image'
-     textBox = pyplot.text(0, 0,"Wave period in seconds" "Average period: " + str(mean_val) + " Max period: " + str(max_val), withdash=False, backgroundcolor='white', color='black')
-     #cbar.ax.tick_params(labelsize=10)
-     #cbar.ax.xaxis.label.set_color('white')
-     #cbar.ax.xaxis.set_tick_params(labelcolor='white')
-
-     #locations = numpy.arange(0, 1.01, 1.0/(NUM_COLOR_LEVELS_FOR_WAVES))[::10]    # we just want every 10th label
-     #float_labels = numpy.arange(min_period, max_period + 0.01, contour_range_inc)[::10]
-
-     #labels = ["%.1f" % num for num in float_labels]
-     #cbar.ax.xaxis.set_ticks(locations)
-     #cbar.ax.xaxis.set_ticklabels(labels)
-     #cbar.set_label("Wave Period Average: " + str(mean_val) + " WavePeriod Max: " + str(max_val))
-
-
-
+     #textBox is a hack that makes an unused Cartesian plot with a label over the top of it. This label has the wave period data.
+     #the spacing is purposefully there to have a nice readable label. The black background helps to mask the figure behind the label.
+     textBox = pyplot.text(0, 0,"          Wave period daily average and maximum ""\n" "Average: " + str(mean_val) + " seconds " "  -  "" Maximum: " + str(max_val) + " seconds", withdash=False, backgroundcolor='black', color='white')
 
 def sst_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
     def celsius_to_fahrenheit(temp):
