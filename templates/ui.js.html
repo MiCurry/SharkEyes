@@ -134,6 +134,34 @@ $('#date-time').change(function(e) {
     update_overlays(textdate);
 });
 
+//**********************************************************************************************************************
+//Map Marker Function
+//**********************************************************************************************************************
+function makeTideMarker(date, station){
+    var station_data = {"station_id": station, "display_date": date};
+    var jsonData = JSON.stringify(station_data);
+    var tideInfo = '';
+    jQuery.ajax({
+        type: 'POST',
+        url: '{% url "SharkEyesCore.views.tides" %}',
+        data: jsonData,
+        datatype: "JSON",
+        success: function(data){
+            data = JSON.parse(data);
+            for (var i = 0; i < data.predictions.length; i++) {
+                var item = data.predictions[i];
+                tideInfo += '<p>' + item.t + '   ' + 'Water Level:' + ' ' + item.v + '</p>' + '<br>';
+            }
+        },
+        async: false,
+        error: function(xhr, ajaxOptions, thrownError){
+            alert(xhr.status);
+            alert(thrownError);
+        }
+    });
+    return tideInfo;
+}
+
 // *********************************************************************************************************************
 // initialize the google map and tide markers
 // *********************************************************************************************************************
@@ -177,21 +205,15 @@ function initialize() {
             clearInterval(scaleInterval);
         }
     }, 100);
-    /* I am keeping this code for now because it is much faster than the code that works without an extension.
-    // Code to create the tide information markers and populate the data from noaa. These can probably be refactored to be far more elegant, but this is alpha functionality.
-    // South Beach Newport Marker
+
+    // Code to create the tide information markers and populate the data from noaa.
     var image = 'http://www.swellinfo.com/assets/images/tide_icon.gif';
-    var southBeachContent = '<p>' + '<b>' + 'South Beach Station Tides' + '</b>' + '</p>' + '<br>';
+    var display_date = 'latest';
+
+    //Make the South Beach map marker
+    var southBeachContent = '';
     var southBeachInfoWindow;
-    $.getJSON('http://tidesandcurrents.noaa.gov/api/datagetter?product=predictions&application=NOS.COOPS.TAC.WL&date=latest&datum=MLLW&station=9435380&time_zone=lst&units=english&interval=&format=json', function(data){
-        for (var i = 0; i < data.predictions.length; i++){
-            var item = data.predictions[i];
-            southBeachContent += '<p>' + item.t + '   ' + 'Water Level:' + ' ' + item.v + '</p>' + '<br>';
-        }
-        southBeachInfoWindow = new google.maps.InfoWindow({
-        content: southBeachContent
-        });
-    })
+    var southBeachId = 9435380;
     var southBeachMarker = new google.maps.Marker({
 	    position: new google.maps.LatLng(44.627107, -124.068863),
         map: map,
@@ -199,43 +221,37 @@ function initialize() {
         title: 'South Beach Station, Newport OR'
     });
     southBeachMarker.addListener('click', function(){
+        southBeachContent = '<p>' + '<b>' + 'South Beach Station Tides' + '</b>' + '</p>' + '<br>';
+        southBeachContent +=  makeTideMarker(display_date, southBeachId);
+        southBeachInfoWindow = new google.maps.InfoWindow({
+            content: southBeachContent
+        });
         southBeachInfoWindow.open(map, southBeachMarker);
     });
 
-    //Astoria Marker
-    var AstoriaContent = '<p>' + '<b>' + 'Astoria Station Tides' + '</b>' + '</p>' + '<br>';
-    var AstoriaInfoWindow;
-    $.getJSON('http://tidesandcurrents.noaa.gov/api/datagetter?product=predictions&application=NOS.COOPS.TAC.WL&date=latest&datum=MLLW&station=9439040&time_zone=lst&units=english&interval=&format=json', function(data){
-        for (var i = 0; i < data.predictions.length; i++){
-            var item = data.predictions[i];
-            AstoriaContent += '<p>' + item.t + '   ' + 'Water Level:' + ' ' + item.v + '</p>' + '<br>';
-        }
-        AstoriaInfoWindow = new google.maps.InfoWindow({
-        content: AstoriaContent
-        });
-    })
-    var AstoriaMarker = new google.maps.Marker({
+    //Make the Astoria Marker
+    var astoriaContent = '';
+    var astoriaInfoWindow;
+    var astoriaId = 9439040;
+    var astoriaMarker = new google.maps.Marker({
 	    position: new google.maps.LatLng(46.191186, -124.011807),
         map: map,
         icon: image,
         title: 'Astoria, Astoria OR'
     });
-    AstoriaMarker.addListener('click', function(){
-        AstoriaInfoWindow.open(map, AstoriaMarker);
+    astoriaMarker.addListener('click', function(){
+        astoriaContent = '<p>' + '<b>' + 'Astoria Station Tides' + '</b>' + '</p>' + '<br>';
+        astoriaContent += makeTideMarker(display_date, astoriaId);
+        astoriaInfoWindow = new google.maps.InfoWindow({
+            content: astoriaContent
+        });
+        astoriaInfoWindow.open(map, astoriaMarker);
     });
 
-    //Coos Bay Marker
-    var coosContent = '<p>' + '<b>' + 'Coos Bay Tides' + '</b>' + '</p>' + '<br>';
+    //Make the Coos Bay marker
+    var coosContent = '';
     var coosInfoWindow;
-    $.getJSON('http://tidesandcurrents.noaa.gov/api/datagetter?product=predictions&application=NOS.COOPS.TAC.WL&date=latest&datum=MLLW&station=9432780&time_zone=lst&units=english&interval=&format=json', function(data){
-        for (var i = 0; i < data.predictions.length; i++){
-            var item = data.predictions[i];
-            coosContent += '<p>' + item.t + '   ' + 'Water Level:' + ' ' + item.v + '</p>' + '<br>';
-        }
-        coosInfoWindow = new google.maps.InfoWindow({
-        content: coosContent
-        });
-    })
+    var coosId = 9432780;
     var coosMarker = new google.maps.Marker({
 	    position: new google.maps.LatLng(43.368178, -124.396843),
         map: map,
@@ -243,9 +259,13 @@ function initialize() {
         title: 'Coos Bay, Coos Bay OR'
     });
     coosMarker.addListener('click', function(){
+        coosContent = '<p>' + '<b>' + 'Coos Bay Tides' + '</b>' + '</p>' + '<br>';
+        coosContent += makeTideMarker(display_date, coosId);
+        coosInfoWindow = new google.maps.InfoWindow({
+            content: coosContent
+        });
         coosInfoWindow.open(map, coosMarker);
     });
-    */
 }
 
 // *********************************************************************************************************************
