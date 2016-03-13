@@ -30,7 +30,8 @@ python_packages = ['numpy==1.8',
                    'south==0.8.4',
                    'defusedxml==0.4.1',
                    'pygdal==1.10.1.0',
-                   'pydap'
+                   'pydap',
+                   'requests'
                    ]
 
 # these aren't used everywhere yet...
