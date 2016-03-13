@@ -444,7 +444,7 @@ def wind_function_(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
 def crop_and_downsample(source_array, downsample_ratio, average=True):
     # Gets the array deminsons
     ys, xs = source_array.shape
-    #print "shape is ", source_array.shape
+    print "shape is ", source_array.shape
     cropped_array = source_array[:ys - (ys % int(downsample_ratio)), :xs - (xs % int(downsample_ratio))]
     if average:
         zoomed_array = scipy.nanmean(numpy.concatenate(
