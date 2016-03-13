@@ -105,7 +105,7 @@ class OverlayManager(models.Manager):
         task_list.append(cls.make_wave_watch_plot.s(4, time_index, file_id, immutable=True))
         task_list.append(cls.make_wave_watch_plot.s(6, time_index, file_id, immutable=True))
         # TODO wave period
-        # task_list.append(cls.make_wave_watch_plot.s(7, time_index, file_id, immutable=True))
+        task_list.append(cls.make_wave_watch_plot.s(7, time_index, file_id, immutable=True))
         job = task_list
         return job
 
@@ -128,7 +128,7 @@ class OverlayManager(models.Manager):
                         task_list.append(cls.make_wave_watch_plot.subtask(args=(4, t, fid), immutable=True))
                         task_list.append(cls.make_wave_watch_plot.subtask(args=(6, t, fid), immutable=True))
                         #TODO wave period
-                        # task_list.append(cls.make_wave_watch_plot.subtask(args=(7, t, fid), immutable=True))
+                        task_list.append(cls.make_wave_watch_plot.subtask(args=(7, t, fid), immutable=True))
 
             else:
                 plotter = Plotter(datafile.file.name)
@@ -334,26 +334,44 @@ class OverlayManager(models.Manager):
             zoom_levels = zoom_levels_for_direction
         else:
             zoom_levels = zoom_levels_for_others
+        if overlay_definition_id != 7:  #Wave period does not need a colormap image, so skip this if overlay_definition_id = 7
+            tile_dir = "tiles_{0}_{1}".format(overlay_definition.function_name, uuid4())
 
-        tile_dir = "tiles_{0}_{1}".format(overlay_definition.function_name, uuid4())
+            for zoom_level in zoom_levels:
+                plot_filename, key_filename = plotter.make_plot(getattr(plot_functions, overlay_definition.function_name),
+                            forecast_index=time_index, storage_dir=settings.UNCHOPPED_STORAGE_DIR,
+                            generated_datetime=generated_datetime, downsample_ratio=zoom_level[1], zoom_levels=zoom_level[0])
 
-        for zoom_level in zoom_levels:
-            plot_filename, key_filename = plotter.make_plot(getattr(plot_functions, overlay_definition.function_name),
-                        forecast_index=time_index, storage_dir=settings.UNCHOPPED_STORAGE_DIR,
-                        generated_datetime=generated_datetime, downsample_ratio=zoom_level[1], zoom_levels=zoom_level[0])
+                overlay = Overlay(
+                    file=os.path.join(settings.UNCHOPPED_STORAGE_DIR, plot_filename),
+                    key=os.path.join(settings.KEY_STORAGE_DIR, key_filename),
+                    created_datetime=timezone.now(),  #saves UTC correctly in database
+                    applies_at_datetime=applies_at_datetime,
+                    tile_dir = tile_dir,
+                    zoom_levels = zoom_level[0],
+                    is_tiled = False,
+                    definition_id=overlay_definition_id,
+                )
+                overlay.save()
+                overlay_ids.append(overlay.id)
+        else: #This is run for wave period. We have a blank storage_dir because there is no colormap. This allows wave period to use the current overlay system while using no overlays.
+            for zoom_level in zoom_levels:
+                key_filename = plotter.make_plot(getattr(plot_functions, overlay_definition.function_name),
+                            forecast_index=time_index, storage_dir="",
+                            generated_datetime=generated_datetime, downsample_ratio=zoom_level[1], zoom_levels=zoom_level[0])
 
-            overlay = Overlay(
-                file=os.path.join(settings.UNCHOPPED_STORAGE_DIR, plot_filename),
-                key=os.path.join(settings.KEY_STORAGE_DIR, key_filename),
-                created_datetime=timezone.now(),  #saves UTC correctly in database
-                applies_at_datetime=applies_at_datetime,
-                tile_dir = tile_dir,
-                zoom_levels = zoom_level[0],
-                is_tiled = False,
-                definition_id=overlay_definition_id,
-            )
-            overlay.save()
-            overlay_ids.append(overlay.id)
+                overlay = Overlay(
+                    file="", #Wave period has no colormap, so this needs to be blank.
+                    key=os.path.join(settings.KEY_STORAGE_DIR, key_filename), #Wave period uses the key directory to store the wave period banner
+                    created_datetime=timezone.now(),  #saves UTC correctly in database
+                    applies_at_datetime=applies_at_datetime,
+                    tile_dir = tile_dir,
+                    zoom_levels = "", #Wave period does not need zoom levels.
+                    is_tiled = True,
+                    definition_id=overlay_definition_id,
+                )
+                overlay.save()
+                #We don't append the wave period id to overlay_ids because they are used for tiling and period does not have a tiling function anymore.
 
         # # This code was used to view what is contained in the netCDF file
         # file = netcdf_file(os.path.join(settings.MEDIA_ROOT, settings.WAVE_WATCH_DIR, datafile.file.name))
