@@ -140,8 +140,8 @@ class OverlayManager(models.Manager):
                     task_list.extend(cls.make_plot.subtask(args=(od_id, t, fid), immutable=True) for od_id in [1, 3])
 
         # Wind Plot Data
-        for t in xrange(14):
-            task_list.extend(cls.make_plot.subtask(args=(5, t, 0), immutable=True) for od_id in [1, 3])
+        #for t in xrange(14):
+        #    task_list.extend(cls.make_plot.subtask(args=(5, t, 0), immutable=True) for od_id in [1, 3])
 
         return task_list
 
