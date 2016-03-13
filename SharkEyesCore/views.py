@@ -2,16 +2,16 @@ from django.shortcuts import render
 from pl_plot.models import OverlayManager, OverlayDefinition
 from dateutil import tz
 import json
+import requests
 from django.db import connection
 from django.db import IntegrityError, transaction
 from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
-from django.http import HttpResponse
+from django.http import StreamingHttpResponse
 
 
 #This is where we associate the Javascript variables (overlays, defs etc) with the Django objects from the database.
 def home(request):
-    # TODO: add 7 back in if you want to add in the wave period model
     # maybe not sure how wind is stored in the database...
     models = [1,3,4,5,6,7]
 
@@ -36,6 +36,18 @@ def oops(request):
 
 def about(request):
     return render(request, 'about.html')
+
+@csrf_exempt
+def tides(request):
+    station_id = json.loads(request.body)["station_id"]
+    display_date = json.loads(request.body)["display_date"]
+    if display_date == 0:
+        display_date = 'current'
+    else:
+        display_date = str(display_date)
+    url = 'http://tidesandcurrents.noaa.gov/api/datagetter?product=predictions&application=NOS.COOPS.TAC.WL&date='+display_date+'&datum=MLLW&station='+str(station_id)+'&time_zone=lst&units=english&interval=&format=json'
+    tideInfo = requests.get(url)
+    return StreamingHttpResponse(tideInfo)
 
 @csrf_exempt
 def survey(request):

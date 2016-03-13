@@ -14,6 +14,7 @@ urlpatterns = patterns('',
     url(r'^pl_download/', include('pl_download.urls')),
     url(r'^pl_chop/', include('pl_chop.urls')),
     url(r'^SharkEyesCore/survey', 'SharkEyesCore.views.save_survey'),
+    url(r'^SharkEyesCore/tides', 'SharkEyesCore.views.tides'),
     url(r'^SharkEyesCore', 'SharkEyesCore.views.save_feedback'),
     url(r'^survey.html', 'SharkEyesCore.views.survey')
 
