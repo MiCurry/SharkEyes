@@ -43,9 +43,7 @@ def tides(request):
     display_date = json.loads(request.body)["display_date"]
     if display_date == 0:
         display_date = 'latest'
-    else:
-        display_date = str(display_date)
-    url = 'http://tidesandcurrents.noaa.gov/api/datagetter?product=predictions&application=NOS.COOPS.TAC.WL&date='+display_date+'&datum=MLLW&station='+str(station_id)+'&time_zone=lst&units=english&interval=&format=json'
+    url = 'http://tidesandcurrents.noaa.gov/api/datagetter?product=datums&application=Seacast.org&date='+display_date+'&range=1&datum=MLLW&station='+station_id+'&time_zone=lst&units=english&interval=&format=json'
     tideInfo = requests.get(url)
     return StreamingHttpResponse(tideInfo)
 
