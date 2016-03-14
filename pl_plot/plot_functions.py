@@ -200,7 +200,7 @@ def wave_period_function(data_file, forecast_index):
 
      #textBox is a hack that makes an unused Cartesian plot with a label over the top of it. This label has the wave period data.
      #the spacing is purposefully there to have a nice readable label. The black background helps to mask the figure behind the label.
-     textBox = pyplot.text(0, 0,"          Wave period daily average and maximum ""\n" "Average: " + str(mean_val) + " seconds " "  -  "" Maximum: " + str(max_val) + " seconds", withdash=False, backgroundcolor='black', color='white')
+     textBox = pyplot.text(0, 0,"       Wave period average and maximum values ""\n" "Average: " + str(mean_val) + " seconds " "  -  "" Maximum: " + str(max_val) + " seconds", withdash=False, backgroundcolor='black', color='white')
 
 def sst_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
     def celsius_to_fahrenheit(temp):
