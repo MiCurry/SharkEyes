@@ -42,7 +42,7 @@ def tides(request):
     station_id = json.loads(request.body)["station_id"]
     display_date = json.loads(request.body)["display_date"]
     if display_date == 0:
-        display_date = 'current'
+        display_date = 'latest'
     else:
         display_date = str(display_date)
     url = 'http://tidesandcurrents.noaa.gov/api/datagetter?product=predictions&application=NOS.COOPS.TAC.WL&date='+display_date+'&datum=MLLW&station='+str(station_id)+'&time_zone=lst&units=english&interval=&format=json'
