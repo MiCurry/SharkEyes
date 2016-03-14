@@ -207,22 +207,26 @@ function initialize() {
     }, 100);
 
     // Code to create the tide information markers and populate the data from noaa.
-    var image = 'http://www.swellinfo.com/assets/images/tide_icon.gif';
-    var display_date = 'latest';
-
+    var image = '{% static 'imgs/tide_icon.gif' %}';
+    var display_date = 'current'; //This is the default request for the noaa api call. It gets the current days info for when the page loads
+    
     //Make the South Beach map marker
-    var southBeachContent = '';
+    var southBeachContent = '<p>' + '<b>' + 'South Beach Station Tides' + '</b>' + '</p>' + '<br>';
     var southBeachInfoWindow;
-    var southBeachId = 9435380;
+    var southBeachId = 9435380; //These ids can be found at http://tidesandcurrents.noaa.gov/map/
+    var southBeachFlag = 0; //These flags are used to prevent the map markers from querying NOAA everytime they are clicked.
     var southBeachMarker = new google.maps.Marker({
 	    position: new google.maps.LatLng(44.627107, -124.068863),
         map: map,
         icon: image,
         title: 'South Beach Station, Newport OR'
     });
+
     southBeachMarker.addListener('click', function(){
-        southBeachContent = '<p>' + '<b>' + 'South Beach Station Tides' + '</b>' + '</p>' + '<br>';
-        southBeachContent +=  makeTideMarker(display_date, southBeachId);
+        if(southBeachFlag == 0) {
+            southBeachContent += makeTideMarker(display_date, southBeachId);
+            southBeachFlag = 1;
+        }
         southBeachInfoWindow = new google.maps.InfoWindow({
             content: southBeachContent
         });
@@ -230,18 +234,22 @@ function initialize() {
     });
 
     //Make the Astoria Marker
-    var astoriaContent = '';
+    var astoriaContent = '<p>' + '<b>' + 'Astoria Station Tides' + '</b>' + '</p>' + '<br>';
     var astoriaInfoWindow;
     var astoriaId = 9439040;
+    var astoriaFlag = 0;
     var astoriaMarker = new google.maps.Marker({
 	    position: new google.maps.LatLng(46.191186, -124.011807),
         map: map,
         icon: image,
         title: 'Astoria, Astoria OR'
     });
+
     astoriaMarker.addListener('click', function(){
-        astoriaContent = '<p>' + '<b>' + 'Astoria Station Tides' + '</b>' + '</p>' + '<br>';
-        astoriaContent += makeTideMarker(display_date, astoriaId);
+        if(astoriaFlag == 0) {
+            astoriaContent += makeTideMarker(display_date, astoriaId);
+            astoriaFlag = 1;
+        }
         astoriaInfoWindow = new google.maps.InfoWindow({
             content: astoriaContent
         });
@@ -249,18 +257,22 @@ function initialize() {
     });
 
     //Make the Coos Bay marker
-    var coosContent = '';
+    var coosContent = '<p>' + '<b>' + 'Coos Bay Tides' + '</b>' + '</p>' + '<br>';
     var coosInfoWindow;
     var coosId = 9432780;
+    var coosFlag = 0;
     var coosMarker = new google.maps.Marker({
 	    position: new google.maps.LatLng(43.368178, -124.396843),
         map: map,
         icon: image,
         title: 'Coos Bay, Coos Bay OR'
     });
+
     coosMarker.addListener('click', function(){
-        coosContent = '<p>' + '<b>' + 'Coos Bay Tides' + '</b>' + '</p>' + '<br>';
-        coosContent += makeTideMarker(display_date, coosId);
+        if(coosFlag == 0) {
+            coosContent += makeTideMarker(display_date, coosId);
+            coosFlag = 1;
+        }
         coosInfoWindow = new google.maps.InfoWindow({
             content: coosContent
         });
