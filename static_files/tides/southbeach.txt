@@ -10,7 +10,6 @@ Units: feet(ft) also in centimeters(cm)
 Time Zone: LST/LDT
 Datum: MLLW
 Interval Type: High/Low Tide Predictions
- 
 Date 		Day	Time		Pred(Ft)	Pred(cm)	High/Low
 2016/01/01	Fri	05:15 AM	7.8		238		H
 2016/01/01	Fri	11:27 AM	3.3		101		L
