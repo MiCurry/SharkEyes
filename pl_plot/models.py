@@ -415,13 +415,15 @@ class OverlayManager(models.Manager):
         zoom_levels_for_others = [(None, None)]
 
         if file_id is None:
-            datafile = DataFile.objects.latest('model_date') #EEEYE! SUPER BAD! Pulls any type of model!
+            datafile = DataFile.objects.latest('model_date')
+        elif overlay_definition_id == 5:
+            datafile = 0
         else:
             datafile = DataFile.objects.get(pk=file_id)
 
         # Checking to see if the file is a netcdf or an OpenDap file
         if overlay_definition_id == 5:
-            plotter = WindPlotter(datafile.file.name) # Wind is an OPenDaP Access not a netcdf file...
+            plotter = WindPlotter()
         else:
             plotter = Plotter(datafile.file.name)
 

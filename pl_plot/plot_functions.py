@@ -5,6 +5,8 @@ from scipy import ndimage
 import scipy
 from mpl_toolkits.basemap import Basemap
 import numpy as np
+from pydap.client import open_url
+from django.conf import settings
 np.set_printoptions(threshold=np.inf) # This is helpful for testing purposes:
 # it sets print options so that when you print a large array, it doesn't get truncated in the middle
 # and you can see each element of the array.
@@ -344,6 +346,8 @@ def currents_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio)
 
 # Check winds are going in the right direction
 def wind_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
+    data_file = open_url(settings.WIND_URL)
+
     var_u = 'u-component_of_wind_height_above_ground'
     var_v = 'v-component_of_wind_height_above_ground'
     landMask = 'Land_cover_0__sea_1__land_surface'
