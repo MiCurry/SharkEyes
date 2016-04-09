@@ -142,12 +142,18 @@ class WindPlotter:
 
         key_ax = key_fig.add_axes([0.1, 0.2, 0.6, 0.05])
 
-        # window cropped by picking lat and lon corners
+        #window cropped by picking lat and lon corners
         bmap = Basemap(projection='merc',                         #A cylindrical, conformal projection.
                        resolution='h', area_thresh=1.0,
                        llcrnrlat=40.5833284543, urcrnrlat=47.4999927992,
                        llcrnrlon=-129, urcrnrlon=-123.7265625,
                        ax=ax, epsg=4326)
+
+        # bmap = Basemap(projection='merc',                         #A cylindrical, conformal projection.
+        #                resolution='h', area_thresh=1.0,
+        #                llcrnrlat=40, urcrnrlat=45,
+        #                llcrnrlon=-127, urcrnrlon=-123,
+        #                ax=ax, epsg=4326)
 
         plot_function(ax=ax, data_file=self.data_file, time_index=time_index, bmap=bmap, key_ax=key_ax, downsample_ratio=downsample_ratio)
 

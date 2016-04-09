@@ -346,6 +346,11 @@ def currents_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio)
 
 # Check winds are going in the right direction
 def wind_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
+
+    def compute_average(array):
+        avg = numpy.average(array)
+        return numpy.nan if avg > 10**3 else avg
+
     data_file = open_url(settings.WIND_URL)
 
     var_u = 'u-component_of_wind_height_above_ground'
@@ -376,11 +381,28 @@ def wind_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
     print "Lat:", lat.shape
     print "Lon:", lon.shape
     print "x:", x.shape ,"y", y.shape
-    ratio = 3
+    ratio = 1
     print "Ratio:", ratio
 
     for i in range(0, len(lon)):
         lon[i] = -lon[i]
+
+    downsample_ratio = 10
+
+    right_column = wind_u[:, -1:]
+    bottom_row = wind_v[-1:, :]
+
+    #wind_u = ndimage.generic_filter(scipy.hstack((wind_u, right_column)),
+    #                                           compute_average, footprint=[[1], [1]], mode='reflect')
+
+    #wind_v = ndimage.generic_filter(scipy.vstack((wind_v, bottom_row)),
+    #                                           compute_average, footprint=[[1], [1]], mode='reflect')
+
+    wind_u = crop_and_downsample(wind_u, downsample_ratio, False)
+    wind_v = crop_and_downsample(wind_v, downsample_ratio, False)
+
+    x = crop_and_downsample(lon, downsample_ratio, False)
+    y = crop_and_downsample(lat, downsample_ratio, False)
 
     bmap.barbs(         x[::ratio, ::ratio],
                         y[::ratio, ::ratio],
@@ -409,7 +431,6 @@ def wind_function_(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
     for i in range (0, len(longs)):
         longs[i] = -longs[i]
 
-
     # average nearby points to align grid, and add the edge column/row so it's the right size.
     winds_u = numpy.reshape(winds_u, (428, 614))
     right_column = winds_u[:, -1:]
@@ -430,6 +451,7 @@ def wind_function_(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
     x, y = bmap(longs_zoomed, lats_zoomed)
 
     bmap.drawmapboundary(linewidth=0.0, ax=ax)
+    bmap.drawcoastlines()
     overlay = bmap.quiver(x, y, u_zoomed, v_zoomed, ax=ax, color='black')
 
     quiverkey = key_ax.quiverkey(overlay, .95, .4, 0.5*.5144, ".5 knots", labelpos='S', labelcolor='white',
@@ -441,12 +463,7 @@ def wind_function_(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
     key_ax.set_axis_off()
 
 
-# def crop_and_downSample(source_array, downsample_ratio, average=True)
-#
-#
-#
 def crop_and_downsample(source_array, downsample_ratio, average=True):
-    # Gets the array deminsons
     ys, xs = source_array.shape
     print "shape is ", source_array.shape
     cropped_array = source_array[:ys - (ys % int(downsample_ratio)), :xs - (xs % int(downsample_ratio))]
