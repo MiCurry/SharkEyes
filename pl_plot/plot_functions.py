@@ -346,6 +346,10 @@ def currents_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio)
 
 # Check winds are going in the right direction
 def wind_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
+    print "CREATING A WIND PLOT"
+    print "DOWNSAMPLERATIO = ", downsample_ratio, "Time Index =", time_index
+    ratio = 1
+
     data_file = open_url(settings.WIND_URL)
 
     var_u = 'u-component_of_wind_height_above_ground'
@@ -370,23 +374,31 @@ def wind_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
     wind_u = numpy.reshape(wind_u, (614, 428))
     wind_v = numpy.reshape(wind_v, (614, 428))
 
-    print "AFTER RESHAPING:"
-    print "Number of Wind_u:", wind_u.shape
-    print "Number of Wind_v:", wind_v.shape
-    print "Lat:", lat.shape
-    print "Lon:", lon.shape
-    print "x:", x.shape ,"y", y.shape
-    ratio = 3
-    print "Ratio:", ratio
+    if downsample_ratio == 1:
+        length = 2
+    elif downsample_ratio == 5:
+        length = 9
+    elif downsample_ratio == 10:
+        length = 7
 
     for i in range(0, len(lon)):
         lon[i] = -lon[i]
+
+    right_column = wind_u[:, -1:]
+    bottom_row = wind_v[-1:, :]
+
+    wind_u = crop_and_downsample(wind_u, downsample_ratio, False)
+    wind_v = crop_and_downsample(wind_v, downsample_ratio, False)
+
+    x = crop_and_downsample(lon, downsample_ratio, False)
+    y = crop_and_downsample(lat, downsample_ratio, False)
 
     bmap.barbs(         x[::ratio, ::ratio],
                         y[::ratio, ::ratio],
                         wind_u[::ratio, ::ratio],
                         wind_v[::ratio, ::ratio],
                         ax=ax,
+                        length=7,
                         color='black')
 
 
@@ -409,7 +421,6 @@ def wind_function_(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
     for i in range (0, len(longs)):
         longs[i] = -longs[i]
 
-
     # average nearby points to align grid, and add the edge column/row so it's the right size.
     winds_u = numpy.reshape(winds_u, (428, 614))
     right_column = winds_u[:, -1:]
@@ -430,6 +441,7 @@ def wind_function_(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
     x, y = bmap(longs_zoomed, lats_zoomed)
 
     bmap.drawmapboundary(linewidth=0.0, ax=ax)
+    bmap.drawcoastlines()
     overlay = bmap.quiver(x, y, u_zoomed, v_zoomed, ax=ax, color='black')
 
     quiverkey = key_ax.quiverkey(overlay, .95, .4, 0.5*.5144, ".5 knots", labelpos='S', labelcolor='white',
@@ -441,12 +453,7 @@ def wind_function_(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
     key_ax.set_axis_off()
 
 
-# def crop_and_downSample(source_array, downsample_ratio, average=True)
-#
-#
-#
 def crop_and_downsample(source_array, downsample_ratio, average=True):
-    # Gets the array deminsons
     ys, xs = source_array.shape
     print "shape is ", source_array.shape
     cropped_array = source_array[:ys - (ys % int(downsample_ratio)), :xs - (xs % int(downsample_ratio))]
