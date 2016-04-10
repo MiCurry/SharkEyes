@@ -6,7 +6,7 @@ from django.db import connection
 from django.db import IntegrityError, transaction
 from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
-from django.http import StreamingHttpResponse
+from django.http import HttpResponse
 
 
 #This is where we associate the Javascript variables (overlays, defs etc) with the Django objects from the database.
@@ -40,11 +40,20 @@ def about(request):
 def tides(request):
     station_id = json.loads(request.body)["station_id"]
     display_date = json.loads(request.body)["display_date"]
-    if display_date == 0:
-        display_date = 'latest'
-    url = 'http://tidesandcurrents.noaa.gov/api/datagetter?product=datums&application=Seacast.org&date='+display_date+'&range=1&datum=MLLW&station='+station_id+'&time_zone=lst&units=english&interval=&format=json'
-    tideInfo = requests.get(url)
-    return StreamingHttpResponse(tideInfo)
+    address = '/opt/sharkeyes/src/static_files/tides/' + station_id + '.txt'
+    tideData = []
+    fopen = open(address, 'r')
+    response = HttpResponse()
+    response.write('<table><tr><th>Time</th><th></th><th>Feet</th><th>Cm</th><th>High or Low</th> ')
+    for line in fopen:
+        info = line.split()
+        if info[0] == display_date:
+            response.write('<tr>')
+            for x in info[2:]:
+                response.write('<th>' + x + '</th>')
+            response.write('</tr>')
+    response.write('</table>')
+    return response
 
 @csrf_exempt
 def survey(request):

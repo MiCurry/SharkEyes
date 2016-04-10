@@ -363,7 +363,7 @@ class OverlayManager(models.Manager):
                             generated_datetime=generated_datetime, downsample_ratio=zoom_level[1], zoom_levels=zoom_level[0])
 
                 overlay = Overlay(
-                    file="", #Wave period has no colormap, so this needs to be blank.
+                    file="There are no files for Wave Period", #Wave period has no colormap. There needs to be a string here so the database deletion does not crash do_pipeline.
                     key=os.path.join(settings.KEY_STORAGE_DIR, key_filename), #Wave period uses the key directory to store the wave period banner
                     created_datetime=timezone.now(),  #saves UTC correctly in database
                     applies_at_datetime=applies_at_datetime,
