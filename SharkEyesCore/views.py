@@ -2,7 +2,6 @@ from django.shortcuts import render
 from pl_plot.models import OverlayManager, OverlayDefinition
 from dateutil import tz
 import json
-import requests
 from django.db import connection
 from django.db import IntegrityError, transaction
 from django.views.decorators.csrf import csrf_exempt
