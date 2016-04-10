@@ -29,16 +29,16 @@ var visibleKeys = [];
 var visible_FC = false;
 // is there an active vector (V) being displayed
 var visible_V = false;
-//These are variables for the tide stations. They are here because they are referenced in multiple functions.
-var southBeachContent = '<p>' + '<b>' + 'South Beach Station Tides' + '</b>' + '</p>' + '<br>';
-var astoriaContent = '<p>' + '<b>' + 'Astoria Station Tides' + '</b>' + '</p>' + '<br>';
-var coosContent = '<p>' + '<b>' + 'Coos Bay Tides' + '</b>' + '</p>' + '<br>';
+//These are variables for the tide stations. They are referenced in multiple functions.
+var southBeachContent = '';
+var astoriaContent = '';
+var coosContent = '';
 var southBeachFlag = 0;       //These flags are used to prevent the map markers from querying NOAA every time they are clicked.
 var astoriaFlag = 0;
 var coosFlag = 0;
-var southBeachId = '9435380'; //If you want to add new stations these ids can be found at http://tidesandcurrents.noaa.gov/map/
-var astoriaId = '9439040';
-var coosId = '9432780';
+var southBeachId = 'southbeach'; //If you want to add new stations these ids can be found at http://tidesandcurrents.noaa.gov/map/
+var astoriaId = 'astoria';
+var coosId = 'coosbay';
 
 // *************************************************************
 // array holding overlays for given datetime
@@ -138,6 +138,15 @@ $(".overlay-toggle").click(function(e) {
 $('#date-time').change(function(e) {
     // get date so can update overlays
     var textdate = datetime[document.getElementById('date-time').value];
+    southBeachContent = '';
+    astoriaContent = '';
+    coosContent = '';
+    southBeachContent += makeTideMarker(textdate, southBeachId, 'South Beach');
+    astoriaContent += makeTideMarker(textdate, astoriaId, 'Astoria');
+    coosContent += makeTideMarker(textdate, coosId, 'Coos Bay');
+    southBeachFlag = 1;
+    astoriaFlag = 1;
+    coosFlag = 1;
     // set next/prev button disables as needed
     prev_next_enable_toggle();
     // update overlays
@@ -147,24 +156,23 @@ $('#date-time').change(function(e) {
 //**********************************************************************************************************************
 //Map Marker Function
 //**********************************************************************************************************************
-//This takes a date and a station id and sends the request to SharkEyesCore.views.tides which queries NOAA and returns
-//JSON data which is parsed into an html string to be passed to the Google map markers.
-//NOAA CO-OPs API information can be found at https://tidesandcurrents.noaa.gov/api/
-function makeTideMarker(date, station){
-    var station_data = {"station_id": station, "display_date": date};
+//This takes a date and a station id and sends the request to SharkEyesCore.views.tides which queries the tide tables and returns
+//an html table string to be passed to the Google map markers. It also adds the valid for date to and relevant station.
+function makeTideMarker(date, station, location){
+    dateString = makeDateString(date);
+    var station_data = {"station_id": station, "display_date": dateString};
     var jsonData = JSON.stringify(station_data);
-    var tideInfo = '';
-    $.ajax({
+    var valid_date = validDate(date)
+    var tideInfo = '<p>' + '<b>' + location + ' Tides' + '</b>' + '</p>' + '<br>';
+    tideInfo += '<p>' + 'Valid for&nbsp;' + '<b>' + valid_date + '</b>' + '</p>';
+    jQuery.ajax({
         type: 'POST',
         url: '{% url "SharkEyesCore.views.tides" %}',
         data: jsonData,
         datatype: "JSON",
         success: function(data){
-            data = JSON.parse(data);
-            for (var i = 0; i < 7; i++) {
-                var item = data.datums[i];
-                tideInfo += '<p>' + item.n + ':&nbsp;' +'<b>' + item.v + '</b>' + '</p>' + '<br>';
-            }
+            console.log('this is the data ' + data);
+                tideInfo += data;
         },
         async: false,
         error: function(xhr, ajaxOptions, thrownError){
@@ -176,54 +184,72 @@ function makeTideMarker(date, station){
 }
 
 //**********************************************************************************************************************
+//Function for making an easily readable date for displaying in tide windows
+//**********************************************************************************************************************
+function validDate(date){
+    var valid_date = '';
+    var valid_temp = date.split(" ");
+    for(var i = 0; i < 3; i++ ){
+        valid_date += valid_temp[i] + " ";
+    }
+    valid_date = valid_date.replace(/,/g, '');
+    return valid_date
+}
+
+//**********************************************************************************************************************
 //Date Formatting Function
 //**********************************************************************************************************************
-//This function converts the dates stored in the datetime array into valid strings for querying the NOAA api.
-//The dates stored in datetime are strings of the form: March,18,2016,8 p.m. This function would convert that into the string 20160318.
+//This function converts the dates stored in the datetime array into valid strings for accessing the tide tables.
+//The dates are stored in datetime as a string in a form like this: March,18,2016,8 p.m. This function would convert that into the string 2016/03/18.
 function makeDateString(date){
+    date = date.replace(/,/g, ''); //This gets rid of some commas that are left in the string
     var dates = date.split(" "); //This puts the date string into an array with the format:  dates = ['March', '18', '2016', '8', 'p.m']
     var date_str = '';
     date_str += dates[2];
-    switch(dates[0]){
+    switch(dates[0]) {
         case 'January':
-            date_str += '01';
-        break;
+            date_str += '/01/';
+            break;
         case 'February':
-            date_str += '02';
-        break;
+            date_str += '/02/';
+            break;
         case 'March':
-            date_str += '03';
-        break;
+            date_str += '/03/';
+            break;
         case 'April':
-            date_str += '04';
-        break;
+            date_str += '/04/';
+            break;
         case 'May':
-            date_str += '05';
-        break;
+            date_str += '/05/';
+            break;
         case 'June':
-            date_str += '06';
-        break;
+            date_str += '/06/';
+            break;
         case 'July':
-            date_str += '07';
-        break;
+            date_str += '/07/';
+            break;
         case 'August':
-            date_str += '08';
-        break;
+            date_str += '/08/';
+            break;
         case 'September':
-            date_str += '09';
-        break;
+            date_str += '/09/';
+            break;
         case 'October':
-            date_str += '10';
-        break;
+            date_str += '/10/';
+            break;
         case 'November':
-            date_str += '11';
-        break;
+            date_str += '/11/';
+            break;
         case 'December':
-            date_str += '12';
-        break;
+            date_str += '/12/';
+            break;
     }
-    date_str += dates[1];
-    date_str = date_str.replace(/,/g, ''); //This gets rid of some commas that are left in the string
+    if(dates[1].length <= 1){
+        date_str += '0' + dates[1];
+    }
+    else {
+        date_str += dates[1];
+    }
     return date_str;
 }
 
@@ -275,16 +301,6 @@ function initialize() {
 //Make the initial tide map markers.
 //**********************************************************************************************************************
     var image = '{% static 'imgs/tides.gif' %}'; //The icon for tide markers. I made this image myself, so there is no need to worry about copyright. If you want to change it you can find it in static_files/imgs.
-    var display_date = makeDateString(datetime[0]);  //This is the default date for the initial NOAA api call.
-
-    //valid_date is used in the markers for now to make sure users know when the tide information is valid.
-    //This is removing the hour specification from the date and making it look nice.
-    var valid_date = '';
-    var valid_temp = datetime[0].split(" ");
-    for(var i = 0; i < 3; i++ ){
-        valid_date += valid_temp[i] + " ";
-    }
-    valid_date = valid_date.replace(/,/g, '');
 
     //Make the South Beach (Newport) map marker
     var southBeachInfoWindow;
@@ -297,8 +313,7 @@ function initialize() {
 
     southBeachMarker.addListener('click', function(){
         if(southBeachFlag == 0) {
-            southBeachContent += '<p>' + 'Valid for&nbsp;' + '<b>' + valid_date + '</b>' + '</p>' + '<br>';
-            southBeachContent += makeTideMarker(display_date, southBeachId);
+            southBeachContent += makeTideMarker(datetime[0], southBeachId, 'South Beach');
             southBeachFlag = 1;
         }
         southBeachInfoWindow = new google.maps.InfoWindow({
@@ -318,8 +333,7 @@ function initialize() {
 
     astoriaMarker.addListener('click', function(){
         if(astoriaFlag == 0) {
-            astoriaContent += '<p>' + 'Valid for&nbsp;' + '<b>' + valid_date + '</b>' + '</p>' + '<br>';
-            astoriaContent += makeTideMarker(display_date, astoriaId);
+            astoriaContent += makeTideMarker(datetime[0], astoriaId, 'Astoria');
             astoriaFlag = 1;
         }
         astoriaInfoWindow = new google.maps.InfoWindow({
@@ -339,8 +353,7 @@ function initialize() {
 
     coosMarker.addListener('click', function(){
         if(coosFlag == 0) {
-            coosContent += '<p>' + 'Valid for&nbsp;' + '<b>' + valid_date + '</b>' + '</p>' + '<br>';
-            coosContent += makeTideMarker(display_date, coosId);
+            coosContent += makeTideMarker(datetime[0], coosId, 'Coos Bay');
             coosFlag = 1;
         }
         coosInfoWindow = new google.maps.InfoWindow({
@@ -413,23 +426,6 @@ function next_onclick() {
     $('#date-time').change();
     // set next/prev button disables as needed
     prev_next_enable_toggle();
-
-    //Test logic for updating the tides when the date changes
-    // This code will update the tides to the new day when it is active
-    //but it makes changing the dates very unresponsive as it makes the api calls before changing the date
-    /*
-    var nextDate = '';
-    nextDate = makeDateString(datetime[date]);
-    southBeachContent = '<p>' + '<b>' + 'South Beach Station Tides' + '</b>' + '</p>' + '<br>';
-    astoriaContent = '<p>' + '<b>' + 'Astoria Station Tides' + '</b>' + '</p>' + '<br>';
-    coosContent = '<p>' + '<b>' + 'Coos Bay Tides' + '</b>' + '</p>' + '<br>';
-    southBeachContent += makeTideMarker(nextDate,southBeachId);
-    astoriaContent += makeTideMarker(nextDate, astoriaId);
-    coosContent += makeTideMarker(nextDate, coosId);
-    southBeachFlag = 1;
-    astoriaFlag = 1;
-    coosFlag = 1;
-    */
 }
 
 // *********************************************************************************************************************
@@ -443,25 +439,7 @@ function prev_onclick() {
     // call event function used to make change to date-time element
     $('#date-time').change();
     // set next/prev button disables as needed
-    prev_next_enable_toggle();
-
-    //Test logic for updating the tides when the date changes
-    // This code will update the tides to the new day when it is active
-    //but it makes changing the dates very unresponsive as it makes the api calls before changing the date
-    /*
-     //Test logic for updating the tides when the date changes
-    var prevDate = '';
-    prevDate = makeDateString(datetime[date]);
-    southBeachContent = '<p>' + '<b>' + 'South Beach Station Tides' + '</b>' + '</p>' + '<br>';
-    astoriaContent = '<p>' + '<b>' + 'Astoria Station Tides' + '</b>' + '</p>' + '<br>';
-    coosContent = '<p>' + '<b>' + 'Coos Bay Tides' + '</b>' + '</p>' + '<br>';
-    southBeachContent += makeTideMarker(prevDate,southBeachId);
-    astoriaContent += makeTideMarker(prevDate, astoriaId);
-    coosContent += makeTideMarker(prevDate, coosId);
-    southBeachFlag = 1;
-    astoriaFlag = 1;
-    coosFlag = 1;
-    */
+    prev_next_enable_toggle()
 }
 
 // *********************************************************************************************************************
@@ -491,6 +469,7 @@ function update_overlays(date) {
     for (name in definitions) {
         if($("#" + name + ".toggle-checkbox").prop("checked")) {
             if (insert_overlay(date, name) != true) {
+
                 $("#" + name + ".toggle-checkbox").prop('checked', false);
                 remove_overlay(name);
                 window.alert("There is no overlay for " + name + " on " + date);

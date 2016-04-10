@@ -332,8 +332,10 @@ class OverlayManager(models.Manager):
 
         if overlay_definition_id == 6:
             zoom_levels = zoom_levels_for_direction
+
         else:
             zoom_levels = zoom_levels_for_others
+
         if overlay_definition_id != 7:  #Wave period does not need a colormap image, so skip this if overlay_definition_id = 7
             tile_dir = "tiles_{0}_{1}".format(overlay_definition.function_name, uuid4())
 
@@ -361,7 +363,7 @@ class OverlayManager(models.Manager):
                             generated_datetime=generated_datetime, downsample_ratio=zoom_level[1], zoom_levels=zoom_level[0])
 
                 overlay = Overlay(
-                    file="", #Wave period has no colormap, so this needs to be blank.
+                    file="There are no files for Wave Period", #Wave period has no colormap. There needs to be a string here so the database deletion does not crash do_pipeline.
                     key=os.path.join(settings.KEY_STORAGE_DIR, key_filename), #Wave period uses the key directory to store the wave period banner
                     created_datetime=timezone.now(),  #saves UTC correctly in database
                     applies_at_datetime=applies_at_datetime,
@@ -413,15 +415,18 @@ class OverlayManager(models.Manager):
         #  zoom_levels_for_currents = [('2-5', 8), ('6-7', 4), ('8-10', 2), ('12', 1)]
         zoom_levels_for_currents = [('2-7', 8),  ('8-12', 4)]
         zoom_levels_for_others = [(None, None)]
+        zoom_levels_for_winds = [('2-8', 10), ('9-10', 5), ('11-12', 1)]
 
         if file_id is None:
-            datafile = DataFile.objects.latest('model_date') #EEEYE! SUPER BAD! Pulls any type of model!
+            datafile = DataFile.objects.latest('model_date')
+        elif overlay_definition_id == 5:
+            datafile = 0
         else:
             datafile = DataFile.objects.get(pk=file_id)
 
         # Checking to see if the file is a netcdf or an OpenDap file
         if overlay_definition_id == 5:
-            plotter = WindPlotter(datafile.file.name) # Wind is an OPenDaP Access not a netcdf file...
+            plotter = WindPlotter()
         else:
             plotter = Plotter(datafile.file.name)
 
@@ -429,6 +434,8 @@ class OverlayManager(models.Manager):
 
         if overlay_definition_id == 3:
             zoom_levels = zoom_levels_for_currents
+        elif overlay_definition_id == 5:
+            zoom_levels = zoom_levels_for_winds
         else:
             zoom_levels = zoom_levels_for_others
 
