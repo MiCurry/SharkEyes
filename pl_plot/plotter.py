@@ -125,13 +125,15 @@ class WindPlotter:
     def get_number_of_model_times(self):
         return 12
 
-    def get_time_at_oceantime_index(self, index):
-        #Team 1 says todo add checking of times here. there's only three furthest out file
-        self.dataset = open_url(settings.WIND_URL)
-        dateString = self.dataset.time.units[11:] #Date from which of forecasts avaible: normally 13 days in the past
-        modified_datetime = datetime.strptime(dateString, "%Y-%m-%dT%H:%M:%SZ").date() #strip date
-        current_datetime = modified_datetime+timedelta(days=13) #should give us the current day
-        return current_datetime
+    def get_time_at_oceantime_index(self,index):
+        time = timezone.now()
+        time = time.replace(hour = 0, minute = 0, second = 0, microsecond = 0)
+        if(index == 0):
+            time = time.replace(hour = 12)
+        else:
+            time = time + timedelta(hours = (index * 3))
+        print "Time:", time
+        return time
 
     def make_plot(self, plot_function, zoom_levels, time_index=0, downsample_ratio=None):
 
@@ -149,20 +151,12 @@ class WindPlotter:
                        llcrnrlon=-129, urcrnrlon=-123.7265625,
                        ax=ax, epsg=4326)
 
-        # bmap = Basemap(projection='merc',                         #A cylindrical, conformal projection.
-        #                resolution='h', area_thresh=1.0,
-        #                llcrnrlat=40, urcrnrlat=45,
-        #                llcrnrlon=-127, urcrnrlon=-123,
-        #                ax=ax, epsg=4326)
-
         plot_function(ax=ax, data_file=self.data_file, time_index=time_index, bmap=bmap, key_ax=key_ax, downsample_ratio=downsample_ratio)
-
 
         generated_datetime = timezone.now().date() #The wind png is always generated at the time of the call
 
         plot_filename = "{0}_{1}_{2}_{3}.png".format(plot_function.__name__, time_index, generated_datetime, uuid4())
         key_filename = "{0}_key_{1}_{2}.png".format(plot_function.__name__, generated_datetime, uuid4())
-
 
         fig.savefig(
              os.path.join(settings.MEDIA_ROOT, settings.UNCHOPPED_STORAGE_DIR, plot_filename),
