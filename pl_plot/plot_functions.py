@@ -3,6 +3,8 @@ from matplotlib import pyplot, colors
 import math
 from scipy import ndimage
 import scipy
+import os,sys
+from PIL import Image
 from mpl_toolkits.basemap import Basemap
 import numpy as np
 from pydap.client import open_url
@@ -250,7 +252,6 @@ def sst_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
 
 
 # We are not using the Salt model at this time.
-
 def salt_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
      # salt has dimensions ('ocean_time', 's_rho', 'eta_rho', 'xi_rho')
     # s_rho corresponds to layers, of which there are 30, so we take the top one.
@@ -346,6 +347,8 @@ def currents_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio)
 
 # Check winds are going in the right direction
 def wind_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
+    #key_ax.Image.open("/opt/sharkeyes/src/static_files/imgs/barbKey.png")
+
     print "CREATING A WIND PLOT"
     print "DOWNSAMPLERATIO = ", downsample_ratio, "Time Index =", time_index
     ratio = 1
@@ -363,7 +366,6 @@ def wind_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
     """
     wind_u = data_file[var_u][time_index+104, 0, :, :]
     wind_v = data_file[var_v][time_index+104, 0, :, :]
-    model_time = data_file['time']
 
     tmp = numpy.loadtxt('/opt/sharkeyes/src/latlon.g218')
     lat = numpy.reshape(tmp[:, 2], [614,428])
@@ -387,70 +389,20 @@ def wind_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
     right_column = wind_u[:, -1:]
     bottom_row = wind_v[-1:, :]
 
-    wind_u = crop_and_downsample(wind_u, downsample_ratio, False)
-    wind_v = crop_and_downsample(wind_v, downsample_ratio, False)
+    #wind_u = crop_and_downsample(wind_u, downsample_ratio, False)
+    #wind_v = crop_and_downsample(wind_v, downsample_ratio, False)
 
-    x = crop_and_downsample(lon, downsample_ratio, False)
-    y = crop_and_downsample(lat, downsample_ratio, False)
+    #x = crop_and_downsample(lon, downsample_ratio, False)
+    #y = crop_and_downsample(lat, downsample_ratio, False)
 
-    bmap.barbs(         x[::ratio, ::ratio],
-                        y[::ratio, ::ratio],
-                        wind_u[::ratio, ::ratio],
-                        wind_v[::ratio, ::ratio],
+    bmap.barbs(         x[::downsample_ratio, ::downsample_ratio],
+                        y[::downsample_ratio, ::downsample_ratio],
+                        wind_u[::downsample_ratio, ::downsample_ratio],
+                        wind_v[::downsample_ratio, ::downsample_ratio],
                         ax=ax,
                         length=7,
                         color='black')
 
-
-def wind_function_(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
-    downsample_ratio = 10
-
-    def compute_average(array):
-        avg = numpy.average(array)
-        return numpy.nan if avg > 10**3 else avg
-
-    #forecast_index+104 because there are 13 days of backcasts that we do not need
-    winds_u = data_file['u-component_of_wind_height_above_ground'][time_index+104, 0, :, :]
-    winds_v = data_file['v-component_of_wind_height_above_ground'][time_index+104, 0, :, :]
-
-    #values come from the text file and allow you to convert from the model's coordinate projection system
-    info = numpy.loadtxt('/opt/sharkeyes/src/latlon.g218')
-    lats = numpy.reshape(info[:, 2], [614,428])
-    longs = numpy.reshape(info[:, 3], [614,428])
-
-    for i in range (0, len(longs)):
-        longs[i] = -longs[i]
-
-    # average nearby points to align grid, and add the edge column/row so it's the right size.
-    winds_u = numpy.reshape(winds_u, (428, 614))
-    right_column = winds_u[:, -1:]
-    winds_u_adjusted = ndimage.generic_filter(scipy.hstack((winds_u, right_column)),
-                                                 compute_average, footprint=[[1], [1]], mode='reflect')
-    winds_v = numpy.reshape(winds_v, (428, 614))
-    bottom_row = winds_v[-1:, :]
-    winds_v_adjusted = ndimage.generic_filter(scipy.vstack((winds_v, bottom_row)),
-                                                 compute_average, footprint=[[1], [1]], mode='reflect')
-
-    #This is for calculating the different zoom levels
-    u_zoomed = crop_and_downsample(winds_u_adjusted, downsample_ratio)
-    v_zoomed = crop_and_downsample(winds_v_adjusted, downsample_ratio)
-
-    longs_zoomed = crop_and_downsample(longs, downsample_ratio, False)
-    lats_zoomed = crop_and_downsample(lats, downsample_ratio, False)
-
-    x, y = bmap(longs_zoomed, lats_zoomed)
-
-    bmap.drawmapboundary(linewidth=0.0, ax=ax)
-    bmap.drawcoastlines()
-    overlay = bmap.quiver(x, y, u_zoomed, v_zoomed, ax=ax, color='black')
-
-    quiverkey = key_ax.quiverkey(overlay, .95, .4, 0.5*.5144, ".5 knots", labelpos='S', labelcolor='white',
-                                 color='white', labelsep=.5, coordinates='axes')
-    quiverkey1 = key_ax.quiverkey(overlay, 3.75, .4, 1*.5144, "1 knot", labelpos='S', labelcolor='white',
-                                  color='white', labelsep=.5, coordinates='axes')
-    quiverkey2 = key_ax.quiverkey(overlay, 6.5, .4, 2*.5144, "2 knots", labelpos='S', labelcolor='white',
-                                  color='white', labelsep=.5, coordinates='axes')
-    key_ax.set_axis_off()
 
 
 def crop_and_downsample(source_array, downsample_ratio, average=True):
