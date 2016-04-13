@@ -8,7 +8,6 @@ from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
 from django.http import HttpResponse
 
-
 #This is where we associate the Javascript variables (overlays, defs etc) with the Django objects from the database.
 def home(request):
     # maybe not sure how wind is stored in the database...
