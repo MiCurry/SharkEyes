@@ -140,7 +140,7 @@ class WindPlotter:
     def key_check(self):
         # The Barb Key is Static, so make sure its in the correctly directory each time we make a plot
         keyFile = os.path.join(settings.MEDIA_ROOT, settings.KEY_STORAGE_DIR, "barbKey.png")
-        barbStatic = os.path.join(settings.MEDIA_ROOT, "barbKey.png")
+        barbStatic = os.path.join(settings.STATICFILES_DIRS, "imgs", "barbKey.png")
 
         if(os.path.isfile(keyFile) == 1):
             return 1
@@ -154,7 +154,6 @@ class WindPlotter:
         key_ax = pyplot.figure()
 
         ax = fig.add_subplot(111)  # one subplot in the figure
-
 
         #window cropped by picking lat and lon corners
         bmap = Basemap(projection='merc',                         #A cylindrical, conformal projection.
@@ -234,7 +233,6 @@ class Plotter:
                        llcrnrlon=longs[0], urcrnrlon=longs[-1],
                        ax=ax, epsg=4326)
 
-
         plot_function(ax=ax, data_file=self.data_file, time_index=time_index, bmap=bmap, key_ax=key_ax,
                       downsample_ratio=downsample_ratio) #todo this param is a hack for expo
 
@@ -248,8 +246,6 @@ class Plotter:
             DPI = 1800
         else:
             DPI = 800 # Original is 1200 dpi
-
-
 
         fig.savefig(
             os.path.join(settings.MEDIA_ROOT, settings.UNCHOPPED_STORAGE_DIR, plot_filename),

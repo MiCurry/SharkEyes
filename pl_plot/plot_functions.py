@@ -30,7 +30,7 @@ METERS_TO_FEET = 3.28
 MIN_WAVE_PERIOD = 3
 MAX_WAVE_PERIOD = 26
 
-
+#
 def get_rho_mask(data_file):
     rho_mask = numpy.logical_not(data_file.variables['mask_rho'][:])
     rho_mask[207:221, 133:135] = 1
@@ -363,12 +363,16 @@ def wind_function(ax, data_file, bmap, time_index, downsample_ratio):
     Grabbing the u + v values at time_index, level = 0, x = nan, y = nan
     nan = not a number
     """
-    wind_u = data_file[var_u][time_index+104, 0, :, :]
-    wind_v = data_file[var_v][time_index+104, 0, :, :]
+    wind_u = data_file[var_u][:, 0, :, :]
+    wind_v = data_file[var_v][:, 0, :, :]
 
     tmp = numpy.loadtxt('/opt/sharkeyes/src/latlon.g218')
     lat = numpy.reshape(tmp[:, 2], [614,428])
     lon = numpy.reshape(tmp[:, 3], [614,428])
+
+    for i in lat:
+        for j in lon:
+            numpy.interp()
 
     x, y = bmap(lon, lat)
 
@@ -385,14 +389,8 @@ def wind_function(ax, data_file, bmap, time_index, downsample_ratio):
     for i in range(0, len(lon)):
         lon[i] = -lon[i]
 
-    right_column = wind_u[:, -1:]
-    bottom_row = wind_v[-1:, :]
+    numpy.interp(x, xp, fp)
 
-    #wind_u = crop_and_downsample(wind_u, downsample_ratio, False)
-    #wind_v = crop_and_downsample(wind_v, downsample_ratio, False)
-
-    #x = crop_and_downsample(lon, downsample_ratio, False)
-    #y = crop_and_downsample(lat, downsample_ratio, False)
 
     bmap.barbs(         x[::downsample_ratio, ::downsample_ratio],
                         y[::downsample_ratio, ::downsample_ratio],
@@ -400,6 +398,7 @@ def wind_function(ax, data_file, bmap, time_index, downsample_ratio):
                         wind_v[::downsample_ratio, ::downsample_ratio],
                         ax=ax,
                         length=7,
+                        edgecolor='white',
                         color='black')
 
 
