@@ -33,8 +33,8 @@ MAX_WAVE_PERIOD = 26
 
 def get_rho_mask(data_file):
     rho_mask = numpy.logical_not(data_file.variables['mask_rho'][:])
-    rho_mask[207:221, 133:135] = 1
-    rho_mask[201:202, 133:135] = 1
+    #rho_mask[207:221, 133:135] = 1
+    #rho_mask[201:202, 133:135] = 1
     return rho_mask
 
 def wave_direction_function(ax, data_file, bmap, key_ax, forecast_index, downsample_ratio):
