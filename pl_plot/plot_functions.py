@@ -1,5 +1,5 @@
 import numpy
-from matplotlib import pyplot, colors
+from matplotlib import pyplot, colors, image
 import math
 from scipy import ndimage
 import scipy
@@ -346,8 +346,7 @@ def currents_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio)
     key_ax.set_axis_off()
 
 # Check winds are going in the right direction
-def wind_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
-    #key_ax.Image.open("/opt/sharkeyes/src/static_files/imgs/barbKey.png")
+def wind_function(ax, data_file, bmap, time_index, downsample_ratio):
 
     print "CREATING A WIND PLOT"
     print "DOWNSAMPLERATIO = ", downsample_ratio, "Time Index =", time_index
