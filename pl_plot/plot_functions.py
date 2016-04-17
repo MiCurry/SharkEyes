@@ -385,7 +385,6 @@ def wind_function(ax, data_file, bmap, time_index, downsample_ratio):
     for i in range(0, len(lon)):
         lon[i] = -lon[i]
 
-
     bmap.barbs(         x[::downsample_ratio, ::downsample_ratio],
                         y[::downsample_ratio, ::downsample_ratio],
                         wind_u[::downsample_ratio, ::downsample_ratio],
