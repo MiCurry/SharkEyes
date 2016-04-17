@@ -370,10 +370,6 @@ def wind_function(ax, data_file, bmap, time_index, downsample_ratio):
     lat = numpy.reshape(tmp[:, 2], [614,428])
     lon = numpy.reshape(tmp[:, 3], [614,428])
 
-    for i in lat:
-        for j in lon:
-            numpy.interp()
-
     x, y = bmap(lon, lat)
 
     wind_u = numpy.reshape(wind_u, (614, 428))
@@ -388,9 +384,6 @@ def wind_function(ax, data_file, bmap, time_index, downsample_ratio):
 
     for i in range(0, len(lon)):
         lon[i] = -lon[i]
-
-    numpy.interp(x, xp, fp)
-
 
     bmap.barbs(         x[::downsample_ratio, ::downsample_ratio],
                         y[::downsample_ratio, ::downsample_ratio],
