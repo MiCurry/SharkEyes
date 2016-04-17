@@ -363,16 +363,12 @@ def wind_function(ax, data_file, bmap, time_index, downsample_ratio):
     Grabbing the u + v values at time_index, level = 0, x = nan, y = nan
     nan = not a number
     """
-    wind_u = data_file[var_u][:, 0, :, :]
-    wind_v = data_file[var_v][:, 0, :, :]
+    wind_u = data_file[var_u][time_index+104, 0, :, :]
+    wind_v = data_file[var_v][time_index+104, 0, :, :]
 
     tmp = numpy.loadtxt('/opt/sharkeyes/src/latlon.g218')
     lat = numpy.reshape(tmp[:, 2], [614,428])
     lon = numpy.reshape(tmp[:, 3], [614,428])
-
-    for i in lat:
-        for j in lon:
-            numpy.interp()
 
     x, y = bmap(lon, lat)
 
@@ -389,8 +385,6 @@ def wind_function(ax, data_file, bmap, time_index, downsample_ratio):
     for i in range(0, len(lon)):
         lon[i] = -lon[i]
 
-    numpy.interp(x, xp, fp)
-
 
     bmap.barbs(         x[::downsample_ratio, ::downsample_ratio],
                         y[::downsample_ratio, ::downsample_ratio],
@@ -398,7 +392,6 @@ def wind_function(ax, data_file, bmap, time_index, downsample_ratio):
                         wind_v[::downsample_ratio, ::downsample_ratio],
                         ax=ax,
                         length=7,
-                        edgecolor='white',
                         color='black')
 
 

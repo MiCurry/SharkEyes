@@ -140,7 +140,7 @@ class WindPlotter:
     def key_check(self):
         # The Barb Key is Static, so make sure its in the correctly directory each time we make a plot
         keyFile = os.path.join(settings.MEDIA_ROOT, settings.KEY_STORAGE_DIR, "barbKey.png")
-        barbStatic = os.path.join(settings.STATICFILES_DIRS, "imgs", "barbKey.png")
+        barbStatic = "/opt/sharkeyes/src/static_files/imgs/barbKey.png"
 
         if(os.path.isfile(keyFile) == 1):
             return 1
