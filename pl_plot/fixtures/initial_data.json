@@ -63,10 +63,10 @@
         "model": "pl_plot.overlaydefinition",
         "pk": 6,
         "fields": {
-            "display_name_long": "Wave Direction/Wave Period",
+            "display_name_long": "Wave Direction/Period",
             "is_base": true,
             "type": "V",
-            "display_name_short": "Wave Direction/Wave Period",
+            "display_name_short": "Wave Direction/Period",
             "function_name": "wave_direction_function"
         }
     },
