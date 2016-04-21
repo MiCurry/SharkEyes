@@ -11,7 +11,7 @@ from django.http import HttpResponse
 #This is where we associate the Javascript variables (overlays, defs etc) with the Django objects from the database.
 def home(request):
     # maybe not sure how wind is stored in the database...
-    models = [1,3,4,5,6,7]
+    models = [1,3,4,5,6]
 
     overlays_view_data = OverlayManager.get_next_few_days_of_tiled_overlays(models)
     print

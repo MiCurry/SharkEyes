@@ -5,10 +5,12 @@ from matplotlib import pyplot
 from mpl_toolkits.basemap import Basemap
 from pydap.client import open_url
 import os
+import shutil
 from uuid import uuid4
 from django.conf import settings
 from datetime import datetime, timedelta
 from django.utils import timezone
+
 
 
 class WaveWatchPlotter:
@@ -135,14 +137,23 @@ class WindPlotter:
         print "Time:", time
         return time
 
+    def key_check(self):
+        # The Barb Key is Static, so make sure its in the correctly directory each time we make a plot
+        keyFile = os.path.join(settings.MEDIA_ROOT, settings.KEY_STORAGE_DIR, "barbKey.png")
+        barbStatic = "/opt/sharkeyes/src/static_files/imgs/barbKey.png"
+
+        if(os.path.isfile(keyFile) == 1):
+            return 1
+        else:
+            shutil.copyfile(barbStatic, keyFile)
+            return 1
+
     def make_plot(self, plot_function, zoom_levels, time_index=0, downsample_ratio=None):
 
         fig = pyplot.figure()
-        key_fig = pyplot.figure(facecolor=settings.OVERLAY_KEY_COLOR)
+        key_ax = pyplot.figure()
 
         ax = fig.add_subplot(111)  # one subplot in the figure
-
-        key_ax = key_fig.add_axes([0.1, 0.2, 0.6, 0.05])
 
         #window cropped by picking lat and lon corners
         bmap = Basemap(projection='merc',                         #A cylindrical, conformal projection.
@@ -151,25 +162,25 @@ class WindPlotter:
                        llcrnrlon=-129, urcrnrlon=-123.7265625,
                        ax=ax, epsg=4326)
 
-        plot_function(ax=ax, data_file=self.data_file, time_index=time_index, bmap=bmap, key_ax=key_ax, downsample_ratio=downsample_ratio)
+        plot_function(ax=ax, data_file=self.data_file, time_index=time_index, bmap=bmap, downsample_ratio=downsample_ratio)
 
         generated_datetime = timezone.now().date() #The wind png is always generated at the time of the call
 
         plot_filename = "{0}_{1}_{2}_{3}.png".format(plot_function.__name__, time_index, generated_datetime, uuid4())
-        key_filename = "{0}_key_{1}_{2}.png".format(plot_function.__name__, generated_datetime, uuid4())
+
+        key_filename = "barbKey.png"
+
 
         fig.savefig(
              os.path.join(settings.MEDIA_ROOT, settings.UNCHOPPED_STORAGE_DIR, plot_filename),
              dpi=1200, bbox_inches='tight', pad_inches=0,
-             transparent=True, frameon=False)
+             transparent=True, frameon=False, edgecolor = 'white')
         pyplot.close(fig)
 
-        if time_index == 0:
-            key_fig.savefig(
-                 os.path.join(settings.MEDIA_ROOT, settings.KEY_STORAGE_DIR, key_filename),
-                 dpi=500, bbox_inches='tight', pad_inches=0,
-                 transparent=True, facecolor=key_fig.get_facecolor())
-        pyplot.close(key_fig)
+        # Winds use a static key, but it gets deleted from the delete function, so this ensures that it
+        # in the right place everytime.
+        self.key_check()
+
         return plot_filename, key_filename
 
 class Plotter:
@@ -222,7 +233,6 @@ class Plotter:
                        llcrnrlon=longs[0], urcrnrlon=longs[-1],
                        ax=ax, epsg=4326)
 
-
         plot_function(ax=ax, data_file=self.data_file, time_index=time_index, bmap=bmap, key_ax=key_ax,
                       downsample_ratio=downsample_ratio) #todo this param is a hack for expo
 
@@ -236,8 +246,6 @@ class Plotter:
             DPI = 1800
         else:
             DPI = 800 # Original is 1200 dpi
-
-
 
         fig.savefig(
             os.path.join(settings.MEDIA_ROOT, settings.UNCHOPPED_STORAGE_DIR, plot_filename),
