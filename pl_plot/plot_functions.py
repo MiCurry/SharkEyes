@@ -38,69 +38,25 @@ def get_rho_mask(data_file):
     return rho_mask
 
 def wave_direction_function(ax, data_file, bmap, key_ax, forecast_index, downsample_ratio):
-    all_day_height = data_file.variables['HTSGW_surface'][:, :, :]
-    all_day_direction = data_file.variables['DIRPW_surface'][:,:,:]
-    lats = data_file.variables['latitude'][:, :]
-    longs = data_file.variables['longitude'][:, :]
+     #get the wave period data from a netCDF file
+     all_day = data_file.variables['PERPW_surface'][:, :, :]
 
-    directions = all_day_direction[forecast_index, :, :]
-    height = all_day_height[forecast_index, :, :]
-    directions_mod = 90.0 - directions + 180.0
+     # Mask all of the data points that are "nan" (not a number) in the data file; these represent land
+     period_masked = np.ma.masked_array(all_day[forecast_index][:, :],np.isnan(all_day[forecast_index][:,:]))
 
-    index = directions_mod > 180
-    directions_mod[index] = directions_mod[index] - 360;
-    index = directions_mod < -180;
-    directions_mod[index] = directions_mod[index] + 360;
+     #This is the average wave period for the day
+     mean_val = np.mean(period_masked)
+     #The mean val is calculated to a large number of decimal places. This rounds it to two.
+     mean_val = round(mean_val, 2)
 
+     #This is the maximum wave period value for the day
+     max_val = np.amax(period_masked)
+     #This rounds the max value just like the average
+     max_val = round(max_val, 2)
 
-    # The sine and cosine functions expect Radians, so we use the deg2rad function to convert the
-    # directions, which are in Degrees.
-    # Multiplying the U and the V, each, by 'height' in order to SCALE the vectors.
-    U = height*np.cos(np.deg2rad(directions_mod))
-    V = height*np.sin(np.deg2rad(directions_mod))
-
-    U_downsampled = crop_and_downsample_wave(U, downsample_ratio)
-    V_downsampled = crop_and_downsample_wave(V, downsample_ratio)
-
-    x, y = bmap(longs, lats)
-
-    x_zoomed = crop_and_downsample_wave(x, downsample_ratio)
-    y_zoomed = crop_and_downsample_wave(y, downsample_ratio)
-
-    bmap.drawmapboundary(linewidth=0.0, ax=ax)
-    # Some documentation here: http://matplotlib.org/api/pyplot_summary.html
-    overlay = bmap.quiver(x_zoomed, y_zoomed, U_downsampled, V_downsampled, ax=ax, units='inches',
-                          color='black', scale=75.0, headwidth=2, headlength=3,
-                          headaxislength=2.5, minlength=0.5, minshaft=.9)
-
-    # Set up the conversions to feet from meters
-    half = 0.5*METERS_TO_FEET
-    one = 1.0*METERS_TO_FEET
-    two = 2.0*METERS_TO_FEET
-    three = 3.0*METERS_TO_FEET
-    five = 5.0*METERS_TO_FEET
-    six = 6.0*METERS_TO_FEET
-
-    # Print a half-meter arrow, with a legend saying this is half a meter
-    quiverkey1 = key_ax.quiverkey(overlay, 1, .4, 0.5, "Wave Height: %.1f ft" % half,
-                                  labelpos='S', labelcolor='white',
-                                  color='white', labelsep=.5, coordinates='axes')
-    quiverkey2 = key_ax.quiverkey(overlay, 4, .4, 1.0, "%.1f ft" % one, labelpos='S', labelcolor='white',
-                                  color='white', labelsep=.5, coordinates='axes')
-    quiverkey3 = key_ax.quiverkey(overlay, 5.4, .4, 2.0, "%.1f ft" % two, labelpos='S', labelcolor='white',
-                                  color='white', labelsep=.5, coordinates='axes')
-
-    quiverkey4 = key_ax.quiverkey(overlay, 6.8, .4, 3.0, "%.1f ft" % three, labelpos='S', labelcolor='white',
-                                  color='white', labelsep=.5, coordinates='axes')
-
-    quiverkey5 = key_ax.quiverkey(overlay, 8.5, .4, 5.0, "%.1f ft" % five, labelpos='S', labelcolor='white',
-                                  color='white', labelsep=.5, coordinates='axes')
-
-    quiverkey6 = key_ax.quiverkey(overlay, 10.3, .4, 6.0, "%.1f ft" % six, labelpos='S', labelcolor='white',
-                                  color='white', labelsep=.5, coordinates='axes')
-
-    key_ax.set_axis_off()
-
+     #textBox is a hack that makes an unused Cartesian plot with a label over the top of it. This label has the wave period data.
+     #the spacing is purposefully there to have a nice readable label. The black background helps to mask the figure behind the label.
+     textBox = pyplot.text(0, 0,"       Wave period average and maximum values ""\n" "Average: " + str(mean_val) + " seconds " "  -  "" Maximum: " + str(max_val) + " seconds", withdash=False, backgroundcolor='black', color='white')
 
 # Wave Model Data Information:
 # Wave Data comes in 3D arrays (number of forecasts, latitude, longitude)
