@@ -32,6 +32,13 @@ if __name__ == "__main__":
             tiles += OverlayManager.make_plot(3, 0, sst[0])
             for t in tiles:
                 tile_overlay(t)
+    #Small test to see what times the WindPlotter returns
+    elif sys.argv[-1] == "wtest":
+        from pl_plot.plotter import WindPlotter
+        pl = WindPlotter()
+        for i in range(7):
+            print pl.get_time_at_oceantime_index(i)
     else:
         from django.core.management import execute_from_command_line
         execute_from_command_line(sys.argv)
+

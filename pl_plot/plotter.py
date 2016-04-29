@@ -8,7 +8,7 @@ import os
 import shutil
 from uuid import uuid4
 from django.conf import settings
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
 from django.utils import timezone
 
 
@@ -135,7 +135,6 @@ class WindPlotter:
             time = time.replace(hour = 12)
         else:
             time = time + timedelta(hours = (index * 4))
-        print "Time:", time
         return time
 
     def key_check(self):
@@ -163,7 +162,33 @@ class WindPlotter:
                        llcrnrlon=-129, urcrnrlon=-123.7265625,
                        ax=ax, epsg=4326)
 
-        plot_function(ax=ax, data_file=self.data_file, time_index=time_index, bmap=bmap, downsample_ratio=downsample_ratio)
+        """
+        SST Times | Wind Plots
+          00:00   |   00:00
+                  |   03:00
+          04:00   |     +
+                  |   06:00
+          08:00   |     +
+                  |   09:00
+          12:00   |   12:00
+                  |   15:00
+          16:00   |     +
+                  |   18:00
+          20:00   |     +
+                  |   21:00
+          24:00   |   24:00
+        """
+
+        model_time = self.get_time_at_oceantime_index(time_index)
+        model_time = model_time.time()
+        print model_time
+
+        if(model_time == time(0, 0) or model_time == time(12, 0) or model_time == time(24, 0)):
+            interp = "FALSE"
+        else:
+            interp = "TRUE"
+
+        plot_function(ax=ax, data_file=self.data_file, time_index=time_index, bmap=bmap, downsample_ratio=downsample_ratio, interp=interp)
 
         generated_datetime = timezone.now().date() #The wind png is always generated at the time of the call
 
