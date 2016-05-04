@@ -38,6 +38,10 @@ if __name__ == "__main__":
         pl = WindPlotter()
         for i in range(7):
             print pl.get_time_at_oceantime_index(i)
+
+        from pl_plot.models import OverlayManager
+        t = OverlayManager.make_plot(5, 2, 0)
+        print t
     else:
         from django.core.management import execute_from_command_line
         execute_from_command_line(sys.argv)

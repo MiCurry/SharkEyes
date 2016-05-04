@@ -1,18 +1,21 @@
+import math
+import os
+import sys
+
+import scipy
+from scipy import ndimage
+from scipy.interpolate import interp1d
 import numpy
 from matplotlib import pyplot, colors, image
-import math
-from scipy import ndimage
-import scipy
-import os,sys
-from PIL import Image
 from mpl_toolkits.basemap import Basemap
-import numpy as np
+from PIL import Image
 from pydap.client import open_url
+
 from django.conf import settings
-np.set_printoptions(threshold=np.inf) # This is helpful for testing purposes:
+
+numpy.set_printoptions(threshold=numpy.inf) # This is helpful for testing purposes:
 # it sets print options so that when you print a large array, it doesn't get truncated in the middle
 # and you can see each element of the array.
-
 
 
 # When you add a new function, add it as a new function definition to fixtures/initial_data.json
@@ -56,8 +59,8 @@ def wave_direction_function(ax, data_file, bmap, key_ax, forecast_index, downsam
     # The sine and cosine functions expect Radians, so we use the deg2rad function to convert the
     # directions, which are in Degrees.
     # Multiplying the U and the V, each, by 'height' in order to SCALE the vectors.
-    U = height*np.cos(np.deg2rad(directions_mod))
-    V = height*np.sin(np.deg2rad(directions_mod))
+    U = height*numpy.cos(numpy.deg2rad(directions_mod))
+    V = height*numpy.sin(numpy.deg2rad(directions_mod))
 
     U_downsampled = crop_and_downsample_wave(U, downsample_ratio)
     V_downsampled = crop_and_downsample_wave(V, downsample_ratio)
@@ -82,22 +85,50 @@ def wave_direction_function(ax, data_file, bmap, key_ax, forecast_index, downsam
     six = 6.0*METERS_TO_FEET
 
     # Print a half-meter arrow, with a legend saying this is half a meter
-    quiverkey1 = key_ax.quiverkey(overlay, 1, .4, 0.5, "Wave Height: %.1f ft" % half,
-                                  labelpos='S', labelcolor='white',
-                                  color='white', labelsep=.5, coordinates='axes')
-    quiverkey2 = key_ax.quiverkey(overlay, 4, .4, 1.0, "%.1f ft" % one, labelpos='S', labelcolor='white',
-                                  color='white', labelsep=.5, coordinates='axes')
-    quiverkey3 = key_ax.quiverkey(overlay, 5.4, .4, 2.0, "%.1f ft" % two, labelpos='S', labelcolor='white',
-                                  color='white', labelsep=.5, coordinates='axes')
+    quiverkey1 = key_ax.quiverkey(overlay, 1, .4, 0.5,
+                                  "Wave Height: %.1f ft" % half,
+                                  labelpos='S',
+                                  labelcolor='white',
+                                  color='white',
+                                  labelsep=.5,
+                                  coordinates='axes')
+    quiverkey2 = key_ax.quiverkey(overlay, 4, .4, 1.0,
+                                  "%.1f ft" % one,
+                                  labelpos='S',
+                                  labelcolor='white',
+                                  color='white',
+                                  labelsep=.5,
+                                  coordinates='axes')
+    quiverkey3 = key_ax.quiverkey(overlay, 5.4, .4, 2.0,
+                                  "%.1f ft" % two,
+                                  labelpos='S',
+                                  labelcolor='white',
+                                  color='white',
+                                  labelsep=.5,
+                                  coordinates='axes')
 
-    quiverkey4 = key_ax.quiverkey(overlay, 6.8, .4, 3.0, "%.1f ft" % three, labelpos='S', labelcolor='white',
-                                  color='white', labelsep=.5, coordinates='axes')
+    quiverkey4 = key_ax.quiverkey(overlay, 6.8, .4, 3.0,
+                                  "%.1f ft" % three,
+                                  labelpos='S',
+                                  labelcolor='white',
+                                  color='white',
+                                  labelsep=.5,
+                                  coordinates='axes')
 
-    quiverkey5 = key_ax.quiverkey(overlay, 8.5, .4, 5.0, "%.1f ft" % five, labelpos='S', labelcolor='white',
-                                  color='white', labelsep=.5, coordinates='axes')
+    quiverkey5 = key_ax.quiverkey(overlay, 8.5, .4, 5.0, "%.1f ft" % five,
+                                  labelpos='S',
+                                  labelcolor='white',
+                                  color='white',
+                                  labelsep=.5,
+                                  coordinates='axes')
 
-    quiverkey6 = key_ax.quiverkey(overlay, 10.3, .4, 6.0, "%.1f ft" % six, labelpos='S', labelcolor='white',
-                                  color='white', labelsep=.5, coordinates='axes')
+    quiverkey6 = key_ax.quiverkey(overlay, 10.3, .4, 6.0,
+                                  "%.1f ft" % six,
+                                  labelpos='S',
+                                  labelcolor='white',
+                                  color='white',
+                                  labelsep=.5,
+                                  coordinates='axes')
 
     key_ax.set_axis_off()
 
@@ -114,6 +145,7 @@ def wave_height_function(ax, data_file, bmap, key_ax, forecast_index, downsample
      # Need to convert each point from meters to feet
      def meters_to_feet(height):
         return height * METERS_TO_FEET
+
      vectorized_conversion = numpy.vectorize(meters_to_feet)
 
      #grab longitude and latitude from netCDF file if we are using the old OuterGrid format which was lower resolution
@@ -136,7 +168,7 @@ def wave_height_function(ax, data_file, bmap, key_ax, forecast_index, downsample
      #so we are masking all data over 1000
      #heights = numpy.ma.masked_greater(all_day[forecast_index][:][:], 1000)
 
-     heights_masked = np.ma.masked_array(all_day[forecast_index][:, :],np.isnan(all_day[forecast_index][:,:]))
+     heights_masked = numpy.ma.masked_array(all_day[forecast_index][:, :],numpy.isnan(all_day[forecast_index][:,:]))
 
      # Need to convert each height given in meters into FEET
      heights = vectorized_conversion(heights_masked)
@@ -149,7 +181,7 @@ def wave_height_function(ax, data_file, bmap, key_ax, forecast_index, downsample
 
      #max_period = int(math.ceil(numpy.amax(numpy.ma.masked_greater(heights, 1000))))
      #max_period = int(math.ceil(numpy.amax(heights)))
-     # Max period is now in feet
+     #Max period is now in feet
      max_period = MAX_WAVE_HEIGHT*METERS_TO_FEET
 
      #Allocates colors to the data by setting the range of the data and by setting color increments
@@ -190,15 +222,15 @@ def wave_period_function(data_file, forecast_index):
      all_day = data_file.variables['PERPW_surface'][:, :, :]
 
      # Mask all of the data points that are "nan" (not a number) in the data file; these represent land
-     period_masked = np.ma.masked_array(all_day[forecast_index][:, :],np.isnan(all_day[forecast_index][:,:]))
+     period_masked = numpy.ma.masked_array(all_day[forecast_index][:, :],numpy.isnan(all_day[forecast_index][:,:]))
 
      #This is the average wave period for the day
-     mean_val = np.mean(period_masked)
+     mean_val = numpy.mean(period_masked)
      #The mean val is calculated to a large number of decimal places. This rounds it to two.
      mean_val = round(mean_val, 2)
 
      #This is the maximum wave period value for the day
-     max_val = np.amax(period_masked)
+     max_val = numpy.amax(period_masked)
      #This rounds the max value just like the average
      max_val = round(max_val, 2)
 
@@ -253,7 +285,7 @@ def sst_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
 
 # We are not using the Salt model at this time.
 def salt_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
-     # salt has dimensions ('ocean_time', 's_rho', 'eta_rho', 'xi_rho')
+    # salt has dimensions ('ocean_time', 's_rho', 'eta_rho', 'xi_rho')
     # s_rho corresponds to layers, of which there are 30, so we take the top one.
     surface_salt = numpy.ma.array(data_file.variables['salt'][time_index][29], mask=get_rho_mask(data_file))
 
@@ -347,36 +379,74 @@ def currents_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio)
 
 # Check winds are going in the right direction
 def wind_function(ax, data_file, bmap, time_index, downsample_ratio, interp):
-
     print "CREATING A WIND PLOT"
     print "DOWNSAMPLERATIO = ", downsample_ratio, "Time Index =", time_index
 
     data_file = open_url(settings.WIND_URL)
 
-    var_u = 'u-component_of_wind_height_above_ground'
-    var_v = 'v-component_of_wind_height_above_ground'
-    landMask = 'Land_cover_0__sea_1__land_surface'
-
     """
     Grabbing the u + v values at time_index, level = 0, x = nan, y = nan
     nan = not a number
     """
-    wind_u = data_file[var_u][time_index+104, 0, :, :]
-    wind_v = data_file[var_v][time_index+104, 0, :, :]
+    var_u = 'u-component_of_wind_height_above_ground'
+    var_v = 'v-component_of_wind_height_above_ground'
+    landMask = 'Land_cover_0__sea_1__land_surface'
 
+    # wind_u = data_file[var_u][time_index+104, 0, :, :]
+    # wind_v = data_file[var_v][time_index+104, 0, :, :]
+
+    wind_u = data_file[var_u][:, 0, :, :] # All times of u
+    wind_v = data_file[var_v][:, 0, :, :] # All times of v
+
+    print "Wind_u:", wind_u.shape
+    print "Wind_v:", wind_v.shape
+
+    # Set up lat and lon variables from the provided file
     tmp = numpy.loadtxt('/opt/sharkeyes/src/latlon.g218')
     lat = numpy.reshape(tmp[:, 2], [614,428])
     lon = numpy.reshape(tmp[:, 3], [614,428])
 
     x, y = bmap(lon, lat)
 
-    wind_u = numpy.reshape(wind_u, (614, 428))
-    wind_v = numpy.reshape(wind_v, (614, 428))
+    wind_u_sq = numpy.squeeze(wind_u) # Removes The Surface Height Dimension
+    wind_v_sq = numpy.squeeze(wind_v) # Ditto
 
+    wind_u = numpy.reshape(wind_u, (139, 614, 428))
+    wind_v = numpy.reshape(wind_v, (139, 614, 428))
 
     #TODO Interpolate Winds Every Hour Except Midnight and noon
-    #if(interp == "TRUE"):
-    print interp
+    if(interp == "TRUE"):
+        print "INTERPOLATING! :D"
+
+        '''
+         Parameters
+        ----------
+        x : array_like
+        The x-coordinates of the interpolated values.
+        xp : 1-D sequence of floats
+        The x-coordinates of the data points, must be increasing.
+        fp : 1-D sequence of floats
+        The y-coordinates of the data points, same length as `xp`.
+        '''
+
+        ts1 = numpy.arange(0, 139)
+        ts2 = numpy.arange(0, 139, 0.5)
+
+        print "TS1:", ts1.shape
+        print "TS2:", ts2.shape
+        print "Wind_u:", wind_u_sq.shape
+        print "Wind_v:", wind_v_sq.shape
+
+        #613
+        #427
+
+        for i in range(0, 427):
+            for j in range(0, 613):
+                wind_u_sq[:,i,j] = numpy.interp([.5],ts1,wind_u_sq[:,i,j])
+                wind_v_sq[:,i,j] = numpy.interp([.5],ts1,wind_v_sq[:,i,j])
+
+                # wind_u_interp = interp1d( ,wind_u_sq[i,j,:])
+                # wind_u_interp = interp1d( ,wind_u_sq[i,j,:])
 
     #TODO Determine what length value gives the best output.
     if downsample_ratio == 1:
@@ -389,14 +459,29 @@ def wind_function(ax, data_file, bmap, time_index, downsample_ratio, interp):
     for i in range(0, len(lon)):
         lon[i] = -lon[i]
 
+
+
+    wind_u = wind_u_sq[time_index+104, :, :]
+    wind_v = wind_v_sq[time_index+104, :, :]
+    print "After pulling time"
+    print "Wind_u:", wind_u.shape
+    print "Wind_v:", wind_v.shape
+    print "Lat:", lat.shape
+    print "Lon:",  lon.shape
+    print "x:", x.shape
+    print "y:", y.shape
+    wind_u = numpy.squeeze(wind_u)
+    wind_v = numpy.squeeze(wind_v)
+
+
     #TODO Determine which color gives the best output
-    bmap.barbs(         x[::downsample_ratio, ::downsample_ratio],
-                        y[::downsample_ratio, ::downsample_ratio],
-                        wind_u[::downsample_ratio, ::downsample_ratio],
-                        wind_v[::downsample_ratio, ::downsample_ratio],
-                        ax=ax,
-                        length=length,
-                        color='black')
+    bmap.barbs(x[::downsample_ratio, ::downsample_ratio],
+               y[::downsample_ratio, ::downsample_ratio],
+               wind_u[::downsample_ratio, ::downsample_ratio],
+               wind_v[::downsample_ratio, ::downsample_ratio],
+               ax=ax,
+               length=length,
+               color='black')
 
 
 
@@ -421,12 +506,12 @@ def crop_and_downsample_wave(source_array, downsample_ratio, average=True):
 
     # Crop off anything extra: i.e. if downsample ratio is 10, and the height % 10 has a remainder of 1, chop off 1 from the height
     cropped_array = source_array[ :xs - (xs % int(downsample_ratio))]
-  #  if average:
- #       zoomed_array = scipy.nanmean(numpy.concatenate(
-   #         [[cropped_array[i::downsample_ratio, j::downsample_ratio]
-  #                                                   for i in range(downsample_ratio)]
-  #                                                  for j in range(downsample_ratio)]), axis=0)
-  #  else:
+    #if average:
+    #   zoomed_array = scipy.nanmean(numpy.concatenate(
+    #    [[cropped_array[i::downsample_ratio, j::downsample_ratio]
+    #         for i in range(downsample_ratio)]
+    #             for j in range(downsample_ratio)]), axis=0)
+    #  else:
     zoomed_array = cropped_array[::downsample_ratio, ::downsample_ratio]
     return zoomed_array
     #return source_array
