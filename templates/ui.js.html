@@ -163,8 +163,8 @@ function makeTideMarker(date, station, location){
     var station_data = {"station_id": station, "display_date": dateString};
     var jsonData = JSON.stringify(station_data);
     var valid_date = validDate(date)
-    var tideInfo = '<p>' + '<b>' + location + ' Tides' + '</b>' + '</p>' + '<br>';
-    tideInfo += '<p>' + 'Valid for&nbsp;' + '<b>' + valid_date + '</b>' + '</p>';
+    var tideInfo = '<p style="font-size:20px">' + '<b>' + location + ' Tides' + '</b>' + '</p>' + '<br>';
+    tideInfo += '<p style="font-size:20px">' + 'Valid for&nbsp;' + '<b>' + valid_date + '</b>' + '</p>';
     jQuery.ajax({
         type: 'POST',
         url: '{% url "SharkEyesCore.views.tides" %}',

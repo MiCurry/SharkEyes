@@ -11,7 +11,7 @@ from django.http import HttpResponse
 #This is where we associate the Javascript variables (overlays, defs etc) with the Django objects from the database.
 def home(request):
     # maybe not sure how wind is stored in the database...
-    models = [1,3,4,5,6,7]
+    models = [1,3,4,5,6]
 
     overlays_view_data = OverlayManager.get_next_few_days_of_tiled_overlays(models)
     print
@@ -43,13 +43,13 @@ def tides(request):
     tideData = []
     fopen = open(address, 'r')
     response = HttpResponse()
-    response.write('<table><tr><th>Time</th><th></th><th>Feet</th><th>Cm</th><th>High or Low</th> ')
+    response.write('<table style="font-size:20px"><tr><th>Time</th><th></th><th>Feet</th><th>Cm</th><th>High/Low</th> ')
     for line in fopen:
         info = line.split()
         if info[0] == display_date:
             response.write('<tr>')
             for x in info[2:]:
-                response.write('<th>' + x + '</th>')
+                response.write('<th style="padding:0 15px 0 0px;">' + x + '</th>')
             response.write('</tr>')
     response.write('</table>')
     return response

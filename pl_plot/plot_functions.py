@@ -81,23 +81,25 @@ def wave_direction_function(ax, data_file, bmap, key_ax, forecast_index, downsam
     five = 5.0*METERS_TO_FEET
     six = 6.0*METERS_TO_FEET
 
-    # Print a half-meter arrow, with a legend saying this is half a meter
-    quiverkey1 = key_ax.quiverkey(overlay, 1, .4, 0.5, "Wave Height: %.1f ft" % half,
-                                  labelpos='S', labelcolor='white',
-                                  color='white', labelsep=.5, coordinates='axes')
-    quiverkey2 = key_ax.quiverkey(overlay, 4, .4, 1.0, "%.1f ft" % one, labelpos='S', labelcolor='white',
-                                  color='white', labelsep=.5, coordinates='axes')
-    quiverkey3 = key_ax.quiverkey(overlay, 5.4, .4, 2.0, "%.1f ft" % two, labelpos='S', labelcolor='white',
-                                  color='white', labelsep=.5, coordinates='axes')
+    #get the wave period data from a netCDF file
+    all_day = data_file.variables['PERPW_surface'][:, :, :]
 
-    quiverkey4 = key_ax.quiverkey(overlay, 6.8, .4, 3.0, "%.1f ft" % three, labelpos='S', labelcolor='white',
-                                  color='white', labelsep=.5, coordinates='axes')
+    # Mask all of the data points that are "nan" (not a number) in the data file; these represent land
+    period_masked = np.ma.masked_array(all_day[forecast_index][:, :],np.isnan(all_day[forecast_index][:,:]))
 
-    quiverkey5 = key_ax.quiverkey(overlay, 8.5, .4, 5.0, "%.1f ft" % five, labelpos='S', labelcolor='white',
-                                  color='white', labelsep=.5, coordinates='axes')
+    #This is the average wave period for the day
+    mean_val = np.mean(period_masked)
+    #The mean val is calculated to a large number of decimal places. This rounds it to two.
+    mean_val = round(mean_val, 2)
 
-    quiverkey6 = key_ax.quiverkey(overlay, 10.3, .4, 6.0, "%.1f ft" % six, labelpos='S', labelcolor='white',
-                                  color='white', labelsep=.5, coordinates='axes')
+    #This is the maximum wave period value for the day
+    max_val = np.amax(period_masked)
+    #This rounds the max value just like the average
+    max_val = round(max_val, 2)
+
+    #textBox is a hack that makes an unused Cartesian plot with a label over the top of it. This label has the wave period data.
+    #the spacing is purposefully there to have a nice readable label. The black background helps to mask the figure behind the label.
+    textBox = pyplot.text(0, 0,"       Wave period average and maximum values ""\n" "Average: " + str(mean_val) + " seconds " "  -  "" Maximum: " + str(max_val) + " seconds", withdash=False, backgroundcolor='black', color='white')
 
     key_ax.set_axis_off()
 
