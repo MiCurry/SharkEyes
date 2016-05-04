@@ -132,7 +132,6 @@ class WindPlotter:
     def get_number_of_model_times(self):
         return 12
 
-    #TODO Change wind times to match the times of other models. Every 4 hours.
     def get_time_at_oceantime_index(self,index):
         print index
         time = timezone.now()
