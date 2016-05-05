@@ -134,6 +134,8 @@ $(".overlay-toggle").click(function(e) {
         remove_overlay(type);
     }
 });
+// run update_overlays to enable disable as needed
+update_overlays(datetime[document.getElementById('date-time').value]);
 // event for when value in date-time is changed
 $('#date-time').change(function(e) {
     // get date so can update overlays
@@ -467,10 +469,28 @@ function prev_next_enable_toggle() {
 // *********************************************************************************************************************
 function update_overlays(date) {
     for (name in definitions) {
+        // enable disable toggles depending on if models is available
+        if (datedic[date][name] == null) {
+            console.log("disable true " + name);
+            $("#" + name).prop('class', 'disabled');
+            //("#" + name + ".toggle-checkbox").prop('disabled', true);
+            //$("#" + name).prop('disabled', true);
+            //$("#" + name).prop('hidden', true);
+            //$("#" + name).hide("slow")
+        }
+        else {
+            console.log("disable false " + name);
+            $("#" + name).prop('class', 'option');
+            //$("#" + name + ".toggle-checkbox").prop('disabled', false);
+            //$("#" + name).prop('disabled', false);
+            //$("#" + name).prop('hidden', false);
+            //$("#" + name).show("slow")
+        }
+        // enable desired overlays
         if($("#" + name + ".toggle-checkbox").prop("checked")) {
             if (insert_overlay(date, name) != true) {
 
-                $("#" + name + ".toggle-checkbox").prop('checked', false);
+                //$("#" + name + ".toggle-checkbox").prop('checked', false);
                 remove_overlay(name);
                 window.alert("There is no overlay for " + name + " on " + date);
             }

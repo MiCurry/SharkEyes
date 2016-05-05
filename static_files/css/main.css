@@ -271,6 +271,7 @@ table tr {
 
 table tr.disabled {
     color: #888;
+    color: red;
 }
 
 table tr.option:hover {
