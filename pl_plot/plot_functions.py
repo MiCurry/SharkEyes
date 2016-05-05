@@ -382,7 +382,7 @@ def wind_function(ax, data_file, bmap, time_index, downsample_ratio):
     if downsample_ratio == 1:
         length = 2
     elif downsample_ratio == 5:
-        length = 9
+        length = 7
     elif downsample_ratio == 10:
         length = 7
 
