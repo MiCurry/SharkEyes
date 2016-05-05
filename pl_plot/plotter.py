@@ -127,13 +127,14 @@ class WindPlotter:
     def get_number_of_model_times(self):
         return 12
 
+    #TODO Change wind times to match the times of other models. Every 4 hours.
     def get_time_at_oceantime_index(self,index):
         time = timezone.now()
         time = time.replace(hour = 0, minute = 0, second = 0, microsecond = 0)
         if(index == 0):
             time = time.replace(hour = 12)
         else:
-            time = time + timedelta(hours = (index * 3))
+            time = time + timedelta(hours = (index * 4))
         print "Time:", time
         return time
 
@@ -174,7 +175,7 @@ class WindPlotter:
         fig.savefig(
              os.path.join(settings.MEDIA_ROOT, settings.UNCHOPPED_STORAGE_DIR, plot_filename),
              dpi=1200, bbox_inches='tight', pad_inches=0,
-             transparent=True, frameon=False, edgecolor = 'white')
+             transparent=True, frameon=False)
         pyplot.close(fig)
 
         # Winds use a static key, but it gets deleted from the delete function, so this ensures that it

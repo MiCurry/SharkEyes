@@ -352,14 +352,12 @@ def wind_function(ax, data_file, bmap, time_index, downsample_ratio):
 
     print "CREATING A WIND PLOT"
     print "DOWNSAMPLERATIO = ", downsample_ratio, "Time Index =", time_index
-    ratio = 1
 
     data_file = open_url(settings.WIND_URL)
 
     var_u = 'u-component_of_wind_height_above_ground'
     var_v = 'v-component_of_wind_height_above_ground'
     landMask = 'Land_cover_0__sea_1__land_surface'
-    level = 1; #Sea Surface
 
     """
     Grabbing the u + v values at time_index, level = 0, x = nan, y = nan
@@ -377,6 +375,10 @@ def wind_function(ax, data_file, bmap, time_index, downsample_ratio):
     wind_u = numpy.reshape(wind_u, (614, 428))
     wind_v = numpy.reshape(wind_v, (614, 428))
 
+
+    #TODO Interpolate Winds Every Hour Except Midnight and noon
+
+    #TODO Determine what length value gives the best output.
     if downsample_ratio == 1:
         length = 2
     elif downsample_ratio == 5:
@@ -387,12 +389,13 @@ def wind_function(ax, data_file, bmap, time_index, downsample_ratio):
     for i in range(0, len(lon)):
         lon[i] = -lon[i]
 
+    #TODO Determine which color gives the best output
     bmap.barbs(         x[::downsample_ratio, ::downsample_ratio],
                         y[::downsample_ratio, ::downsample_ratio],
                         wind_u[::downsample_ratio, ::downsample_ratio],
                         wind_v[::downsample_ratio, ::downsample_ratio],
                         ax=ax,
-                        length=7,
+                        length=length,
                         color='black')
 
 
