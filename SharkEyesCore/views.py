@@ -43,13 +43,13 @@ def tides(request):
     tideData = []
     fopen = open(address, 'r')
     response = HttpResponse()
-    response.write('<table><tr><th>Time</th><th></th><th>Feet</th><th>Cm</th><th>High or Low</th> ')
+    response.write('<table style="font-size:20px"><tr><th>Time</th><th></th><th>Feet</th><th>Cm</th><th>High/Low</th> ')
     for line in fopen:
         info = line.split()
         if info[0] == display_date:
             response.write('<tr>')
             for x in info[2:]:
-                response.write('<th>' + x + '</th>')
+                response.write('<th style="padding:0 15px 0 0px;">' + x + '</th>')
             response.write('</tr>')
     response.write('</table>')
     return response
