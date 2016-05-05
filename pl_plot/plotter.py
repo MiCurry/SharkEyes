@@ -175,7 +175,7 @@ class WindPlotter:
         fig.savefig(
              os.path.join(settings.MEDIA_ROOT, settings.UNCHOPPED_STORAGE_DIR, plot_filename),
              dpi=1200, bbox_inches='tight', pad_inches=0,
-             transparent=True, frameon=False, edgecolor = 'white')
+             transparent=True, frameon=False)
         pyplot.close(fig)
 
         # Winds use a static key, but it gets deleted from the delete function, so this ensures that it

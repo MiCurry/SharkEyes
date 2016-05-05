@@ -14,6 +14,7 @@ if __name__ == "__main__":
         from pl_chop.tasks import tile_overlay, tile_wave_watch_overlay
         wave = DataFileManager.get_latest_wave_watch_files()
         sst = DataFileManager.fetch_new_files()
+        wind = 1
         if wave:
             tiles = []
             #first entry is day-1 at 12pm
@@ -31,6 +32,14 @@ if __name__ == "__main__":
             tiles += OverlayManager.make_plot(3, 0, sst[0])
             for t in tiles:
                 tile_overlay(t)
+        if wind:
+            winds = []
+            tiles += OverlayManager.make_plot(5, 0, 0)
+            tiles += OverlayManager.make_plot(5, 1, 0)
+            tiles += OverlayManager.make_plot(5, 2, 0)
+            for t in tiles:
+                tile_overlay(t)
+
     else:
         from django.core.management import execute_from_command_line
         execute_from_command_line(sys.argv)

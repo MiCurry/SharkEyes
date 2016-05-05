@@ -375,25 +375,8 @@ def wind_function(ax, data_file, bmap, time_index, downsample_ratio):
     wind_u = numpy.reshape(wind_u, (614, 428))
     wind_v = numpy.reshape(wind_v, (614, 428))
 
-    """
-    SST Times | Wind Plots
-      00:00   |   00:00
-              |   03:00
-      04:00   |     +
-              |   06:00
-      08:00   |     +
-              |   09:00
-      12:00   |   12:00
-              |   15:00
-      16:00   |     +
-              |   18:00
-      20:00   |     +
-              |   21:00
-      24:00   |   24:00
-    """
-    #TODO Interpolate Winds Every Hour Except Midnight and noon
-    #if():
 
+    #TODO Interpolate Winds Every Hour Except Midnight and noon
 
     #TODO Determine what length value gives the best output.
     if downsample_ratio == 1:
