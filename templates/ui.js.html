@@ -60,7 +60,7 @@ var coosId = 'coosbay';
 {% endfor %}
 // fill up definitions array
 {% for d in defs %}
-    definitions["{{ d.function_name }}"] = "{{ d.type }}";
+    definitions["{{ d.function_name }}"] = ["{{ d.type }}", "{{ d.forecast }}"];
 {% endfor %}
 
 // *********************************************************************************************************************
@@ -120,14 +120,14 @@ $(".overlay-toggle").click(function(e) {
     if (prevState == false) {
         // fix conflicting toggle states
         for (name in definitions) {
-            if (name != type && definitions[name] == definitions[type]){
+            if (name != type && definitions[name][0] == definitions[type][0]){
                 $("#" + name + ".toggle-checkbox").prop('checked', false);
                 remove_overlay(type);
             }
         }
         if(insert_overlay(textdate, type) != true) {
             toggle.prop('checked', false);
-            window.alert("There is no overlay for " + type + " on " + textdate);
+            warning_message(textdate, type);
         }
     }
     else {
@@ -492,7 +492,7 @@ function update_overlays(date) {
 
                 //$("#" + name + ".toggle-checkbox").prop('checked', false);
                 remove_overlay(name);
-                window.alert("There is no overlay for " + name + " on " + date);
+                warning_message(date, name);
             }
         }
     }
@@ -509,7 +509,7 @@ function insert_overlay(date, type) {
     }
     var overlayURL = datedic[date][type][0];
     var overlayKey = datedic[date][type][1];
-    var overlayType = definitions[type];
+    var overlayType = definitions[type][0];
     var x = new google.maps.ImageMapType({
         getTileUrl: function(coord, zoom) {
             var proj = map.getProjection();
@@ -554,7 +554,7 @@ function insert_overlay(date, type) {
 // remove a visible overlay from the map
 // *********************************************************************************************************************
 function remove_overlay(type) {
-    var overlayType = definitions[type];
+    var overlayType = definitions[type][0];
     if (overlayType == "FC") {
         if (visible_FC == true) {
             map.overlayMapTypes.removeAt(0);
@@ -578,5 +578,26 @@ function remove_overlay(type) {
     else {
         $("#key-img").attr("src", visibleKeys[0]);
     }
+}
+
+// *********************************************************************************************************************
+// remove a visible overlay from the map
+// *********************************************************************************************************************
+function warning_message(date, type) {
+    var d = new Date(date.substring(0, date.length - 7));
+    var h = new Date(); //temp variable
+    var t = new Date(h.getFullYear(), h.getMonth(), h.getDay()); // so hours are not an issue
+    t.setHours(t.getHours() + definitions[type][1]);
+
+    console.log("date given: " + d);
+    console.log("target box: " + t);
+
+    if (d < t) {
+        window.alert("There is no " + type + " overlay available for " + date);
+    }
+    else {
+        window.alert(date + " is outside the current forcast range for " + type);
+    }
+
 }
 </script>

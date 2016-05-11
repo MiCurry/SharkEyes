@@ -472,6 +472,7 @@ class OverlayDefinition(models.Model):
     display_name_short = models.CharField(max_length=64)
     function_name = models.CharField(max_length=64, unique=True)
     is_base = models.BooleanField(default=False)
+    forecast = models.IntegerField(default=0)
 
 
 # this acts as a dictionary for the definition, so we can provide additional parameters.
