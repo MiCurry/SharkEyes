@@ -1,11 +1,12 @@
 import math
 import os
 import sys
+from datetime import datetime, timedelta
 
+import numpy
 import scipy
 from scipy import ndimage
 from scipy.interpolate import interp1d
-import numpy
 from matplotlib import pyplot, colors, image
 from mpl_toolkits.basemap import Basemap
 from PIL import Image
@@ -392,14 +393,14 @@ def wind_function(ax, data_file, bmap, time_index, downsample_ratio, interp):
     var_v = 'v-component_of_wind_height_above_ground'
     landMask = 'Land_cover_0__sea_1__land_surface'
 
-    # wind_u = data_file[var_u][time_index+104, 0, :, :]
-    # wind_v = data_file[var_v][time_index+104, 0, :, :]
+    if(interp == "TRUE"):
+        wind_u = data_file[var_u][:, 0, :, :] # All times of u
+        wind_v = data_file[var_v][:, 0, :, :] # All times of v
 
-    wind_u = data_file[var_u][:, 0, :, :] # All times of u
-    wind_v = data_file[var_v][:, 0, :, :] # All times of v
+    else:
+        wind_u = data_file[var_u][time_index+104, 0, :, :]
+        wind_v = data_file[var_v][time_index+104, 0, :, :]
 
-    print "Wind_u:", wind_u.shape
-    print "Wind_v:", wind_v.shape
 
     # Set up lat and lon variables from the provided file
     tmp = numpy.loadtxt('/opt/sharkeyes/src/latlon.g218')
@@ -408,71 +409,79 @@ def wind_function(ax, data_file, bmap, time_index, downsample_ratio, interp):
 
     x, y = bmap(lon, lat)
 
-    wind_u_sq = numpy.squeeze(wind_u) # Removes The Surface Height Dimension
-    wind_v_sq = numpy.squeeze(wind_v) # Ditto
+    wind_u = numpy.squeeze(wind_u) # Removes The Surface Height Dimension
+    wind_v = numpy.squeeze(wind_v) # Ditto
 
-    wind_u = numpy.reshape(wind_u, (139, 614, 428))
-    wind_v = numpy.reshape(wind_v, (139, 614, 428))
+    if(0): # Debug
+        print "Wind_u.shape", wind_u.shape
+        print "Wind_v.shape", wind_v.shape
 
     #TODO Interpolate Winds Every Hour Except Midnight and noon
-    if(interp == "TRUE"):
-        print "INTERPOLATING! :D"
+    if(interp == "TURE"):
+        print "INTERPOLATING"
 
-        '''
-         Parameters
-        ----------
-        x : array_like
-        The x-coordinates of the interpolated values.
-        xp : 1-D sequence of floats
-        The x-coordinates of the data points, must be increasing.
-        fp : 1-D sequence of floats
-        The y-coordinates of the data points, same length as `xp`.
-        '''
+        time = data_file['time']
+        ts1 = [], ts2 = []
 
-        ts1 = numpy.arange(0, 139)
-        ts2 = numpy.arange(0, 139, 0.5)
+        wind_u = numpy.reshape(wind_u, (147, 428, 614))
+        wind_v = numpy.reshape(wind_v, (147, 428, 614))
 
-        print "TS1:", ts1.shape
-        print "TS2:", ts2.shape
-        print "Wind_u:", wind_u_sq.shape
-        print "Wind_v:", wind_v_sq.shape
+        #TODO: Add some kind of error checking here
+        # Generate a time range 0 ... 139 for every 4 hours using the python thingy
+        start_time = datetime.strptime(time.units, "Hour since %Y-%m-%dT%H:%M:%SZ")
+        size = time.shape[0]
 
-        #613
-        #427
+        ts2 = numpy.arange(0, (size) * 3, 4) # Every 4 hours
+        ts1 = numpy.arange(0, size * 3, 3) # Every 3 hours
+
+        if(0): # Debug
+            print "Wind_u:", wind_u.shape
+            print "Wind_v:", wind_v.shape
+            print "time.shape:", time.shape
+            print "ts1.shape:", ts1.shape[0]
+            print "ts2.shape:", ts2.shape[0]
+
+        wind_u_int = numpy.empty([110, 427, 613]) # Array to be filled
+        wind_v_int = numpy.empty([110, 427, 613]) # Ditto
 
         for i in range(0, 427):
             for j in range(0, 613):
-                wind_u_sq[:,i,j] = numpy.interp([.5],ts1,wind_u_sq[:,i,j])
-                wind_v_sq[:,i,j] = numpy.interp([.5],ts1,wind_v_sq[:,i,j])
+                wind_u_int[:,i,j] = numpy.interp(ts2, ts1, wind_u[:,i,j])
+                wind_v_int[:,i,j] = numpy.interp(ts2, ts1, wind_v[:,i,j])
 
                 # wind_u_interp = interp1d( ,wind_u_sq[i,j,:])
                 # wind_u_interp = interp1d( ,wind_u_sq[i,j,:])
+        # TODO: Futher Date Check
+        wind_u = wind_u_int[time_index+104, :, :] #Pull out the time
+        wind_v = wind_v_int[time_index+104, :, :] #Pull out the time
+    else:
+        wind_u = wind_u[time_index+104, :, :] #Pull out the time
+        wind_v = wind_v[time_index+104, :, :] #Pull out the time
+
+
+    wind_u = numpy.squeeze(wind_u) # Squeeze out the time
+    wind_v = numpy.squeeze(wind_v) # Squeeze out the time
+
+    wind_u = numpy.reshape(wind_u, (614, 428))
+    wind_v = numpy.reshape(wind_v, (614, 428))
 
     #TODO Determine what length value gives the best output.
     if downsample_ratio == 1:
-        length = 2
+        length = 3
     elif downsample_ratio == 5:
-        length = 9
-    elif downsample_ratio == 10:
         length = 7
 
     for i in range(0, len(lon)):
         lon[i] = -lon[i]
 
-
-
-    wind_u = wind_u_sq[time_index+104, :, :]
-    wind_v = wind_v_sq[time_index+104, :, :]
-    print "After pulling time"
-    print "Wind_u:", wind_u.shape
-    print "Wind_v:", wind_v.shape
-    print "Lat:", lat.shape
-    print "Lon:",  lon.shape
-    print "x:", x.shape
-    print "y:", y.shape
-    wind_u = numpy.squeeze(wind_u)
-    wind_v = numpy.squeeze(wind_v)
-
+    if(0): # Debug
+        print "After pulling time"
+        print "Wind_u:", wind_u.shape
+        print "Wind_v:", wind_v.shape
+        print "Lat:", lat.shape
+        print "Lon:",  lon.shape
+        print "x:", x.shape
+        print "y:", y.shape
 
     #TODO Determine which color gives the best output
     bmap.barbs(x[::downsample_ratio, ::downsample_ratio],
@@ -480,9 +489,7 @@ def wind_function(ax, data_file, bmap, time_index, downsample_ratio, interp):
                wind_u[::downsample_ratio, ::downsample_ratio],
                wind_v[::downsample_ratio, ::downsample_ratio],
                ax=ax,
-               length=length,
-               color='black')
-
+               length=length)
 
 
 def crop_and_downsample(source_array, downsample_ratio, average=True):

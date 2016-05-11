@@ -147,11 +147,8 @@ class WindPlotter:
         keyFile = os.path.join(settings.MEDIA_ROOT, settings.KEY_STORAGE_DIR, "barbKey.png")
         barbStatic = "/opt/sharkeyes/src/static_files/imgs/barbKey.png"
 
-        if(os.path.isfile(keyFile) == 1):
-            return 1
-        else:
-            shutil.copyfile(barbStatic, keyFile)
-            return 1
+        shutil.copyfile(barbStatic, keyFile)
+        return 1
 
     def make_plot(self, plot_function, zoom_levels, time_index=0, downsample_ratio=None):
 
@@ -167,25 +164,7 @@ class WindPlotter:
                        llcrnrlon=-129, urcrnrlon=-123.7265625,
                        ax=ax, epsg=4326)
 
-        """
-        SST Times | Wind Plots
-          00:00   |   00:00
-                  |   03:00
-          04:00   |     +
-                  |   06:00
-          08:00   |     +
-                  |   09:00
-          12:00   |   12:00
-                  |   15:00
-          16:00   |     +
-                  |   18:00
-          20:00   |     +
-                  |   21:00
-          24:00   |   24:00
-        """
-
         model_time = self.get_time_at_oceantime_index(time_index)
-        print model_time
 
         if(model_time == time(0, 0) or model_time == time(12, 0)):
             interp = "FALSE"
@@ -200,11 +179,10 @@ class WindPlotter:
 
         key_filename = "barbKey.png"
 
-
         fig.savefig(
              os.path.join(settings.MEDIA_ROOT, settings.UNCHOPPED_STORAGE_DIR, plot_filename),
              dpi=1200, bbox_inches='tight', pad_inches=0,
-             transparent=True, frameon=False, edgecolor = 'white')
+             transparent=True, frameon=False)
         pyplot.close(fig)
 
         # Winds use a static key, but it gets deleted from the delete function, so this ensures that it
