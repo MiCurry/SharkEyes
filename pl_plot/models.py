@@ -415,7 +415,7 @@ class OverlayManager(models.Manager):
         #  zoom_levels_for_currents = [('2-5', 8), ('6-7', 4), ('8-10', 2), ('12', 1)]
         zoom_levels_for_currents = [('2-7', 8),  ('8-12', 4)]
         zoom_levels_for_others = [(None, None)]
-        zoom_levels_for_winds = [('2-8', 10), ('9-10', 5), ('11-12', 1)]
+        zoom_levels_for_winds = [('1-10', 5), ('11-12', 1)]
 
         if file_id is None:
             datafile = DataFile.objects.latest('model_date')
