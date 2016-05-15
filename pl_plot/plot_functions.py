@@ -89,15 +89,15 @@ def wave_direction_function(ax, data_file, bmap, key_ax, forecast_index, downsam
     all_day = data_file.variables['PERPW_surface'][:, :, :]
 
     # Mask all of the data points that are "nan" (not a number) in the data file; these represent land
-    period_masked = np.ma.masked_array(all_day[forecast_index][:, :],np.isnan(all_day[forecast_index][:,:]))
+    period_masked = numpy.ma.masked_array(all_day[forecast_index][:, :],numpy.isnan(all_day[forecast_index][:,:]))
 
     #This is the average wave period for the day
-    mean_val = np.mean(period_masked)
+    mean_val = numpy.mean(period_masked)
     #The mean val is calculated to a large number of decimal places. This rounds it to two.
     mean_val = round(mean_val, 2)
 
     #This is the maximum wave period value for the day
-    max_val = np.amax(period_masked)
+    max_val = numpy.amax(period_masked)
     #This rounds the max value just like the average
     max_val = round(max_val, 2)
 
@@ -187,31 +187,31 @@ def wave_height_function(ax, data_file, bmap, key_ax, forecast_index, downsample
      cbar.set_label("Wave Height (feet)")
 
 # Plot the period of the waves as daily average and maximum integer values.
-def wave_period_function(data_file, forecast_index):
+#def wave_period_function(data_file, forecast_index):
      #This is a hopefully temporary solution to implementing wave period. This replaces the colorbar key that used to
      #exist for the now removed wave period color map. This makes an image with the wave period values that is displayed in the
      #same spot as a colormap key. When make_wave_watch_plot() is called with 7 this figure is automatically named and placed in the
      #/media/keys folder.
 
      #get the wave period data from a netCDF file
-     all_day = data_file.variables['PERPW_surface'][:, :, :]
+     #all_day = data_file.variables['PERPW_surface'][:, :, :]
 
      # Mask all of the data points that are "nan" (not a number) in the data file; these represent land
-     period_masked = numpy.ma.masked_array(all_day[forecast_index][:, :],numpy.isnan(all_day[forecast_index][:,:]))
+     #period_masked = numpy.ma.masked_array(all_day[forecast_index][:, :],numpy.isnan(all_day[forecast_index][:,:]))
 
      #This is the average wave period for the day
-     mean_val = numpy.mean(period_masked)
+     #mean_val = numpy.mean(period_masked)
      #The mean val is calculated to a large number of decimal places. This rounds it to two.
-     mean_val = round(mean_val, 2)
+     #mean_val = round(mean_val, 2)
 
      #This is the maximum wave period value for the day
-     max_val = numpy.amax(period_masked)
+     #max_val = numpy.amax(period_masked)
      #This rounds the max value just like the average
-     max_val = round(max_val, 2)
+     #max_val = round(max_val, 2)
 
      #textBox is a hack that makes an unused Cartesian plot with a label over the top of it. This label has the wave period data.
      #the spacing is purposefully there to have a nice readable label. The black background helps to mask the figure behind the label.
-     textBox = pyplot.text(0, 0,"       Wave period average and maximum values ""\n" "Average: " + str(mean_val) + " seconds " "  -  "" Maximum: " + str(max_val) + " seconds", withdash=False, backgroundcolor='black', color='white')
+     #textBox = pyplot.text(0, 0,"       Wave period average and maximum values ""\n" "Average: " + str(mean_val) + " seconds " "  -  "" Maximum: " + str(max_val) + " seconds", withdash=False, backgroundcolor='black', color='white')
 
 def sst_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
     def celsius_to_fahrenheit(temp):
@@ -396,7 +396,8 @@ def wind_function(ax, data_file, bmap, time_index, downsample_ratio, interp):
         print "INTERPOLATING"
 
         time = data_file['time']
-        ts1 = [], ts2 = []
+        ts1 = []
+        ts2 = []
 
         wind_u = numpy.reshape(wind_u, (147, 428, 614))
         wind_v = numpy.reshape(wind_v, (147, 428, 614))

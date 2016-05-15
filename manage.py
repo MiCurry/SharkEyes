@@ -31,6 +31,7 @@ if __name__ == "__main__":
             tiles += OverlayManager.make_plot(1, 0, sst[0])
             tiles += OverlayManager.make_plot(3, 0, sst[0])
             for t in tiles:
+                tile_overlay(t)
 
     #Small test to see what times the WindPlotter returns
     elif sys.argv[-1] == "wtest":
