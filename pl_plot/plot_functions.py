@@ -404,7 +404,7 @@ def wind_function(ax, data_file, bmap, time_index, downsample_ratio, interp):
 
         #TODO: Add some kind of error checking here
         # Generate a time range 0 ... 139 for every 4 hours using the python thingy
-        start_time = datetime.strptime(time.units, "Hour since %Y-%m-%dT%H:%M:%SZ")
+        #start_time = datetime.strptime(time.units, "Hour since %Y-%m-%dT%H:%M:%SZ")
         size = time.shape[0]
 
         ts2 = numpy.arange(0, (size) * 3, 4) # Every 4 hours
