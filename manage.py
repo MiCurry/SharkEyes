@@ -33,6 +33,14 @@ if __name__ == "__main__":
             for t in tiles:
                 tile_overlay(t)
 
+        if wind:
+            winds = []
+            tiles += OverlayManager.make_plot(5, 0, 0)
+            tiles += OverlayManager.make_plot(5, 1, 0)
+            tiles += OverlayManager.make_plot(5, 2, 0)
+            for t in tiles:
+                tile_overlay(t)
+
     #Small test to see what times the WindPlotter returns
     elif sys.argv[-1] == "wtest":
         from pl_plot.plotter import WindPlotter
@@ -43,6 +51,7 @@ if __name__ == "__main__":
         from pl_plot.models import OverlayManager
         t = OverlayManager.make_plot(5, 2, 0)
         print t
+
     else:
         from django.core.management import execute_from_command_line
         execute_from_command_line(sys.argv)
