@@ -393,13 +393,15 @@ def wind_function(ax, data_file, bmap, time_index, downsample_ratio, interp):
     var_v = 'v-component_of_wind_height_above_ground'
     landMask = 'Land_cover_0__sea_1__land_surface'
 
-    if(interp == "TRUE"):
-        wind_u = data_file[var_u][:, 0, :, :] # All times of u
-        wind_v = data_file[var_v][:, 0, :, :] # All times of v
+    wind_u = data_file[var_u]
+    wind_v = data_file[var_v]
 
+    if(interp == "TRUE"):
+        wind_u = wind_u[:, 0, :, :] # All times of u
+        wind_v = wind_v[:, 0, :, :] # All times of
     else:
-        wind_u = data_file[var_u][time_index+104, 0, :, :]
-        wind_v = data_file[var_v][time_index+104, 0, :, :]
+        wind_u = wind_u[time_index+104, 0, :, :]
+        wind_v = wind_v[time_index+104, 0, :, :]
 
 
     # Set up lat and lon variables from the provided file

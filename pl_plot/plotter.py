@@ -22,6 +22,8 @@ class WaveWatchPlotter:
     def __init__(self, file_name):
         self.load_file(file_name)
 
+    #TODO Make a get_model_times function
+
     def load_file(self, file_name):
         #Gives a netcdf file object with default mode of reading permissions only
         self.data_file = netcdf.netcdf_file(
@@ -129,6 +131,7 @@ class WindPlotter:
         #This should have some form of error handling as it can fail
         self.data_file = open_url(settings.WIND_URL)
 
+    #TODO Alter this use the times pulled from the OpenDAP Site
     def get_number_of_model_times(self):
         return 12
 
