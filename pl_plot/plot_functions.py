@@ -453,6 +453,8 @@ def wind_function(ax, data_file, bmap, time_index, downsample_ratio, interp):
     wind_u = numpy.squeeze(wind_u) # Squeeze out the time
     wind_v = numpy.squeeze(wind_v) # Squeeze out the time
 
+    print "wind_u shape", wind_u.shape
+    print "wind_v shape", wind_v.shape
     wind_u = numpy.reshape(wind_u, (613, 427))
     wind_v = numpy.reshape(wind_v, (613, 427))
 
@@ -476,6 +478,7 @@ def wind_function(ax, data_file, bmap, time_index, downsample_ratio, interp):
                wind_v[::downsample_ratio, ::downsample_ratio],
                ax=ax,
                length=length)
+    print "WIND PLOT CREATED!"
 
 
 def crop_and_downsample(source_array, downsample_ratio, average=True):
