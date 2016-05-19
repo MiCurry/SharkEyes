@@ -402,8 +402,6 @@ def wind_function(ax, data_file, bmap, time_index, downsample_ratio, interp):
         print "Wind_v.shape", wind_v.shape
 
     #TODO Interpolate Winds Every Hour Except Midnight and noon
-
-
     #TODO: This can be cleaned up
 
     if(interp == "TRUE"):
@@ -413,8 +411,10 @@ def wind_function(ax, data_file, bmap, time_index, downsample_ratio, interp):
         ts1 = []
         ts2 = []
 
-        wind_u = numpy.reshape(wind_u, (147, 428, 614))
-        wind_v = numpy.reshape(wind_v, (147, 428, 614))
+        print "Shape", wind_u.shape
+        print "Time", time.shape
+        wind_u = numpy.reshape(wind_u, (time.shape[0], 428, 614))
+        wind_v = numpy.reshape(wind_v, (time.shape[0], 428, 614))
 
         #TODO: Add some kind of error checking here
         # Generate a time range 0 ... 139 for every 4 hours using the python thingy
@@ -432,8 +432,8 @@ def wind_function(ax, data_file, bmap, time_index, downsample_ratio, interp):
             print "ts1.shape:", ts1.shape[0]
             print "ts2.shape:", ts2.shape[0]
 
-        wind_u_int = numpy.empty([110, 427, 613]) # Array to be filled
-        wind_v_int = numpy.empty([110, 427, 613]) # Ditto
+        wind_u_int = numpy.empty([ts2.shape[0], 427, 613]) # Array to be filled
+        wind_v_int = numpy.empty([ts2.shape[0], 427, 613]) # Ditto
 
 
         # Loop through each lat and long and intpolate each value from time stamp ts1
@@ -453,8 +453,8 @@ def wind_function(ax, data_file, bmap, time_index, downsample_ratio, interp):
     wind_u = numpy.squeeze(wind_u) # Squeeze out the time
     wind_v = numpy.squeeze(wind_v) # Squeeze out the time
 
-    wind_u = numpy.reshape(wind_u, (614, 428))
-    wind_v = numpy.reshape(wind_v, (614, 428))
+    wind_u = numpy.reshape(wind_u, (613, 427))
+    wind_v = numpy.reshape(wind_v, (613, 427))
 
     if downsample_ratio == 1:
         length = 3
