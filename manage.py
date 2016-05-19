@@ -61,8 +61,8 @@ if __name__ == "__main__":
         DataFileManager.get_latest_wave_watch_files()
         DataFileManager.fetch_new_files()
         wind = 1
-        wave = 1
-        sst = 1
+        wave = 0
+        sst = 0
         wave_plots = []
         plots = []
 
@@ -86,7 +86,7 @@ if __name__ == "__main__":
                     plots.extend(om.make_plot(1, t, id))
                     plots.extend(om.make_plot(3, t, id))
         if wind:
-            print "\n Plotting A NAM - WINDS - Time:", t
+            print "\n Plotting A NAM - WINDS"
             plotter = WindPlotter()
             number_of_times = plotter.get_number_of_model_times()
             for t in xrange(number_of_times):
