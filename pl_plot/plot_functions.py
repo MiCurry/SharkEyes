@@ -384,7 +384,7 @@ def wind_function(ax, data_file, bmap, time_index, downsample_ratio, interp):
         wind_v = data_file[var_v][time_index+104, 0, :, :]
 
 
- wind_u = data_file[var_u]
+    wind_u = data_file[var_u]
     wind_v = data_file[var_v]
 
     if(interp == "TRUE"):

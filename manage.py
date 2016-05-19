@@ -52,6 +52,7 @@ if __name__ == "__main__":
         t = OverlayManager.make_plot(5, 2, 0)
         print t
 
+
     elif sys.argv[-1] == "plot-all":
         from pl_download.models import DataFileManager, DataFile
         from pl_plot.models import OverlayManager as om
@@ -63,33 +64,39 @@ if __name__ == "__main__":
         wave = 1
         sst = 1
         wave_plots = []
+        plots = []
 
         if wave:
             print "\n--- Plotting WW3 - Height and Direction ---"
             wave = DataFile.objects.filter(type = "WAVE").values_list('id', flat=True)
-            for ids in wave:
+            for id in wave:
                 for t in xrange(0, 85, 4):
-                    print "Plotting and Tiling WW3 - File ID:", ids, "Time Index:", t
-                    tile_wave_watch_overlay(om.make_wave_watch_plot(4, t, ids))
-                    tile_wave_watch_overlay(om.make_wave_watch_plot(6, t, ids))
+                    print "Plotting and Tiling WW3 - File ID:", id, "Time Index:", t
+                    plots.extend(om.make_wave_watch_plot(4, t, id))
+                    plots.extend(om.make_wave_watch_plot(6, t, id))
         if sst:
             print "\n--- Plotting ROMS - SST and Currents ---"
-            sst = DataFile.objects.filter(type = "NCDF").values_list('id', flat=True).distinct
-            for ids in sst:
-                plotter = Plotter(files.file.name)
+            sst_files = DataFile.objects.all().filter(type = "NCDF")
+            for file in sst_files:
+                plotter = Plotter(file.file.name)
                 number_of_times = plotter.get_number_of_model_times()
+                id = file.id
                 for t in xrange(number_of_times):
-                    print "Plotting and Tiling ROMS - File ID:", ids, "Time Index:", t
-                    tile_overlay(om.make_plot(1, t, ids))
-                    tile_overlay(om.make_plot(3, t, ids))
-
+                    print "Plotting ROMS - File ID:", id, "Time Index:", t
+                    plots.extend(om.make_plot(1, t, id))
+                    plots.extend(om.make_plot(3, t, id))
         if wind:
-            print "\n--- Plotting NAM - WINDS ---"
+            print "\n Plotting A NAM - WINDS - Time:", t
             plotter = WindPlotter()
             number_of_times = plotter.get_number_of_model_times()
             for t in xrange(number_of_times):
                 print "Plotting and Tiling NAMS - Time_Index:", t
-                tile_overlay(om.make_plot(5, t, 0))
+                plots.extend(om.make_plot(5, t, 0))
+
+        for i in wave_plots:
+            tile_wave_watch_overlay(i)
+        for i in plots:
+            tile_overlay(i)
 
     else:
         from django.core.management import execute_from_command_line
