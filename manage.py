@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import os
-import sys
+import sys , traceback
 
 if __name__ == "__main__":
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "SharkEyesCore.settings")
@@ -61,19 +61,24 @@ if __name__ == "__main__":
         DataFileManager.get_latest_wave_watch_files()
         DataFileManager.fetch_new_files()
         wind = 1
-        wave = 0
-        sst = 0
-        wave_plots = []
-        plots = []
+        wave = 1
+        sst = 1
 
         if wave:
             print "\n--- Plotting WW3 - Height and Direction ---"
             wave = DataFile.objects.filter(type = "WAVE").values_list('id', flat=True)
             for id in wave:
                 for t in xrange(0, 85, 4):
-                    print "Plotting and Tiling WW3 - File ID:", id, "Time Index:", t
-                    plots.extend(om.make_wave_watch_plot(4, t, id))
-                    plots.extend(om.make_wave_watch_plot(6, t, id))
+                    try:
+                        print "Plotting and Tiling WW3 - File ID:", id, "Time Index:", t
+                        tile_wave_watch_overlay(om.make_wave_watch_plot(4, t, id))
+                        tile_wave_watch_overlay(om.make_wave_watch_plot(6, t, id))
+                        print "plot/tile success"
+                    except Exception:
+                        print '-' * 60
+                        traceback.print_exc(file=sys.stdout)
+                        print '-' * 60
+                    print
         if sst:
             print "\n--- Plotting ROMS - SST and Currents ---"
             sst_files = DataFile.objects.all().filter(type = "NCDF")
@@ -82,21 +87,30 @@ if __name__ == "__main__":
                 number_of_times = plotter.get_number_of_model_times()
                 id = file.id
                 for t in xrange(number_of_times):
-                    print "Plotting ROMS - File ID:", id, "Time Index:", t
-                    plots.extend(om.make_plot(1, t, id))
-                    plots.extend(om.make_plot(3, t, id))
+                    try:
+                        print "Plotting ROMS - File ID:", id, "Time Index:", t
+                        tile_overlay(om.make_plot(1, t, id))
+                        tile_overlay(om.make_plot(3, t, id))
+                        print "plot/tile success"
+                    except Exception:
+                        print '-' * 60
+                        traceback.print_exc(file=sys.stdout)
+                        print '-' * 60
+                    print
         if wind:
             print "\n Plotting A NAM - WINDS"
             plotter = WindPlotter()
             number_of_times = plotter.get_number_of_model_times()
             for t in xrange(number_of_times):
-                print "Plotting and Tiling NAMS - Time_Index:", t
-                plots.extend(om.make_plot(5, t, 0))
-
-        for i in wave_plots:
-            tile_wave_watch_overlay(i)
-        for i in plots:
-            tile_overlay(i)
+                try:
+                    print "Plotting and Tiling NAMS - Time_Index:", t
+                    tile_overlay(om.make_plot(5, t, 0))
+                    print "plot/tile success"
+                except Exception:
+                    print '-' * 60
+                    traceback.print_exc(file=sys.stdout)
+                    print '-' * 60
+                print
 
     else:
         from django.core.management import execute_from_command_line
