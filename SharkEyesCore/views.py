@@ -32,8 +32,8 @@ def home(request):
     # you add new models.
     # TODO: add 7 back in if you want to add in the wave period model
 
-    #num_defs = len(OverlayDefinition.objects.filter(is_base=True, id__in=[1,3,4, 6]))
-    num_defs = len(OverlayDefinition.objects.filter(is_base=True, id__in=[4,6]))
+    num_defs = len(OverlayDefinition.objects.filter(is_base=True, id__in=[1,3,4, 6]))
+    #num_defs = len(OverlayDefinition.objects.filter(is_base=True, id__in=[4,6]))
 
     list_of_times = datetimes[:len(datetimes)/num_defs]
 
