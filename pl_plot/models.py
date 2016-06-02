@@ -67,8 +67,8 @@ class OverlayManager(models.Manager):
             is_tiled=True,
         )
         # Laborious stuff to ensure that we have an overlay for EACH model type
-        #next_few_days_of_sst_overlays = next_few_days_of_overlays.filter(definition_id=1)
-        #next_few_days_of_currents_overlays = next_few_days_of_overlays.filter(definition_id=3)
+        next_few_days_of_sst_overlays = next_few_days_of_overlays.filter(definition_id=1)
+        next_few_days_of_currents_overlays = next_few_days_of_overlays.filter(definition_id=3)
         next_few_days_of_height_overlays = next_few_days_of_overlays.filter(definition_id=4)
         next_few_days_of_direction_overlays = next_few_days_of_overlays.filter(definition_id=6)
         # TODO wave periodd
@@ -85,13 +85,13 @@ class OverlayManager(models.Manager):
             .annotate(newest_id=Max('id'))
         height_ids = and_the_newest_for_each_height.values_list('newest_id', flat=True)
 
-        #and_the_newest_for_each_sst = next_few_days_of_sst_overlays.values('definition_id', 'applies_at_datetime')\
-        #    .annotate(newest_id=Max('id'))
-        #sst_ids = and_the_newest_for_each_sst.values_list('newest_id', flat=True)
+        and_the_newest_for_each_sst = next_few_days_of_sst_overlays.values('definition_id', 'applies_at_datetime')\
+            .annotate(newest_id=Max('id'))
+        sst_ids = and_the_newest_for_each_sst.values_list('newest_id', flat=True)
 
-        #and_the_newest_for_each_currents = next_few_days_of_currents_overlays.values('definition_id', 'applies_at_datetime')\
-        #    .annotate(newest_id=Max('id'))
-        #currents_ids = and_the_newest_for_each_currents.values_list('newest_id', flat=True)
+        and_the_newest_for_each_currents = next_few_days_of_currents_overlays.values('definition_id', 'applies_at_datetime')\
+            .annotate(newest_id=Max('id'))
+        currents_ids = and_the_newest_for_each_currents.values_list('newest_id', flat=True)
 
         and_the_newest_for_each_direction = next_few_days_of_direction_overlays.values('definition_id', 'applies_at_datetime')\
             .annotate(newest_id=Max('id'))
@@ -105,32 +105,32 @@ class OverlayManager(models.Manager):
 
         # Filter out only the most recent overlay for each type and time
 
-        #newest_sst_overlays_to_display = next_few_days_of_sst_overlays.filter(id__in=sst_ids).order_by('definition', 'applies_at_datetime')
+        newest_sst_overlays_to_display = next_few_days_of_sst_overlays.filter(id__in=sst_ids).order_by('definition', 'applies_at_datetime')
         newest_height_overlays_to_display = next_few_days_of_height_overlays.filter(id__in=height_ids).order_by('definition', 'applies_at_datetime')
-        #newest_currents_overlays_to_display = next_few_days_of_currents_overlays.filter(id__in=currents_ids).order_by('definition', 'applies_at_datetime')
+        newest_currents_overlays_to_display = next_few_days_of_currents_overlays.filter(id__in=currents_ids).order_by('definition', 'applies_at_datetime')
         newest_direction_overlays_to_display = next_few_days_of_direction_overlays.filter(id__in=direction_ids).order_by('definition', 'applies_at_datetime')
         #TODO wave period
         #  newest_period_overlays_to_display = next_few_days_of_period_overlays.filter(id__in=period_ids).order_by('definition', 'applies_at_datetime')
 
 
         height_dates = newest_height_overlays_to_display.values_list( 'applies_at_datetime', flat=True)
-        #sst_dates = newest_sst_overlays_to_display.values_list( 'applies_at_datetime', flat=True)
-        #currents_dates = newest_currents_overlays_to_display.values_list( 'applies_at_datetime', flat=True)
+        sst_dates = newest_sst_overlays_to_display.values_list( 'applies_at_datetime', flat=True)
+        currents_dates = newest_currents_overlays_to_display.values_list( 'applies_at_datetime', flat=True)
         direction_dates = newest_direction_overlays_to_display.values_list( 'applies_at_datetime', flat=True)
         #TODO wave period
         # period_dates = newest_period_overlays_to_display.values_list( 'applies_at_datetime', flat=True)
 
 
         #Get the distinct dates where there is an SST, currents, and also a wave direction, period and height overlay
-        #date_overlap = next_few_days_of_overlays.filter(applies_at_datetime__in=list(sst_dates))\
-        #    .filter(applies_at_datetime__in=list(height_dates)).filter(applies_at_datetime__in=list(currents_dates))\
-        #    .filter(applies_at_datetime__in=list(direction_dates)).values_list('applies_at_datetime', flat=True).distinct() # wave period: .filter(applies_at_datetime__in=list(period_dates))\
-        date_overlap = next_few_days_of_overlays.filter(applies_at_datetime__in=list(direction_dates))\
-            .filter(applies_at_datetime__in=list(height_dates)).values_list('applies_at_datetime', flat=True).distinct()
+        date_overlap = next_few_days_of_overlays.filter(applies_at_datetime__in=list(sst_dates))\
+            .filter(applies_at_datetime__in=list(height_dates)).filter(applies_at_datetime__in=list(currents_dates))\
+            .filter(applies_at_datetime__in=list(direction_dates)).values_list('applies_at_datetime', flat=True).distinct() # wave period: .filter(applies_at_datetime__in=list(period_dates))\
+        #date_overlap = next_few_days_of_overlays.filter(applies_at_datetime__in=list(direction_dates))\
+        #    .filter(applies_at_datetime__in=list(height_dates)).values_list('applies_at_datetime', flat=True).distinct()
 
         # Now get the actual overlays where there is an overlap
-        #overlapped_sst_items_to_display = newest_sst_overlays_to_display.filter(applies_at_datetime__in=list(date_overlap))
-        #overlapped_currents_items_to_display = newest_currents_overlays_to_display.filter(applies_at_datetime__in=list(date_overlap))
+        overlapped_sst_items_to_display = newest_sst_overlays_to_display.filter(applies_at_datetime__in=list(date_overlap))
+        overlapped_currents_items_to_display = newest_currents_overlays_to_display.filter(applies_at_datetime__in=list(date_overlap))
         overlapped_direction_items_to_display = newest_direction_overlays_to_display.filter(applies_at_datetime__in=list(date_overlap))
         overlapped_height_items_to_display = newest_height_overlays_to_display.filter(applies_at_datetime__in=list(date_overlap))
         #TODO wave period
@@ -138,11 +138,11 @@ class OverlayManager(models.Manager):
 
 
         #Join the two sets
-        #all_items_to_display = overlapped_sst_items_to_display \
-        #                      | overlapped_height_items_to_display |  overlapped_direction_items_to_display \
-        #    | overlapped_currents_items_to_display
+        all_items_to_display = overlapped_sst_items_to_display \
+                              | overlapped_height_items_to_display |  overlapped_direction_items_to_display \
+            | overlapped_currents_items_to_display
                               # | overlapped_period_items_to_display
-        all_items_to_display = overlapped_height_items_to_display |  overlapped_direction_items_to_display
+        #all_items_to_display = overlapped_height_items_to_display |  overlapped_direction_items_to_display
         # Send the items back to the SharkEyesCore/views.py file, which preps the main page to be loaded.
         return all_items_to_display
 
