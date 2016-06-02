@@ -44,8 +44,8 @@ def home(request):
     #context = {'overlays': overlays_view_data, 'defs': OverlayDefinition.objects.filter(is_base=True).exclude(id=4), 'times':list_of_times, 'windoverlays': wind_overlays_view_data, 'winddefs': OverlayDefinition.objects.filter(id=5), 'windtimes':list_of_wind_times}
 
     # TODO: add 7 back in if you want to add in the wave period model
-    #context = {'overlays': overlays_view_data, 'defs': OverlayDefinition.objects.filter(is_base=True, id__in=[1,3,4, 6]), 'times':list_of_times }
-    context = {'overlays': overlays_view_data, 'defs': OverlayDefinition.objects.filter(is_base=True, id__in=[4,6]), 'times':list_of_times }
+    context = {'overlays': overlays_view_data, 'defs': OverlayDefinition.objects.filter(is_base=True, id__in=[1,3,4, 6]), 'times':list_of_times }
+    #context = {'overlays': overlays_view_data, 'defs': OverlayDefinition.objects.filter(is_base=True, id__in=[4,6]), 'times':list_of_times }
 
     return render(request, 'index.html', context)
 
