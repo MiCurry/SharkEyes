@@ -20,14 +20,6 @@ from SharkEyesCore.models import FeedbackQuestionaire
 #
 @shared_task(name='sharkeyescore.pipeline')
 def do_pipeline():
-    # Cleaning up old files from the database and the disk
-    DataFileManager.delete_old_files()
-    OverlayManager.delete_old_files()
-
-    # Check for new feedback surveys or comments, and email them to Flaxen
-    FeedbackHistory.send_feedback_forms()
-    FeedbackQuestionaire.send_feedback_survey()
-
     # Downloading the latest datafiles for our models. See the appropriate functions
     # (pl_download/models.py.DataFileManager.get_latest_wave_watch_files() and
     #  pl_download/models.py.DataFileManager.fetch_new_files()) respectively
@@ -61,6 +53,17 @@ def do_pipeline():
      #and run the group.
     result = job.apply_async()
     return result
+
+@shared_task(name='sharkeyescore.cleanup')
+def sharkeyes_cleanup():
+    # Cleaning up old files from the database and the disk
+    DataFileManager.delete_old_files()
+    OverlayManager.delete_old_files()
+
+    # Check for new feedback surveys or comments, and email them to Flaxen
+    FeedbackHistory.send_feedback_forms()
+    FeedbackQuestionaire.send_feedback_survey()
+    return None
 
 
 
