@@ -53,8 +53,8 @@ def vagrant():
 
 
 def staging():
-    env.user = 'developer'
-    hostname = 'baker.coas.oregonstate.edu'
+    env.user = 'root'
+    hostname = 'brad.coas.oregonstate.edu'
     port = 22
     env.hosts = env.hosts = ["%s:%s" % (hostname,port)]
     env.branch = 'staging'
@@ -62,7 +62,7 @@ def staging():
 
 def production():
     env.user = 'developer'
-    hostname = 's-pacifico.coas.oregonstate.edu'
+    hostname = 'pam.coas.oregonstate.edu'
     port = 22
     env.hosts = env.hosts = ["%s:%s" % (hostname,port)]
     env.branch = 'master'
@@ -341,8 +341,8 @@ def deploy():
             # run('./manage.py migrate djcelery 0004') if the djcelery migration dies, use this line instead
             run('./manage.py migrate djcelery')
             run('./manage.py migrate pl_download')
-            run('./manage.py migrate pl_plot')
-            run('./manage.py loaddata initial_data.json')
+            #run('./manage.py migrate pl_plot')
+            #run('./manage.py loaddata initial_data.json')
             run('./manage.py migrate pl_chop')
             run('./manage.py collectstatic')
     sudo('service httpd restart') #replace this with touching wsgi after we deamonize that

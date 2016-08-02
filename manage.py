@@ -14,7 +14,7 @@ if __name__ == "__main__":
         from pl_chop.tasks import tile_overlay, tile_wave_watch_overlay
         wave = DataFileManager.get_latest_wave_watch_files()
         sst = DataFileManager.fetch_new_files()
-        wind = 1
+        wind = 0
         if wave:
             tiles = []
             #first entry is day-1 at 12pm
