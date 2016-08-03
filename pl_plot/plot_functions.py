@@ -1,6 +1,7 @@
 import math
 import os
 import sys
+import gc
 from datetime import datetime, timedelta
 
 import numpy
@@ -185,33 +186,6 @@ def wave_height_function(ax, data_file, bmap, key_ax, forecast_index, downsample
      cbar.ax.xaxis.set_ticklabels(labels)
      cbar.set_label("Wave Height (feet)")
 
-# Plot the period of the waves as daily average and maximum integer values.
-#def wave_period_function(data_file, forecast_index):
-     #This is a hopefully temporary solution to implementing wave period. This replaces the colorbar key that used to
-     #exist for the now removed wave period color map. This makes an image with the wave period values that is displayed in the
-     #same spot as a colormap key. When make_wave_watch_plot() is called with 7 this figure is automatically named and placed in the
-     #/media/keys folder.
-
-     #get the wave period data from a netCDF file
-     #all_day = data_file.variables['PERPW_surface'][:, :, :]
-
-     # Mask all of the data points that are "nan" (not a number) in the data file; these represent land
-     #period_masked = numpy.ma.masked_array(all_day[forecast_index][:, :],numpy.isnan(all_day[forecast_index][:,:]))
-
-     #This is the average wave period for the day
-     #mean_val = numpy.mean(period_masked)
-     #The mean val is calculated to a large number of decimal places. This rounds it to two.
-     #mean_val = round(mean_val, 2)
-
-     #This is the maximum wave period value for the day
-     #max_val = numpy.amax(period_masked)
-     #This rounds the max value just like the average
-     #max_val = round(max_val, 2)
-
-     #textBox is a hack that makes an unused Cartesian plot with a label over the top of it. This label has the wave period data.
-     #the spacing is purposefully there to have a nice readable label. The black background helps to mask the figure behind the label.
-     #textBox = pyplot.text(0, 0,"       Wave period average and maximum values ""\n" "Average: " + str(mean_val) + " seconds " "  -  "" Maximum: " + str(max_val) + " seconds", withdash=False, backgroundcolor='black', color='white')
-
 def sst_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
     def celsius_to_fahrenheit(temp):
         return temp * 1.8 + 32
@@ -357,23 +331,27 @@ def currents_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio)
 # of our models. Because of that we need to interpolate them as seen below.
 def wind_function(ax, data_file, bmap, time_index, downsample_ratio, interp):
 
+    gc.collect()
     print "CREATING A WIND PLOT"
     print "DOWNSAMPLERATIO = ", downsample_ratio, "Time Index =", time_index
 
     # Set up lat and lon variables from the provided file
+    print "Part 1"
     tmp = numpy.loadtxt('/opt/sharkeyes/src/latlon.g218')
     lat = numpy.reshape(tmp[:, 2], [614,428])
     lon = numpy.reshape(tmp[:, 3], [614,428])
     x, y = bmap(lon, lat)
     for i in range(0, len(lon)):
         lon[i] = -lon[i]
-
+    print "Part 2"
     var_u = 'u-component_of_wind_height_above_ground'
     var_v = 'v-component_of_wind_height_above_ground'
     landMask = 'Land_cover_0__sea_1__land_surface'
 
+    print "Part 3"
     data_file = open_url(settings.WIND_URL)
 
+    print "Part 4"
     if(interp == "TRUE"):
         # Grab all the times for interpolating
         wind_u = data_file[var_u][:, 0, :, :] # All times of u
@@ -383,27 +361,33 @@ def wind_function(ax, data_file, bmap, time_index, downsample_ratio, interp):
         wind_u = data_file[var_u][time_index+104, 0, :, :]
         wind_v = data_file[var_v][time_index+104, 0, :, :]
 
-
+    print "Part 5"
     wind_u = data_file[var_u]
     wind_v = data_file[var_v]
 
+    print "Part 6"
     if(interp == "TRUE"):
+        print "Part 6b"
         wind_u = wind_u[:, 0, :, :] # All times of u
         wind_v = wind_v[:, 0, :, :] # All times of
     else:
+        print "Part 6c"
         wind_u = wind_u[time_index+104, 0, :, :]
         wind_v = wind_v[time_index+104, 0, :, :]
     # Remove the surface height dimension (Its only 1-Demensional)
+    print "Part 6d"
     wind_u = numpy.squeeze(wind_u) # Removes The Surface Height Dimension
     wind_v = numpy.squeeze(wind_v) # Ditto
 
     if(0): # Debug
+        print "Part 6e"
         print "Wind_u.shape", wind_u.shape
         print "Wind_v.shape", wind_v.shape
 
     #TODO Interpolate Winds Every Hour Except Midnight and noon
     #TODO: This can be cleaned up
 
+    print "Part 7"
     if(interp == "TRUE"):
         print "INTERPOLATING"
 
@@ -411,6 +395,7 @@ def wind_function(ax, data_file, bmap, time_index, downsample_ratio, interp):
         ts1 = []
         ts2 = []
 
+        print "Part 8"
         wind_u = numpy.reshape(wind_u, (time.shape[0], 428, 614))
         wind_v = numpy.reshape(wind_v, (time.shape[0], 428, 614))
 
@@ -419,9 +404,11 @@ def wind_function(ax, data_file, bmap, time_index, downsample_ratio, interp):
         #start_time = datetime.strptime(time.units, "Hour since %Y-%m-%dT%H:%M:%SZ")
         size = time.shape[0]
 
+        print "Part 9"
         # Create two different time stamps used for interpolating
         ts2 = numpy.arange(0, size * 3, 4) # One for every 4 hours
         ts1 = numpy.arange(0, size * 3, 3) # One for every 3  hours
+
 
         if(0): # Debug
             print "Wind_u:", wind_u.shape
@@ -430,10 +417,12 @@ def wind_function(ax, data_file, bmap, time_index, downsample_ratio, interp):
             print "ts1.shape:", ts1.shape[0]
             print "ts2.shape:", ts2.shape[0]
 
+        print "Part 10"
         wind_u_int = numpy.empty([ts2.shape[0], 428, 614]) # Array to be filled
         wind_v_int = numpy.empty([ts2.shape[0], 428, 614]) # Ditto
 
-
+        gc.collect()
+        print "Part 11"
         # Loop through each lat and long and intpolate each value from time stamp ts1
         # to ts2.  (ie from every 3rd hours to every 4hrs between the NAMS model time) see help(numpy.interp)
         for i in range(0, 427):
@@ -441,6 +430,7 @@ def wind_function(ax, data_file, bmap, time_index, downsample_ratio, interp):
                 wind_u_int[:,i,j] = numpy.interp(ts2, ts1, wind_u[:,i,j])
                 wind_v_int[:,i,j] = numpy.interp(ts2, ts1, wind_v[:,i,j])
 
+    print "Part 12"
     if(interp == "TRUE"):
         wind_u = wind_u_int[time_index+104, :, :] #Pull out the time
         wind_v = wind_v_int[time_index+104, :, :] #Pull out the time
@@ -448,12 +438,15 @@ def wind_function(ax, data_file, bmap, time_index, downsample_ratio, interp):
         wind_u = wind_u[time_index+104, :, :] #Pull out the time
         wind_v = wind_v[time_index+104, :, :] #Pull out the time
 
+    print "Part 13"
     wind_u = numpy.squeeze(wind_u) # Squeeze out the time
     wind_v = numpy.squeeze(wind_v) # Squeeze out the time
 
+    print "Part 14"
     wind_u = numpy.reshape(wind_u, (614, 428))
     wind_v = numpy.reshape(wind_v, (614, 428))
 
+    print "Part 15"
     if downsample_ratio == 1:
         length = 3
     elif downsample_ratio == 5:
@@ -468,6 +461,7 @@ def wind_function(ax, data_file, bmap, time_index, downsample_ratio, interp):
         print "x:", x.shape
         print "y:", y.shape
 
+    print "Part 16"
     bmap.barbs(x[::downsample_ratio, ::downsample_ratio],
                y[::downsample_ratio, ::downsample_ratio],
                wind_u[::downsample_ratio, ::downsample_ratio],

@@ -58,13 +58,12 @@ if __name__ == "__main__":
         from pl_plot.models import OverlayManager as om
         from pl_chop.tasks import tile_overlay, tile_wave_watch_overlay
         from pl_plot.plotter import WaveWatchPlotter, WindPlotter, Plotter
-        DataFileManager.get_latest_wave_watch_files()
-        DataFileManager.fetch_new_files()
         wind = 1
-        wave = 1
-        sst = 1
+        wave = 0
+        sst = 0
 
         if wave:
+            DataFileManager.get_latest_wave_watch_files()
             print "\n--- Plotting WW3 - Height and Direction ---"
             wave = DataFile.objects.filter(type = "WAVE").values_list('id', flat=True)
             for id in wave:
@@ -80,6 +79,7 @@ if __name__ == "__main__":
                         print '-' * 60
                     print
         if sst:
+            DataFileManager.fetch_new_files()
             print "\n--- Plotting ROMS - SST and Currents ---"
             sst_files = DataFile.objects.all().filter(type = "NCDF")
             for file in sst_files:
