@@ -18,8 +18,8 @@ from SharkEyesCore.models import FeedbackQuestionaire
 # do_pipeline()
 #
 #
-@shared_task(name='sharkeyescore.plot')
-def plot_pipeline():
+@shared_task(name='sharkeyescore.pipeline')
+def do_pipeline():
     # Downloading the latest datafiles for our models. See the appropriate functions
     # (pl_download/models.py.DataFileManager.get_latest_wave_watch_files() and
     #  pl_download/models.py.DataFileManager.fetch_new_files()) respectively
