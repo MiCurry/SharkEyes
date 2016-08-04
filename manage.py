@@ -87,20 +87,21 @@ if __name__ == "__main__":
             for file in sst_files:
                 plotter = Plotter(file.file.name)
                 number_of_times = plotter.get_number_of_model_times()
-                print "This is number of times "
-                print number_of_times
                 id = file.id
                 for t in xrange(number_of_times):
-                    try:
-                        print "Plotting ROMS - File ID:", id, "Time Index:", t
-                        tile_overlay(om.make_plot(1, t, id))
-                        tile_overlay(om.make_plot(3, t, id))
-                        print "plot/tile success"
-                    except Exception:
-                        print '-' * 60
-                        traceback.print_exc(file=sys.stdout)
-                        print '-' * 60
-                    print
+                    print "This is t "
+                    print t
+                    if t % 2 == 0:
+                        try:
+                            print "Plotting ROMS - File ID:", id, "Time Index:", t
+                            tile_overlay(om.make_plot(1, t, id))
+                            tile_overlay(om.make_plot(3, t, id))
+                            print "plot/tile success"
+                        except Exception:
+                            print '-' * 60
+                            traceback.print_exc(file=sys.stdout)
+                            print '-' * 60
+                        print
 
         if wind:
             print "\n Plotting A NAM - WINDS"
