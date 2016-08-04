@@ -87,6 +87,7 @@ if __name__ == "__main__":
             for file in sst_files:
                 plotter = Plotter(file.file.name)
                 number_of_times = plotter.get_number_of_model_times()
+                print "This is number of times "
                 print number_of_times
                 id = file.id
                 for t in xrange(number_of_times):
