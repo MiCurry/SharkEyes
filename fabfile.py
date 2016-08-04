@@ -54,7 +54,7 @@ def vagrant():
 
 def staging():
     env.user = 'developer'
-    hostname = 'baker.coas.oregonstate.edu'
+    hostname = 'brad.coas.oregonstate.edu'
     port = 22
     env.hosts = env.hosts = ["%s:%s" % (hostname,port)]
     env.branch = 'staging'
@@ -62,7 +62,7 @@ def staging():
 
 def production():
     env.user = 'developer'
-    hostname = 's-pacifico.coas.oregonstate.edu'
+    hostname = 'pam.coas.oregonstate.edu'
     port = 22
     env.hosts = env.hosts = ["%s:%s" % (hostname,port)]
     env.branch = 'master'
