@@ -208,41 +208,43 @@ function makeDateString(date){
     var dates = date.split(" "); //This puts the date string into an array with the format:  dates = ['March', '18', '2016', '8', 'p.m']
     var date_str = '';
     date_str += dates[2];
+    dates[0] = dates[0].substring(0, 3);
+    console.log('This is dates[0] ' + dates[0]);
     switch(dates[0]) {
-        case 'January':
+        case 'Jan':
             date_str += '/01/';
             break;
-        case 'February':
+        case 'Feb':
             date_str += '/02/';
             break;
-        case 'March':
+        case 'Mar':
             date_str += '/03/';
             break;
-        case 'April':
+        case 'Apr':
             date_str += '/04/';
             break;
         case 'May':
             date_str += '/05/';
             break;
-        case 'June':
+        case 'Jun':
             date_str += '/06/';
             break;
-        case 'July':
+        case 'Jul':
             date_str += '/07/';
             break;
-        case 'August':
+        case 'Aug':
             date_str += '/08/';
             break;
-        case 'September':
+        case 'Sep':
             date_str += '/09/';
             break;
-        case 'October':
+        case 'Oct':
             date_str += '/10/';
             break;
-        case 'November':
+        case 'Nov':
             date_str += '/11/';
             break;
-        case 'December':
+        case 'Dec':
             date_str += '/12/';
             break;
     }
@@ -253,6 +255,7 @@ function makeDateString(date){
         date_str += dates[1];
     }
     return date_str;
+
 }
 
 // *********************************************************************************************************************

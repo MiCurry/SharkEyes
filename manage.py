@@ -12,10 +12,11 @@ if __name__ == "__main__":
         from pl_download.models import DataFileManager
         from pl_plot.models import OverlayManager
         from pl_chop.tasks import tile_overlay, tile_wave_watch_overlay
-        wave = DataFileManager.get_latest_wave_watch_files()
-        sst = DataFileManager.fetch_new_files()
+        wave = 0
+        sst = 0
         wind = 1
         if wave:
+            wave = DataFileManager.get_latest_wave_watch_files()
             tiles = []
             #first entry is day-1 at 12pm
             #need to offset 16 to match with sst plot
@@ -25,6 +26,7 @@ if __name__ == "__main__":
             for t in tiles:
                 tile_wave_watch_overlay(t)
         if sst:
+            sst = DataFileManager.fetch_new_files()
             tiles = []
             #first entry is day at 4am
             #NOTE it increments in 4 hour changes
@@ -58,9 +60,9 @@ if __name__ == "__main__":
         from pl_plot.models import OverlayManager as om
         from pl_chop.tasks import tile_overlay, tile_wave_watch_overlay
         from pl_plot.plotter import WaveWatchPlotter, WindPlotter, Plotter
-        wind = 1
+        wind = 0
         wave = 0
-        sst = 0
+        sst = 1
 
         if wave:
             DataFileManager.get_latest_wave_watch_files()
@@ -85,6 +87,7 @@ if __name__ == "__main__":
             for file in sst_files:
                 plotter = Plotter(file.file.name)
                 number_of_times = plotter.get_number_of_model_times()
+                print number_of_times
                 id = file.id
                 for t in xrange(number_of_times):
                     try:
@@ -97,6 +100,7 @@ if __name__ == "__main__":
                         traceback.print_exc(file=sys.stdout)
                         print '-' * 60
                     print
+
         if wind:
             print "\n Plotting A NAM - WINDS"
             plotter = WindPlotter()
