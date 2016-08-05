@@ -233,54 +233,6 @@ class DataFileManager(models.Manager):
 
         return datafile.id
 
-    #--------------------------------
-    # def get_wind_file()
-    # This is the onld one!
-
-    # @staticmethod
-    # @shared_task(name='pl_download.get_latest_wind_files')
-    # def get_latest_wind_files():
-    #
-    #     #TODO: set up a check to see if new files are available
-    #     #list of the new file ids created in this function
-    #     new_file_ids = []
-    #
-    #     #directory of where files will be saved at
-    #     destination_directory = os.path.join(settings.MEDIA_ROOT, settings.WIND_DIR)
-    #
-    #     url = settings.WIND_URL
-    #
-    #     dataset = open_url(url) #yay thredds servers
-    #
-    #     dates = dataset['time']
-    #     dateString = dates.units #dates.units lists how far back the forecast goes (13 days from current)
-    #     dateString = dateString[11:] #[11:] to get rid of text before the date
-    #     modified_datetime = datetime.strptime(dateString, "%Y-%m-%dT%H:%M:%SZ").date() #strip date
-    #     current_datetime = (datetime.strptime(dateString, "%Y-%m-%dT%H:%M:%SZ")+timedelta(days=13)).date() #should give us the current day
-    #
-    #     local_filename = "{0}_{1}.nc".format("WIND", modified_datetime, uuid4())
-    #
-    #     matches_old_file = DataFile.objects.filter(
-    #        model_date=current_datetime,
-    #        type='WIND'
-    #     )
-    #     if not matches_old_file:
-    #
-    #         datafile = DataFile(
-    #             type='WIND',
-    #             download_datetime=timezone.now(),
-    #             generated_datetime=current_datetime,
-    #             model_date=current_datetime,
-    #             file=local_filename,
-    #         )
-    #         datafile.save()
-    #
-    #         new_file_ids.append(datafile.id)
-    #
-    #         return new_file_ids
-    #     else:
-    #         return []
-
     @classmethod
     def get_next_few_days_files_from_db(cls):
         next_few_days_of_files = DataFile.objects.filter(
