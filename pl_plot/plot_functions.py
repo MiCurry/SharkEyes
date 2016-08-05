@@ -193,16 +193,16 @@ def sst_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
 
     # temperature has dimensions ('ocean_time', 's_rho', 'eta_rho', 'xi_rho')
     # s_rho corresponds to layers, of which there are 30, so we take the top one.
-    surface_temp = numpy.ma.array(vectorized_conversion(data_file.variables['temp'][time_index][29]), mask=get_rho_mask(data_file))
-        
+    surface_temp = numpy.ma.array(vectorized_conversion(data_file.variables['temp'][time_index][39]), mask=get_rho_mask(data_file))
+
     longs = data_file.variables['lon_rho'][:]
     lats = data_file.variables['lat_rho'][:]
 
     #get the max and min temps for the daytem
-    all_day = data_file.variables['temp'][:, 29, :, :]
+    all_day = data_file.variables['temp'][:, 39, :, :]
     min_temp = int(math.floor(celsius_to_fahrenheit(numpy.amin(all_day))))
     max_temp = int(math.ceil(celsius_to_fahrenheit(numpy.amax(numpy.ma.masked_greater(all_day, 1000)))))
-    
+
     x, y = bmap(longs, lats)
 
     # calculate and plot colored contours for TEMPERATURE data
@@ -235,13 +235,13 @@ def sst_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
 def salt_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
     # salt has dimensions ('ocean_time', 's_rho', 'eta_rho', 'xi_rho')
     # s_rho corresponds to layers, of which there are 30, so we take the top one.
-    surface_salt = numpy.ma.array(data_file.variables['salt'][time_index][29], mask=get_rho_mask(data_file))
+    surface_salt = numpy.ma.array(data_file.variables['salt'][time_index][39], mask=get_rho_mask(data_file))
 
     longs = data_file.variables['lon_rho'][:]
     lats = data_file.variables['lat_rho'][:]
 
     #get the max and min salinity for the day
-    all_day = data_file.variables['salt'][:, 29, :, :]
+    all_day = data_file.variables['salt'][:, 39, :, :]
     min_salt = int(math.floor(numpy.amin(all_day)))
     max_salt = int(math.ceil(numpy.amax(numpy.ma.masked_greater(all_day, 1000))))
 
@@ -281,8 +281,8 @@ def currents_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio)
 
     print "Currents Downsample Ratio:", downsample_ratio
 
-    currents_u = data_file.variables['u'][time_index][29]
-    currents_v = data_file.variables['v'][time_index][29]
+    currents_u = data_file.variables['u'][time_index][39]
+    currents_v = data_file.variables['v'][time_index][39]
     rho_mask = get_rho_mask(data_file)
 
     # average nearby points to align grid, and add the edge column/row so it's the right size.

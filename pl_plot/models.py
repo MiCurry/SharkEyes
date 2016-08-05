@@ -136,11 +136,9 @@ class OverlayManager(models.Manager):
 
                 #make_plot needs to be called once for each time range
                 for t in xrange(number_of_times):
-                    print "This is t "
-                    print t
-                    #if t % 2 != 0: #The SST files double the available number of available times. This is used to only plot the times that we want.
-                    #using EXTEND because we are adding multiple items: might also be able to use APPEND
-                    task_list.extend(cls.make_plot.subtask(args=(od_id, t, fid), immutable=True) for od_id in [1, 3])
+                    if t % 2 != 0: #The SST files double the available number of available times. This is used to only plot the times that we want.
+                        #using EXTEND because we are adding multiple items: might also be able to use APPEND
+                        task_list.extend(cls.make_plot.subtask(args=(od_id, t, fid), immutable=True) for od_id in [1, 3])
 
         # Wind Plot Data
         for t in xrange(14):

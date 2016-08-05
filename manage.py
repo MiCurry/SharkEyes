@@ -89,9 +89,7 @@ if __name__ == "__main__":
                 number_of_times = plotter.get_number_of_model_times()
                 id = file.id
                 for t in xrange(number_of_times):
-                    print "This is t "
-                    print t
-                    if t % 2 == 0:
+                    if t % 2 != 0:
                         try:
                             print "Plotting ROMS - File ID:", id, "Time Index:", t
                             tile_overlay(om.make_plot(1, t, id))

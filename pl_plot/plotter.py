@@ -219,7 +219,6 @@ class Plotter:
         return numpy.shape(self.data_file.variables['ocean_time'])[0]
 
     def make_plot(self, plot_function, zoom_levels, time_index=0,  downsample_ratio=None):
-
         fig = pyplot.figure()
         key_fig = pyplot.figure(facecolor=settings.OVERLAY_KEY_COLOR)
         ax = fig.add_subplot(111)  # one subplot in the figure
