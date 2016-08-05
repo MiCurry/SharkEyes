@@ -53,11 +53,7 @@ def vagrant():
 
 
 def staging():
-<<<<<<< HEAD
     env.user = 'root'
-=======
-    env.user = 'developer'
->>>>>>> develop
     hostname = 'brad.coas.oregonstate.edu'
     port = 22
     env.hosts = env.hosts = ["%s:%s" % (hostname,port)]
