@@ -123,18 +123,11 @@ CELERY_IMPORTS = ('SharkEyesCore.tasks',)
 CELERYBEAT_SCHEDULE = {
    'plot_pipeline': {
        'task': 'sharkeyescore.pipeline',
-       'schedule': crontab(hour=0, minute=50),
+       'schedule': timedelta(hour=5),
        'args': ()
    },
 }
 
-CELERYBEAT_SCHEDULE = {
-   'cleanup': {
-       'task': 'sharkeyescore.cleanup',
-       'schedule': crontab(hour=17, minute=0),
-       'args': ()
-   },
-}
 
 # import local settings. PyCharm thinks it's unused, but PyCharm is silly.
 # noinspection PyUnresolvedReferences
