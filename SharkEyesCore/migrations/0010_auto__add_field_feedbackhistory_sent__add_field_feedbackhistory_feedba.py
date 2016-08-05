@@ -8,6 +8,14 @@ from django.db import models
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
+<<<<<<< HEAD
+        # Adding field 'FeedbackHistory.sent'
+        db.add_column(u'SharkEyesCore_feedbackhistory', 'sent',
+                      self.gf('django.db.models.fields.BooleanField')(default=False),
+                      keep_default=False)
+
+=======
+>>>>>>> develop
         # Adding field 'FeedbackHistory.feedback_name'
         db.add_column(u'SharkEyesCore_feedbackhistory', 'feedback_name',
                       self.gf('django.db.models.fields.CharField')(default='', max_length=2000, blank=True),
@@ -63,7 +71,12 @@ class Migration(SchemaMigration):
             'feedback_name': ('django.db.models.fields.CharField', [], {'max_length': '2000', 'blank': 'True'}),
             'feedback_phone': ('django.db.models.fields.CharField', [], {'max_length': '2000', 'blank': 'True'}),
             'feedback_title': ('django.db.models.fields.CharField', [], {'max_length': '2000'}),
+<<<<<<< HEAD
+            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'sent': ('django.db.models.fields.BooleanField', [], {'default': 'False'})
+=======
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'})
+>>>>>>> develop
         },
         u'SharkEyesCore.feedbackquestionaire': {
             'Meta': {'object_name': 'FeedbackQuestionaire'},
@@ -84,4 +97,8 @@ class Migration(SchemaMigration):
         }
     }
 
+<<<<<<< HEAD
     complete_apps = ['SharkEyesCore']
+=======
+    complete_apps = ['SharkEyesCore']
+>>>>>>> develop

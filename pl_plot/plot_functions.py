@@ -194,7 +194,6 @@ def sst_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
     # temperature has dimensions ('ocean_time', 's_rho', 'eta_rho', 'xi_rho')
     # s_rho corresponds to layers, of which there are 30, so we take the top one.
     surface_temp = numpy.ma.array(vectorized_conversion(data_file.variables['temp'][time_index][39]), mask=get_rho_mask(data_file))
-
     longs = data_file.variables['lon_rho'][:]
     lats = data_file.variables['lat_rho'][:]
 
