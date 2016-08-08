@@ -125,10 +125,8 @@ class OverlayManager(models.Manager):
                     # Only plot every 4th index to match up with the SST forecast.
                     # WaveWatch has forecasts for every hour but at this time we don't need them all.
                     if t % 4 == 0:
-                        task_list.append(cls.make_wave_watch_plot.subtask(args=(4, t, fid), immutable=True))
-                        task_list.append(cls.make_wave_watch_plot.subtask(args=(6, t, fid), immutable=True))
-                        #TODO wave period
-                        task_list.append(cls.make_wave_watch_plot.subtask(args=(7, t, fid), immutable=True))
+                        task_list.append(cls.make_wave_watch_plot.subtask(args=(4, t+2, fid), immutable=True))
+                        task_list.append(cls.make_wave_watch_plot.subtask(args=(6, t+2, fid), immutable=True))
 
             else:
                 plotter = Plotter(datafile.file.name)
@@ -136,8 +134,9 @@ class OverlayManager(models.Manager):
 
                 #make_plot needs to be called once for each time range
                 for t in xrange(number_of_times):
-                    #using EXTEND because we are adding multiple items: might also be able to use APPEND
-                    task_list.extend(cls.make_plot.subtask(args=(od_id, t, fid), immutable=True) for od_id in [1, 3])
+                    if t % 4 ==0:
+                        #using EXTEND because we are adding multiple items: might also be able to use APPEND
+                        task_list.extend(cls.make_plot.subtask(args=(od_id, t, fid), immutable=True) for od_id in [1, 3])
 
         # Wind Plot Data
         for t in xrange(14):

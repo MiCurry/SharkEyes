@@ -332,7 +332,7 @@ def deploy():
             branch = prompt("Branch to run? (Enter to leave unchanged): ")
             if branch:
                 run('git checkout {0}'.format(branch))
-            run('git pull')
+            sudo('git pull')
         with prefix('source /opt/sharkeyes/env_sharkeyes/bin/activate'):
             print("!-"*50)
             print("If this is your first run, Django will ask you to create a super user. "

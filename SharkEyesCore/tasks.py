@@ -62,9 +62,6 @@ def do_pipeline():
     result = job.apply_async()
     return result
 
-
-
-
 @shared_task(name='sharkeyescore.spacer_task')
 def spacer_task(args=None):
     if args is not None:
