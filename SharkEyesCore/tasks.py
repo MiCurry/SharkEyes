@@ -7,6 +7,7 @@ from pl_chop.tasks import tile_overlay
 from pl_chop.tasks import tile_wave_watch_overlay
 from SharkEyesCore.models import FeedbackHistory
 from SharkEyesCore.models import FeedbackQuestionaire
+import sys , traceback
 
 #------------------------------------------
 # SharkEyesCore\tasks.py
@@ -31,7 +32,12 @@ def do_pipeline():
     # Downloading the latest datafiles for our models. See the appropriate functions
     # (pl_download/models.py.DataFileManager.get_latest_wave_watch_files() and
     #  pl_download/models.py.DataFileManager.fetch_new_files()) respectively
-    wave_watch_files = DataFileManager.get_latest_wave_watch_files()
+    try:
+        wave_watch_files = DataFileManager.get_latest_wave_watch_files()
+    except Exception:
+        print '-' * 60
+        traceback.print_exc(file=sys.stdout)
+        print '-' * 60
     other_files = DataFileManager.fetch_new_files()   # not calling as a task so it runs inline
 
     # If no new files were returned, don't plot or tile anything.
