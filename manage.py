@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import os
 import sys , traceback
+import time
 
 if __name__ == "__main__":
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "SharkEyesCore.settings")
@@ -13,8 +14,8 @@ if __name__ == "__main__":
         from pl_plot.models import OverlayManager
         from pl_chop.tasks import tile_overlay, tile_wave_watch_overlay
         wave = 0
-        sst = 0
-        wind = 1
+        sst = 1
+        wind = 0
         if wave:
             wave = DataFileManager.get_latest_wave_watch_files()
             tiles = []
@@ -33,7 +34,11 @@ if __name__ == "__main__":
             tiles += OverlayManager.make_plot(1, 0, sst[0])
             tiles += OverlayManager.make_plot(3, 0, sst[0])
             for t in tiles:
+                begin = time.time()
                 tile_overlay(t)
+                finish = time.time()
+                totalTime = (finish - begin)/ 60
+                print "Time taken for SST = " + str(round(totalTime, 2)) + " minutes"
 
         if wind:
             winds = []
@@ -41,7 +46,11 @@ if __name__ == "__main__":
             tiles += OverlayManager.make_plot(5, 1, 0)
             tiles += OverlayManager.make_plot(5, 2, 0)
             for t in tiles:
+                begin = time.time()
                 tile_overlay(t)
+                finish = time.time()
+                totalTime = (finish - begin)/ 60
+                print "Time taken for SST = " + str(round(totalTime, 2)) + " minutes"
 
     #Small test to see what times the WindPlotter returns
     elif sys.argv[-1] == "wtest":
@@ -108,7 +117,11 @@ if __name__ == "__main__":
             for t in xrange(number_of_times):
                 try:
                     print "Plotting and Tiling NAMS - Time_Index:", t
+                    start = time.time()
                     tile_overlay(om.make_plot(5, t, 0))
+                    end = time.time()
+                    total = (end - start)/ 60
+                    print "Total time taken for plotting and tiling = " + str(round(total, 2)) + " minutes"
                     print "plot/tile success"
                 except Exception:
                     print '-' * 60
