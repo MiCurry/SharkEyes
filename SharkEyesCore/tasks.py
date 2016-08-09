@@ -41,10 +41,14 @@ def do_pipeline():
     other_files = DataFileManager.fetch_new_files()   # not calling as a task so it runs inline
 
     # If no new files were returned, don't plot or tile anything.
-    if not wave_watch_files and not other_files:
-        print "No New Files Available, Quitting."
-        return None
-
+    try:
+        if not wave_watch_files and not other_files:
+            print "No New Files Available, Quitting."
+            return None
+    except Exception:
+        print '-' * 60
+        traceback.print_exc(file=sys.stdout)
+        print '-' * 60
     # get the list of plotting tasks based on the files we just downloaded.
     plot_task_list = OverlayManager.get_tasks_for_base_plots_for_next_few_days()
 
