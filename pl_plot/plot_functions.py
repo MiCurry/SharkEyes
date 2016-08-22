@@ -345,25 +345,13 @@ def wind_function(ax, data_file, bmap, time_index, downsample_ratio, interp):
     lon = numpy.reshape(tmp[:, 3], [614,428])
     x, y = bmap(lon, lat)
 
-    time1 = time.time()
-    print "Time 1"
-    time_print(start_time, time1)
-
     for i in range(0, len(lon)):
         lon[i] = -lon[i]
-
-    time2 = time.time()
-    print "Time 2"
-    time_print(time1, time2)
 
     var_u = 'u-component_of_wind_height_above_ground'
     var_v = 'v-component_of_wind_height_above_ground'
     landMask = 'Land_cover_0__sea_1__land_surface'
     data_file = open_url(settings.WIND_URL)
-
-    time3 = time.time()
-    print "Time 3"
-    time_print(time2, time3)
 
     if(interp == "TRUE"):
         # Grab all the times for interpolating
@@ -374,16 +362,8 @@ def wind_function(ax, data_file, bmap, time_index, downsample_ratio, interp):
         wind_u = data_file[var_u][time_index+104, 0, :, :]
         wind_v = data_file[var_v][time_index+104, 0, :, :]
 
-    time4 = time.time()
-    print "Time 4"
-    time_print(time3, time4)
-
     wind_u = data_file[var_u]
     wind_v = data_file[var_v]
-
-    time5 = time.time()
-    print "Time 5"
-    time_print(time4, time5)
 
     if(interp == "TRUE"):
         wind_u = wind_u[:, 0, :, :] # All times of u
@@ -392,17 +372,9 @@ def wind_function(ax, data_file, bmap, time_index, downsample_ratio, interp):
         wind_u = wind_u[time_index+104, 0, :, :]
         wind_v = wind_v[time_index+104, 0, :, :]
 
-    time6 = time.time()
-    print "Time 6"
-    time_print(time5, time6)
-
     # Remove the surface height dimension (Its only 1-Demensional)
     wind_u = numpy.squeeze(wind_u) # Removes The Surface Height Dimension
     wind_v = numpy.squeeze(wind_v) # Ditto
-
-    time7 = time.time()
-    print "Time 7"
-    time_print(time6, time7)
 
     if(0): # Debug
         print "Wind_u.shape", wind_u.shape
@@ -421,26 +393,14 @@ def wind_function(ax, data_file, bmap, time_index, downsample_ratio, interp):
         wind_u = numpy.reshape(wind_u, (times.shape[0], 428, 614))
         wind_v = numpy.reshape(wind_v, (times.shape[0], 428, 614))
 
-        time8 = time.time()
-        print "Time 8"
-        time_print(time7, time8)
-
         #TODO: Add some kind of error checking here
         # Generate a time range 0 ... 139 for every 4 hours using the python thingy
         #start_time = datetime.strptime(time.units, "Hour since %Y-%m-%dT%H:%M:%SZ")
         size = times.shape[0]
 
-        time9 = time.time()
-        print "Time 9"
-        time_print(time8, time9)
-
         # Create two different time stamps used for interpolating
         ts2 = numpy.arange(0, size * 3, 4) # One for every 4 hours
         ts1 = numpy.arange(0, size * 3, 3) # One for every 3  hours
-
-        time10 = time.time()
-        print "Time 10"
-        time_print(time9, time10)
 
         if(0): # Debug
             print "Wind_u:", wind_u.shape
@@ -452,20 +412,18 @@ def wind_function(ax, data_file, bmap, time_index, downsample_ratio, interp):
         wind_u_int = numpy.empty([ts2.shape[0], 428, 614]) # Array to be filled
         wind_v_int = numpy.empty([ts2.shape[0], 428, 614]) # Ditto
 
-        time11 = time.time()
-        print "Time 11"
-        time_print(time10, time11)
-
         # Loop through each lat and long and intpolate each value from time stamp ts1
         # to ts2.  (ie from every 3rd hours to every 4hrs between the NAMS model time) see help(numpy.interp)
+        print "length of ts2"
+        print len(ts2)
+        print "length of ts1"
+        print len(ts2)
+        print"length of wind_u"
+        print len(wind_u)
         for i in range(0, 427):
             for j in range(0, 613):
                 wind_u_int[:,i,j] = numpy.interp(ts2, ts1, wind_u[:,i,j])
                 wind_v_int[:,i,j] = numpy.interp(ts2, ts1, wind_v[:,i,j])
-
-        time12 = time.time()
-        print "Time 12"
-        time_print(time11, time12)
 
     if(interp == "TRUE"):
         wind_u = wind_u_int[time_index+104, :, :] #Pull out the time
@@ -474,23 +432,11 @@ def wind_function(ax, data_file, bmap, time_index, downsample_ratio, interp):
         wind_u = wind_u[time_index+104, :, :] #Pull out the time
         wind_v = wind_v[time_index+104, :, :] #Pull out the time
 
-    time13 = time.time()
-    print "Time 13"
-    time_print(time12, time13)
-
     wind_u = numpy.squeeze(wind_u) # Squeeze out the time
     wind_v = numpy.squeeze(wind_v) # Squeeze out the time
 
-    time14 = time.time()
-    print "Time 14"
-    time_print(time13, time14)
-
     wind_u = numpy.reshape(wind_u, (614, 428))
     wind_v = numpy.reshape(wind_v, (614, 428))
-
-    time15 = time.time()
-    print "Time 15"
-    time_print(time14, time15)
 
     if downsample_ratio == 1:
         length = 3
@@ -513,14 +459,6 @@ def wind_function(ax, data_file, bmap, time_index, downsample_ratio, interp):
                wind_v[::downsample_ratio, ::downsample_ratio],
                ax=ax,
                length=length)
-
-    time16 = time.time()
-    print "Time 16"
-    time_print(time15, time16)
-    print ' '
-    final = time.time()
-    total = final - start_time
-    print "Total time taken = " + str(round(total, 2)) + " seconds"
     print "WIND PLOT CREATED!"
 
 

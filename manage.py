@@ -14,8 +14,8 @@ if __name__ == "__main__":
         from pl_plot.models import OverlayManager
         from pl_chop.tasks import tile_overlay, tile_wave_watch_overlay
         wave = 0
-        sst = 1
-        wind = 0
+        sst = 0
+        wind = 1
         if wave:
             wave = DataFileManager.get_latest_wave_watch_files()
             tiles = []
@@ -42,6 +42,7 @@ if __name__ == "__main__":
 
         if wind:
             winds = []
+            tiles = []
             tiles += OverlayManager.make_plot(5, 0, 0)
             tiles += OverlayManager.make_plot(5, 1, 0)
             tiles += OverlayManager.make_plot(5, 2, 0)
