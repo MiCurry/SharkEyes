@@ -127,21 +127,21 @@ class OverlayManager(models.Manager):
                     if t % 4 == 0:
                         task_list.append(cls.make_wave_watch_plot.subtask(args=(4, t, fid), immutable=True))
                         task_list.append(cls.make_wave_watch_plot.subtask(args=(6, t, fid), immutable=True))
-                        #TODO wave period
-                        #task_list.append(cls.make_wave_watch_plot.subtask(args=(7, t, fid), immutable=True))
 
             else:
                 plotter = Plotter(datafile.file.name)
                 number_of_times = plotter.get_number_of_model_times()   # yeah, loading the plotter just for this isn't ideal...
-
+                print "Did I get here as a wind plot?"
                 #make_plot needs to be called once for each time range
                 for t in xrange(number_of_times):
+                    print "How about here as a wind plot?"
                     if t % 2 != 0: #The SST files double the available number of available times. This is used to only plot the times that we want.
                         #using EXTEND because we are adding multiple items: might also be able to use APPEND
                         task_list.extend(cls.make_plot.subtask(args=(od_id, t, fid), immutable=True) for od_id in [1, 3])
 
         # Wind Plot Data
         for t in xrange(14):
+            print "If I am wind I should get here otherwise not."
             task_list.extend(cls.make_plot.subtask(args=(5, t, 0), immutable=True) for od_id in [1, 3])
 
         return task_list

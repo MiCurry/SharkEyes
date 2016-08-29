@@ -169,12 +169,7 @@ class WindPlotter:
 
         model_time = self.get_time_at_oceantime_index(time_index)
 
-        if(model_time == time(0, 0) or model_time == time(12, 0)):
-            interp = "FALSE"
-        else:
-            interp = "TRUE"
-
-        plot_function(ax=ax, data_file=self.data_file, time_index=time_index, bmap=bmap, downsample_ratio=downsample_ratio, interp=interp)
+        plot_function(ax=ax, data_file=self.data_file, time_index=time_index, bmap=bmap, downsample_ratio=downsample_ratio)
 
         generated_datetime = timezone.now().date() #The wind png is always generated at the time of the call
 
@@ -216,6 +211,7 @@ class Plotter:
         return ocean_time_epoch + seconds_since_epoch
 
     def get_number_of_model_times(self):
+        print "Plotter number of model times", numpy.shape(self.data_file.variables['ocean_time'])[0]
         return numpy.shape(self.data_file.variables['ocean_time'])[0]
 
     def make_plot(self, plot_function, zoom_levels, time_index=0,  downsample_ratio=None):

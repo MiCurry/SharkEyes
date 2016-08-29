@@ -14,8 +14,8 @@ if __name__ == "__main__":
         from pl_plot.models import OverlayManager
         from pl_chop.tasks import tile_overlay, tile_wave_watch_overlay
         wave = 0
-        sst = 0
-        wind = 1
+        sst = 1
+        wind = 0
         if wave:
             wave = DataFileManager.get_latest_wave_watch_files()
             tiles = []
@@ -51,7 +51,7 @@ if __name__ == "__main__":
                 tile_overlay(t)
                 finish = time.time()
                 totalTime = (finish - begin)/ 60
-                print "Time taken for SST = " + str(round(totalTime, 2)) + " minutes"
+                print "Time taken for Winds = " + str(round(totalTime, 2)) + " minutes"
 
     #Small test to see what times the WindPlotter returns
     elif sys.argv[-1] == "wtest":
