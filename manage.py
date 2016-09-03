@@ -43,15 +43,15 @@ if __name__ == "__main__":
         if wind:
             winds = []
             tiles = []
+            begin = time.time()
             tiles += OverlayManager.make_plot(5, 0, 0)
-            tiles += OverlayManager.make_plot(5, 1, 0)
-            tiles += OverlayManager.make_plot(5, 2, 0)
+            # tiles += OverlayManager.make_plot(5, 1, 0)
+            # tiles += OverlayManager.make_plot(5, 2, 0)
             for t in tiles:
-                begin = time.time()
                 tile_overlay(t)
-                finish = time.time()
-                totalTime = (finish - begin)/ 60
-                print "Time taken for SST = " + str(round(totalTime, 2)) + " minutes"
+            finish = time.time()
+            totalTime = (finish - begin)/ 60
+            print "Time taken for SST = " + str(round(totalTime, 2)) + " minutes"
 
     #Small test to see what times the WindPlotter returns
     elif sys.argv[-1] == "wtest":
