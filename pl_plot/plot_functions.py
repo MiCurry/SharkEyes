@@ -364,8 +364,8 @@ def wind_function(ax, data_file, bmap, time_index, downsample_ratio):
     wind_u = data_file.variables[var_u]
     wind_v = data_file.variables[var_v]
 
-    # wind_u = wind_u[:, 0, :, :] # All times of u
-    # wind_v = wind_v[:, 0, :, :] # All times of
+    wind_u = wind_u[:, 0, :, :] # All times of u
+    wind_v = wind_v[:, 0, :, :] # All times of
 
     # Remove the surface height dimension (Its only 1-Dimensional)
     wind_u = numpy.squeeze(wind_u) # Removes The Surface Height Dimension
