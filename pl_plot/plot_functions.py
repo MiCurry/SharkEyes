@@ -12,7 +12,7 @@ from scipy.interpolate import interp1d
 from matplotlib import pyplot, colors, image
 from mpl_toolkits.basemap import Basemap
 from PIL import Image
-from pydap.client import open_url
+#from pydap.client import open_url
 
 from django.conf import settings
 
@@ -191,6 +191,8 @@ def sst_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
     def celsius_to_fahrenheit(temp):
         return temp * 1.8 + 32
     vectorized_conversion = numpy.vectorize(celsius_to_fahrenheit)
+    plotterPrint = numpy.shape(data_file.variables['ocean_time'][0])
+    print "This is get number model times from plotter ", plotterPrint
 
     # temperature has dimensions ('ocean_time', 's_rho', 'eta_rho', 'xi_rho')
     # s_rho corresponds to layers, of which there are 30, so we take the top one.
@@ -337,104 +339,76 @@ def time_print(start_time, end_time):
 def wind_function(ax, data_file, bmap, time_index, downsample_ratio):
     print "CREATING A WIND PLOT"
     print "DOWNSAMPLERATIO = ", downsample_ratio, "Time Index =", time_index
-    debug = 0
+    debug = 1
     # Set up lat and lon variables from the provided file
-    tmp = numpy.loadtxt('/opt/sharkeyes/src/latlon.g218')
-    lat = numpy.reshape(tmp[:, 2], [614,428])
-    lon = numpy.reshape(tmp[:, 3], [614,428])
+    # tmp = numpy.loadtxt('/opt/sharkeyes/src/latlon.g218')
+    # lat = numpy.reshape(tmp[:, 2], data_file.variables['lat'])
+    # lon = numpy.reshape(tmp[:, 3], data_file.variables['lat'])
+    lat = data_file.variables['lat']
+    lon = data_file.variables['lon']
     x, y = bmap(lon, lat)
 
-    for i in range(0, len(lon)):
-        lon[i] = -lon[i]
+    # for i in range(0, len(lon)):
+    #     lon[i] = -lon[i]
 
     var_u = 'u-component_of_wind_height_above_ground'
     var_v = 'v-component_of_wind_height_above_ground'
-    landMask = 'Land_cover_0__sea_1__land_surface'
-    data_file = open_url(settings.WIND_URL)
+    #landMask = 'Land_cover_0__sea_1__land_surface'
+    #data_file = open_url(settings.WIND_URL)
 
-    wind_u = data_file[var_u][:, 0, :, :] # All times of u
-    wind_v = data_file[var_v][:, 0, :, :] # All times of v
+    # wind_u = data_file.variables[var_u][:, 0, :, :] # All times of u
+    # wind_v = data_file.variables[var_v][:, 0, :, :] # All times of v
+    # print "Wind_u after first declaration:", wind_u.shape
+    # print "Wind_v after first declaration:", wind_v.shape
 
-    print "Wind_u: 1 ", wind_u.shape
-    print "Wind_v: 1 ", wind_v.shape
+    wind_u = data_file.variables[var_u]
+    wind_v = data_file.variables[var_v]
 
-    wind_u = data_file[var_u]
-    wind_v = data_file[var_v]
-
-    print "Wind_u: 2 ", wind_u.shape
-    print "Wind_v: 2 ", wind_v.shape
-
-    wind_u = wind_u[:, 0, :, :] # All times of u
-    wind_v = wind_v[:, 0, :, :] # All times of
-
-    print "Wind_u: 3 ", wind_u.shape
-    print "Wind_v: 3 ", wind_v.shape
+    # wind_u = wind_u[:, 0, :, :] # All times of u
+    # wind_v = wind_v[:, 0, :, :] # All times of
 
     # Remove the surface height dimension (Its only 1-Dimensional)
     wind_u = numpy.squeeze(wind_u) # Removes The Surface Height Dimension
     wind_v = numpy.squeeze(wind_v) # Ditto
-
-    if(debug == 0): # Debug
-        print "Wind_u.shape 4 ", wind_u.shape
-        print "Wind_v.shape 4 ", wind_v.shape
-
-    #TODO Interpolate Winds Every Hour Except Midnight and noon
-    #TODO: This can be cleaned up
+    # print "Wind_u:2", wind_u.shape
+    # print "Wind_v:2", wind_v.shape
 
     print "INTERPOLATING"
-
-    times = data_file['time']
+    times = data_file.variables['time']
     ts1 = []
     ts2 = []
 
-    wind_u = numpy.reshape(wind_u, (times.shape[0], 428, 614))
-    wind_v = numpy.reshape(wind_v, (times.shape[0], 428, 614))
+    wind_u = numpy.reshape(wind_u, (times.shape[0], 92, 61))
+    wind_v = numpy.reshape(wind_v, (times.shape[0], 92, 61))
 
-    #TODO: Add some kind of error checking here
     # Generate a time range 0 ... 139 for every 4 hours using the python thingy
     #start_time = datetime.strptime(time.units, "Hour since %Y-%m-%dT%H:%M:%SZ")
     size = times.shape[0]
-    print "This is size ", size
 
     # Create two different time stamps used for interpolating
     ts2 = numpy.arange(0, size * 3, 4) # One for every 4 hours
-    print 'This is ts2 ', ts2
-    print ' '
     ts1 = numpy.arange(0, size * 3, 3) # One for every 3  hours
-    print 'This is ts1 ', ts1
 
-    if(debug == 0): # Debug
-        print "Wind_u:", wind_u.shape
-        print "Wind_v:", wind_v.shape
-        print "time.shape:", times.shape
-        print "ts1.shape:", ts1.shape[0]
-        print "ts2.shape:", ts2.shape[0]
-
-    wind_u_int = numpy.empty([ts2.shape[0], 428, 614]) # Array to be filled
-    wind_v_int = numpy.empty([ts2.shape[0], 428, 614]) # Ditto
+    wind_u_int = numpy.empty([ts2.shape[0], 92, 61]) # Array to be filled
+    wind_v_int = numpy.empty([ts2.shape[0], 92, 61]) # Ditto
 
     # Loop through each lat and long and interpolate each value from time stamp ts1
     # to ts2.  (ie from every 3rd hours to every 4hrs between the NAMS model time) see help(numpy.interp)
-    print "length of ts2 ", len(ts2)
-    print "length of ts1 ", len(ts1)
-    print"length of wind_u", len(wind_u)
-    for i in range(0, 427):
-        for j in range(0, 613):
+    for i in range(0, 91):
+        for j in range(0, 60):
             wind_u_int[:,i,j] = numpy.interp(ts2, ts1, wind_u[:,i,j])
             wind_v_int[:,i,j] = numpy.interp(ts2, ts1, wind_v[:,i,j])
 
-    print "Wind_u_int:", wind_u_int.shape
-    print "Wind_v_int:", wind_v_int.shape
-
-
-    wind_u = wind_u_int[102, :, :] #Pull out the time
-    wind_v = wind_v_int[102, :, :] #Pull out the time
+    wind_u = wind_u_int[time_index, :, :] #Pull out the time
+    wind_v = wind_v_int[time_index, :, :] #Pull out the time
 
     wind_u = numpy.squeeze(wind_u) # Squeeze out the time
     wind_v = numpy.squeeze(wind_v) # Squeeze out the time
 
-    wind_u = numpy.reshape(wind_u, (614, 428))
-    wind_v = numpy.reshape(wind_v, (614, 428))
+    # wind_u = numpy.reshape(wind_u, (92, 61))# I swapped these
+    # wind_v = numpy.reshape(wind_v, (92, 61))# I swapped these
+    # print "Wind_u after swap: ", wind_u.shape
+    # print "Wind_v after swap: ", wind_v.shape
 
     if downsample_ratio == 1:
         length = 3
@@ -442,6 +416,19 @@ def wind_function(ax, data_file, bmap, time_index, downsample_ratio):
         length = 7
 
     if(debug == 0): # Debug
+        print "Wind_u:", wind_u.shape
+        print "Wind_v:", wind_v.shape
+        print "time.shape:", times.shape
+        print "This is size ", size
+        print "ts1.shape:", ts1.shape[0]
+        print 'This is ts1 ', ts1
+        print "ts2.shape:", ts2.shape[0]
+        print 'This is ts2 ', ts2
+        print "length of ts2 ", len(ts2)
+        print "length of ts1 ", len(ts1)
+        print "length of wind_u", len(wind_u)
+        print "Wind_u_int:", wind_u_int.shape
+        print "Wind_v_int:", wind_v_int.shape
         print "After pulling time"
         print "Wind_u:", wind_u.shape
         print "Wind_v:", wind_v.shape
@@ -456,7 +443,9 @@ def wind_function(ax, data_file, bmap, time_index, downsample_ratio):
                wind_u[::downsample_ratio, ::downsample_ratio],
                wind_v[::downsample_ratio, ::downsample_ratio],
                ax=ax,
-               length=length)
+               length=length,
+               fill_empty=True,
+               rounding=True)
     print "WIND PLOT CREATED!"
 
 

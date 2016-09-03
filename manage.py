@@ -14,8 +14,8 @@ if __name__ == "__main__":
         from pl_plot.models import OverlayManager
         from pl_chop.tasks import tile_overlay, tile_wave_watch_overlay
         wave = 0
-        sst = 1
-        wind = 0
+        sst = 0
+        wind = 1
         if wave:
             wave = DataFileManager.get_latest_wave_watch_files()
             tiles = []
@@ -41,11 +41,11 @@ if __name__ == "__main__":
                 print "Time taken for SST = " + str(round(totalTime, 2)) + " minutes"
 
         if wind:
-            winds = []
+            winds = DataFileManager.get_wind_file()
             tiles = []
-            tiles += OverlayManager.make_plot(5, 0, 0)
-            tiles += OverlayManager.make_plot(5, 1, 0)
-            tiles += OverlayManager.make_plot(5, 2, 0)
+            tiles += OverlayManager.make_plot(5, 0, winds[0])
+            #tiles += OverlayManager.make_plot(5, 1, winds[0])
+            #tiles += OverlayManager.make_plot(5, 2, winds[0])
             for t in tiles:
                 begin = time.time()
                 tile_overlay(t)
@@ -113,22 +113,26 @@ if __name__ == "__main__":
 
         if wind:
             print "\n Plotting A NAM - WINDS"
-            plotter = WindPlotter()
-            number_of_times = plotter.get_number_of_model_times()
-            for t in xrange(number_of_times):
-                try:
-                    print "Plotting and Tiling NAMS - Time_Index:", t
-                    start = time.time()
-                    tile_overlay(om.make_plot(5, t, 0))
-                    end = time.time()
-                    total = (end - start)/ 60
-                    print "Total time taken for plotting and tiling = " + str(round(total, 2)) + " minutes"
-                    print "plot/tile success"
-                except Exception:
-                    print '-' * 60
-                    traceback.print_exc(file=sys.stdout)
-                    print '-' * 60
-                print
+            DataFileManager.get_wind_file()
+            winds = DataFile.objects.filter(type = "WIND")
+            for file in winds:
+                id = file.id
+                plotter = WindPlotter(file.file.name)
+                number_of_times = plotter.get_number_of_model_times()
+                for t in xrange(number_of_times):
+                    try:
+                        print "Plotting and Tiling NAMS - Time_Index:", t
+                        start = time.time()
+                        tile_overlay(om.make_plot(5, t, id))
+                        end = time.time()
+                        total = (end - start)/ 60
+                        print "Total time taken for plotting and tiling = " + str(round(total, 2)) + " minutes"
+                        print "plot/tile success"
+                    except Exception:
+                        print '-' * 60
+                        traceback.print_exc(file=sys.stdout)
+                        print '-' * 60
+                    print
 
     else:
         from django.core.management import execute_from_command_line

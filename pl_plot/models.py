@@ -131,17 +131,14 @@ class OverlayManager(models.Manager):
             else:
                 plotter = Plotter(datafile.file.name)
                 number_of_times = plotter.get_number_of_model_times()   # yeah, loading the plotter just for this isn't ideal...
-                print "Did I get here as a wind plot?"
                 #make_plot needs to be called once for each time range
                 for t in xrange(number_of_times):
-                    print "How about here as a wind plot?"
                     if t % 2 != 0: #The SST files double the available number of available times. This is used to only plot the times that we want.
                         #using EXTEND because we are adding multiple items: might also be able to use APPEND
                         task_list.extend(cls.make_plot.subtask(args=(od_id, t, fid), immutable=True) for od_id in [1, 3])
 
         # Wind Plot Data
         for t in xrange(14):
-            print "If I am wind I should get here otherwise not."
             task_list.extend(cls.make_plot.subtask(args=(5, t, 0), immutable=True) for od_id in [1, 3])
 
         return task_list
@@ -404,7 +401,7 @@ class OverlayManager(models.Manager):
     @shared_task(name='pl_plot.make_plot')
     def make_plot(overlay_definition_id, time_index=0, file_id=None):
 
-        # zoom level 2 is zoomed-out, 10 is most zoomed-in. So we are thining the less-zoomed maps MORE (4)
+        # zoom level 2 is zoomed-out, 10 is most zoomed-in. So we are thinning the less-zoomed maps MORE (4)
         #zoom_levels_for_currents = [('2-7', 4), ('8-10', 2)]  # This was what we did the first year.
         # TODO: re-instate this code so that we have different levels of thinning dependng on which
         # zoom level we are at.
@@ -415,17 +412,16 @@ class OverlayManager(models.Manager):
         zoom_levels_for_currents = [('2-7', 8),  ('8-12', 4)]
         zoom_levels_for_others = [(None, None)]
         zoom_levels_for_winds = [('1-10', 5), ('11-12', 1)]
-
         if file_id is None:
             datafile = DataFile.objects.latest('model_date')
-        elif overlay_definition_id == 5:
-            datafile = 0
+        # elif overlay_definition_id == 5:
+        #     datafile = DataFile.objects.get(pk=file_id)
         else:
             datafile = DataFile.objects.get(pk=file_id)
 
         # Checking to see if the file is a netcdf or an OpenDap file
         if overlay_definition_id == 5:
-            plotter = WindPlotter()
+            plotter = WindPlotter(datafile.file.name)
         else:
             plotter = Plotter(datafile.file.name)
 
