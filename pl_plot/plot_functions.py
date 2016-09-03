@@ -426,8 +426,8 @@ def wind_function(ax, data_file, bmap, time_index, downsample_ratio, interp):
                 wind_v_int[:,i,j] = numpy.interp(ts2, ts1, wind_v[:,i,j])
 
     if(interp == "TRUE"):
-        wind_u = wind_u_int[time_index+104, :, :] #Pull out the time
-        wind_v = wind_v_int[time_index+104, :, :] #Pull out the time
+        wind_u = wind_u_int[time_index+102, :, :] #Pull out the time
+        wind_v = wind_v_int[time_index+102, :, :] #Pull out the time
     else:
         wind_u = wind_u[time_index+104, :, :] #Pull out the time
         wind_v = wind_v[time_index+104, :, :] #Pull out the time
