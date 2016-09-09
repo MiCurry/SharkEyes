@@ -113,7 +113,8 @@ if __name__ == "__main__":
 
         if wind:
             print "\n Plotting A NAM - WINDS"
-            DataFileManager.get_wind_file()
+            start = time.time()
+            #DataFileManager.get_wind_file()
             winds = DataFile.objects.filter(type = "WIND")
             for file in winds:
                 id = file.id
@@ -122,17 +123,15 @@ if __name__ == "__main__":
                 for t in xrange(number_of_times):
                     try:
                         print "Plotting and Tiling NAMS - Time_Index:", t
-                        start = time.time()
                         tile_overlay(om.make_plot(5, t, id))
-                        end = time.time()
-                        total = (end - start)/ 60
-                        print "Total time taken for plotting and tiling = " + str(round(total, 2)) + " minutes"
                         print "plot/tile success"
                     except Exception:
                         print '-' * 60
                         traceback.print_exc(file=sys.stdout)
                         print '-' * 60
-                    print
+            end = time.time()
+            total = (end - start)/ 60
+            print "Total time taken for plotting and tiling = " + str(round(total, 2)) + " minutes"
 
     else:
         from django.core.management import execute_from_command_line

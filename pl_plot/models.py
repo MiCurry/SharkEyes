@@ -120,7 +120,7 @@ class OverlayManager(models.Manager):
 
             #Wavewatch and SST/currents files use a separate Plot function.
             if datafile.file.name.startswith("OuterGrid"):
-                plotter = WaveWatchPlotter(datafile.file.name)
+                #plotter = WaveWatchPlotter(datafile.file.name)
                 for t in xrange(0, 85):
                     # Only plot every 4th index to match up with the SST forecast.
                     # WaveWatch has forecasts for every hour but at this time we don't need them all.
@@ -128,9 +128,15 @@ class OverlayManager(models.Manager):
                         task_list.append(cls.make_wave_watch_plot.subtask(args=(4, t, fid), immutable=True))
                         task_list.append(cls.make_wave_watch_plot.subtask(args=(6, t, fid), immutable=True))
 
+            elif datafile.file.name.startswith("WIND"):
+                plotter = WindPlotter(datafile.file.name)
+                number_of_times = plotter.get_number_of_model_times()
+                for t in xrange(number_of_times):
+                    task_list.append(cls.make_wave_watch_plot.subtask(args=(5, t, fid), immutable=True))
+
             else:
                 plotter = Plotter(datafile.file.name)
-                number_of_times = plotter.get_number_of_model_times()   # yeah, loading the plotter just for this isn't ideal...
+                number_of_times = plotter.get_number_of_model_times()
                 #make_plot needs to be called once for each time range
                 for t in xrange(number_of_times):
                     if t % 2 != 0: #The SST files double the available number of available times. This is used to only plot the times that we want.
@@ -138,8 +144,8 @@ class OverlayManager(models.Manager):
                         task_list.extend(cls.make_plot.subtask(args=(od_id, t, fid), immutable=True) for od_id in [1, 3])
 
         # Wind Plot Data
-        for t in xrange(14):
-            task_list.extend(cls.make_plot.subtask(args=(5, t, 0), immutable=True) for od_id in [1, 3])
+        # for t in xrange(14):
+        #     task_list.extend(cls.make_plot.subtask(args=(5, t, 0), immutable=True) for od_id in [1, 3])
 
         return task_list
 
@@ -411,7 +417,7 @@ class OverlayManager(models.Manager):
         #  zoom_levels_for_currents = [('2-5', 8), ('6-7', 4), ('8-10', 2), ('12', 1)]
         zoom_levels_for_currents = [('2-7', 8),  ('8-12', 4)]
         zoom_levels_for_others = [(None, None)]
-        zoom_levels_for_winds = [('1-10', 5), ('11-12', 1)]
+        zoom_levels_for_winds = [('1-10', 2), ('11-12', 1)]
         if file_id is None:
             datafile = DataFile.objects.latest('model_date')
         # elif overlay_definition_id == 5:
