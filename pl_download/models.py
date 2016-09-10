@@ -19,6 +19,7 @@ from ftplib import FTP
 from django.db import models
 from scipy.io import netcdf_file
 from django.conf import settings
+#from pydap.client import open_url
 
 
 
@@ -186,100 +187,75 @@ class DataFileManager(models.Manager):
             ftp.quit()
             return []
 
-
-    # --------------------------------
-    # def get_wind_file()
-    # This one is being worked on by Miles!
-
-
     @staticmethod
     @shared_task(name='pl_download.get_wind_file')
     def get_wind_file():
-        #Define directory where to store wind netcds files
+        debug = 1
+        #list of file ids created
+        new_file_ids = []
+
+        #Directory where files will be saved
         destination_directory = os.path.join(settings.MEDIA_ROOT, settings.WIND_DIR)
 
-        dataset = open_url(settings.WIND_URL)
+        current_time = datetime.now().date()
+        generated_time = datetime.now().today()
+        modified_datetime = timezone.make_aware(generated_time, timezone.utc)
+        end_time = datetime.now().date()+timedelta(days=4)
+        begin = str(current_time) + 'T6%3A00%3A00Z'
+        end = str(end_time) + 'T00%3A00%3A00Z'
 
-        # Finding the correct dates of the model
-        dateString = dataset.time.units[11:] #Date from which of forecasts avaible: normally 13 days in the past
-        modified_datetime = datetime.strptime(dateString, "%Y-%m-%dT%H:%M:%SZ").date() #strip date
-        current_datetime = modified_datetime+timedelta(days=13) #should give us the current day
+        local_filename = "{0}_{1}_{2}.nc".format("WIND", current_time, uuid4())
+        #dest_file = os.path.join(destination_directory, local_filename)
+        #urllib.urlretrieve(url = settings.WIND_URL, filename = dest_file)
 
-        filename = "{0}_{1}.nc".format("WIND", modified_datetime, uuid4())
-        dest_file = os.path.join(destination_directory, filename)
-        urllib.urlretrieve(url = settings.WIND_URL, filename = dest_file)
-
-        # Check to see if we've download this file before
+        #Check to see if we've download this file before
         matches_old_file = DataFile.objects.filter(
-            model_date=current_datetime,
-            type='NAMS'
+            model_date=current_time,
+            type='WIND'
         )
-        # Saving the file to the database
-        datafile = DataFile(
-            type='WIND',
-            download_datetime=timezone.now(),
-            generated_datetime=current_datetime,
-            model_date=current_datetime,
-            file=dest_file,
-        )
-        datafile.save()
 
-        print "Wind Data File"
-        print "Type: ", datafile.type
-        print "Download Date: ", datafile.download_datetime
-        print "Generated Date:", datafile.generated_datetime
-        print "Model Date: ", datafile.model_date
-        print "File: ", datafile.file
+        if not matches_old_file:
+            print "Downloading Wind file "
+            url = 'http://thredds.ucar.edu/thredds/ncss/grib/NCEP/NAM/CONUS_12km/conduit/Best?var=u-component_of_wind_height_above_ground&var=v-component_of_wind_height_above_ground&north=48.563922&west=-129.876507&east=-123.863860&south=40&horizStride=1&time_start='+begin+'&time_end='+end+'&timeStride=1&vertCoord=&addLatLon=true&accept=netcdf'
+            urllib.urlretrieve(url=url, filename=os.path.join(destination_directory, local_filename))
+            print "Download Complete "
+            #downloadTime = timezone.now()-timedelta(hours=7)
 
-        return datafile.id
+            #Saving the file to the database
+            datafile = DataFile(
+                type='WIND',
+                download_datetime=timezone.now(),
+                generated_datetime=modified_datetime,
+                model_date=current_time,
+                file=local_filename,
+            )
+            datafile.save()
+            new_file_ids.append(datafile.id)
 
-    #--------------------------------
-    # def get_wind_file()
-    # This is the onld one!
+            if debug == 0:
+                print "Wind Data File Info"
+                print "Type: ", datafile.type
+                print "Current Time ", current_time
+                print "Generated Time ", generated_time
+                print "End Time ", end_time
+                print "Download Date: ", datafile.download_datetime
+                print "Generated Date:", datafile.generated_datetime
+                print "Model Date: ", datafile.model_date
+                print "File: ", datafile.file
 
-    # @staticmethod
-    # @shared_task(name='pl_download.get_latest_wind_files')
-    # def get_latest_wind_files():
-    #
-    #     #TODO: set up a check to see if new files are available
-    #     #list of the new file ids created in this function
-    #     new_file_ids = []
-    #
-    #     #directory of where files will be saved at
-    #     destination_directory = os.path.join(settings.MEDIA_ROOT, settings.WIND_DIR)
-    #
-    #     url = settings.WIND_URL
-    #
-    #     dataset = open_url(url) #yay thredds servers
-    #
-    #     dates = dataset['time']
-    #     dateString = dates.units #dates.units lists how far back the forecast goes (13 days from current)
-    #     dateString = dateString[11:] #[11:] to get rid of text before the date
-    #     modified_datetime = datetime.strptime(dateString, "%Y-%m-%dT%H:%M:%SZ").date() #strip date
-    #     current_datetime = (datetime.strptime(dateString, "%Y-%m-%dT%H:%M:%SZ")+timedelta(days=13)).date() #should give us the current day
-    #
-    #     local_filename = "{0}_{1}.nc".format("WIND", modified_datetime, uuid4())
-    #
-    #     matches_old_file = DataFile.objects.filter(
-    #        model_date=current_datetime,
-    #        type='WIND'
-    #     )
-    #     if not matches_old_file:
-    #
-    #         datafile = DataFile(
-    #             type='WIND',
-    #             download_datetime=timezone.now(),
-    #             generated_datetime=current_datetime,
-    #             model_date=current_datetime,
-    #             file=local_filename,
-    #         )
-    #         datafile.save()
-    #
-    #         new_file_ids.append(datafile.id)
-    #
-    #         return new_file_ids
-    #     else:
-    #         return []
+            return new_file_ids
+        else:
+            print "No new wind files "
+            return []
+
+        #This might be useful later. Delete once winds are done
+        # Finding the correct dates of the model
+        # print "This is datestring ", dataset.time.units[11:]
+        # dateString = dataset.time.units[11:] #Date from which of forecasts available: normally 13 days in the past
+        # modified_datetime = datetime.strptime(dateString, "%Y-%m-%dT%H:%M:%SZ").date() #strip date
+        # print "This is modified datetime ", modified_datetime
+        # current_datetime = modified_datetime+timedelta(days=13) #should give us the current day
+        # print "This is current datetime ", current_datetime
 
     @classmethod
     def get_next_few_days_files_from_db(cls):

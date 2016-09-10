@@ -1,18 +1,24 @@
-import numpy
-from matplotlib import pyplot, colors, image
 import math
-from scipy import ndimage
+import os
+import sys
+import gc
+from datetime import datetime, timedelta, date
+import time
+
+import numpy
 import scipy
-import os,sys
-from PIL import Image
+from scipy import ndimage, interpolate
+from scipy.interpolate import interp1d
+from matplotlib import pyplot, colors, image
 from mpl_toolkits.basemap import Basemap
-import numpy as np
-from pydap.client import open_url
+from PIL import Image
+#from pydap.client import open_url
+
 from django.conf import settings
-np.set_printoptions(threshold=np.inf) # This is helpful for testing purposes:
+
+numpy.set_printoptions(threshold=numpy.inf) # This is helpful for testing purposes:
 # it sets print options so that when you print a large array, it doesn't get truncated in the middle
 # and you can see each element of the array.
-
 
 
 # When you add a new function, add it as a new function definition to fixtures/initial_data.json
@@ -56,8 +62,8 @@ def wave_direction_function(ax, data_file, bmap, key_ax, forecast_index, downsam
     # The sine and cosine functions expect Radians, so we use the deg2rad function to convert the
     # directions, which are in Degrees.
     # Multiplying the U and the V, each, by 'height' in order to SCALE the vectors.
-    U = height*np.cos(np.deg2rad(directions_mod))
-    V = height*np.sin(np.deg2rad(directions_mod))
+    U = height*numpy.cos(numpy.deg2rad(directions_mod))
+    V = height*numpy.sin(numpy.deg2rad(directions_mod))
 
     U_downsampled = crop_and_downsample_wave(U, downsample_ratio)
     V_downsampled = crop_and_downsample_wave(V, downsample_ratio)
@@ -85,22 +91,21 @@ def wave_direction_function(ax, data_file, bmap, key_ax, forecast_index, downsam
     all_day = data_file.variables['PERPW_surface'][:, :, :]
 
     # Mask all of the data points that are "nan" (not a number) in the data file; these represent land
-    period_masked = np.ma.masked_array(all_day[forecast_index][:, :],np.isnan(all_day[forecast_index][:,:]))
+    period_masked = numpy.ma.masked_array(all_day[forecast_index][:, :],numpy.isnan(all_day[forecast_index][:,:]))
 
     #This is the average wave period for the day
-    mean_val = np.mean(period_masked)
+    mean_val = numpy.mean(period_masked)
     #The mean val is calculated to a large number of decimal places. This rounds it to two.
     mean_val = round(mean_val, 2)
 
     #This is the maximum wave period value for the day
-    max_val = np.amax(period_masked)
+    max_val = numpy.amax(period_masked)
     #This rounds the max value just like the average
     max_val = round(max_val, 2)
 
     #textBox is a hack that makes an unused Cartesian plot with a label over the top of it. This label has the wave period data.
     #the spacing is purposefully there to have a nice readable label. The black background helps to mask the figure behind the label.
     textBox = pyplot.text(0, 0,"       Wave period average and maximum values ""\n" "Average: " + str(mean_val) + " seconds " "  -  "" Maximum: " + str(max_val) + " seconds", withdash=False, backgroundcolor='black', color='white')
-
     key_ax.set_axis_off()
 
 
@@ -116,6 +121,7 @@ def wave_height_function(ax, data_file, bmap, key_ax, forecast_index, downsample
      # Need to convert each point from meters to feet
      def meters_to_feet(height):
         return height * METERS_TO_FEET
+
      vectorized_conversion = numpy.vectorize(meters_to_feet)
 
      #grab longitude and latitude from netCDF file if we are using the old OuterGrid format which was lower resolution
@@ -138,7 +144,7 @@ def wave_height_function(ax, data_file, bmap, key_ax, forecast_index, downsample
      #so we are masking all data over 1000
      #heights = numpy.ma.masked_greater(all_day[forecast_index][:][:], 1000)
 
-     heights_masked = np.ma.masked_array(all_day[forecast_index][:, :],np.isnan(all_day[forecast_index][:,:]))
+     heights_masked = numpy.ma.masked_array(all_day[forecast_index][:, :],numpy.isnan(all_day[forecast_index][:,:]))
 
      # Need to convert each height given in meters into FEET
      heights = vectorized_conversion(heights_masked)
@@ -151,7 +157,7 @@ def wave_height_function(ax, data_file, bmap, key_ax, forecast_index, downsample
 
      #max_period = int(math.ceil(numpy.amax(numpy.ma.masked_greater(heights, 1000))))
      #max_period = int(math.ceil(numpy.amax(heights)))
-     # Max period is now in feet
+     #Max period is now in feet
      max_period = MAX_WAVE_HEIGHT*METERS_TO_FEET
 
      #Allocates colors to the data by setting the range of the data and by setting color increments
@@ -181,50 +187,24 @@ def wave_height_function(ax, data_file, bmap, key_ax, forecast_index, downsample
      cbar.ax.xaxis.set_ticklabels(labels)
      cbar.set_label("Wave Height (feet)")
 
-# Plot the period of the waves as daily average and maximum integer values.
-def wave_period_function(data_file, forecast_index):
-     #This is a hopefully temporary solution to implementing wave period. This replaces the colorbar key that used to
-     #exist for the now removed wave period color map. This makes an image with the wave period values that is displayed in the
-     #same spot as a colormap key. When make_wave_watch_plot() is called with 7 this figure is automatically named and placed in the
-     #/media/keys folder.
-
-     #get the wave period data from a netCDF file
-     all_day = data_file.variables['PERPW_surface'][:, :, :]
-
-     # Mask all of the data points that are "nan" (not a number) in the data file; these represent land
-     period_masked = np.ma.masked_array(all_day[forecast_index][:, :],np.isnan(all_day[forecast_index][:,:]))
-
-     #This is the average wave period for the day
-     mean_val = np.mean(period_masked)
-     #The mean val is calculated to a large number of decimal places. This rounds it to two.
-     mean_val = round(mean_val, 2)
-
-     #This is the maximum wave period value for the day
-     max_val = np.amax(period_masked)
-     #This rounds the max value just like the average
-     max_val = round(max_val, 2)
-
-     #textBox is a hack that makes an unused Cartesian plot with a label over the top of it. This label has the wave period data.
-     #the spacing is purposefully there to have a nice readable label. The black background helps to mask the figure behind the label.
-     textBox = pyplot.text(0, 0,"       Wave period average and maximum values ""\n" "Average: " + str(mean_val) + " seconds " "  -  "" Maximum: " + str(max_val) + " seconds", withdash=False, backgroundcolor='black', color='white')
-
 def sst_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
     def celsius_to_fahrenheit(temp):
         return temp * 1.8 + 32
     vectorized_conversion = numpy.vectorize(celsius_to_fahrenheit)
+    plotterPrint = numpy.shape(data_file.variables['ocean_time'][0])
+    print "This is get number model times from plotter ", plotterPrint
 
     # temperature has dimensions ('ocean_time', 's_rho', 'eta_rho', 'xi_rho')
     # s_rho corresponds to layers, of which there are 30, so we take the top one.
-    surface_temp = numpy.ma.array(vectorized_conversion(data_file.variables['temp'][time_index][29]), mask=get_rho_mask(data_file))
-        
+    surface_temp = numpy.ma.array(vectorized_conversion(data_file.variables['temp'][time_index][39]), mask=get_rho_mask(data_file))
     longs = data_file.variables['lon_rho'][:]
     lats = data_file.variables['lat_rho'][:]
 
     #get the max and min temps for the daytem
-    all_day = data_file.variables['temp'][:, 29, :, :]
+    all_day = data_file.variables['temp'][:, 39, :, :]
     min_temp = int(math.floor(celsius_to_fahrenheit(numpy.amin(all_day))))
     max_temp = int(math.ceil(celsius_to_fahrenheit(numpy.amax(numpy.ma.masked_greater(all_day, 1000)))))
-    
+
     x, y = bmap(longs, lats)
 
     # calculate and plot colored contours for TEMPERATURE data
@@ -255,15 +235,15 @@ def sst_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
 
 # We are not using the Salt model at this time.
 def salt_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
-     # salt has dimensions ('ocean_time', 's_rho', 'eta_rho', 'xi_rho')
+    # salt has dimensions ('ocean_time', 's_rho', 'eta_rho', 'xi_rho')
     # s_rho corresponds to layers, of which there are 30, so we take the top one.
-    surface_salt = numpy.ma.array(data_file.variables['salt'][time_index][29], mask=get_rho_mask(data_file))
+    surface_salt = numpy.ma.array(data_file.variables['salt'][time_index][39], mask=get_rho_mask(data_file))
 
     longs = data_file.variables['lon_rho'][:]
     lats = data_file.variables['lat_rho'][:]
 
     #get the max and min salinity for the day
-    all_day = data_file.variables['salt'][:, 29, :, :]
+    all_day = data_file.variables['salt'][:, 39, :, :]
     min_salt = int(math.floor(numpy.amin(all_day)))
     max_salt = int(math.ceil(numpy.amax(numpy.ma.masked_greater(all_day, 1000))))
 
@@ -303,8 +283,8 @@ def currents_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio)
 
     print "Currents Downsample Ratio:", downsample_ratio
 
-    currents_u = data_file.variables['u'][time_index][29]
-    currents_v = data_file.variables['v'][time_index][29]
+    currents_u = data_file.variables['u'][time_index][39]
+    currents_v = data_file.variables['v'][time_index][39]
     rho_mask = get_rho_mask(data_file)
 
     # average nearby points to align grid, and add the edge column/row so it's the right size.
@@ -347,57 +327,167 @@ def currents_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio)
                                   color='white', labelsep=.5, coordinates='axes')
     key_ax.set_axis_off()
 
-# Check winds are going in the right direction
-def wind_function(ax, data_file, bmap, time_index, downsample_ratio):
+def time_print(start_time, end_time):
+    start = start_time
+    end = end_time
+    total = end - start
+    print "Total time taken = " + str(round(total, 2)) + " seconds"
 
+# Wind_functions
+# The NAM's model are produced every 3 hours instead of every 4 hours like the rest
+# of our models. Because of that we need to interpolate them as seen below.
+def wind_function(ax, data_file, bmap, time_index, downsample_ratio):
     print "CREATING A WIND PLOT"
     print "DOWNSAMPLERATIO = ", downsample_ratio, "Time Index =", time_index
+    debug = 1
+    # Set up lat and lon variables from the provided file
+    # tmp = numpy.loadtxt('/opt/sharkeyes/src/latlon.g218')
+    # lat = numpy.reshape(tmp[:, 2], data_file.variables['lat'])
+    # lon = numpy.reshape(tmp[:, 3], data_file.variables['lat'])
+    lat = data_file.variables['lat']
+    lon = data_file.variables['lon']
+    x, y = bmap(lon, lat)
 
-    data_file = open_url(settings.WIND_URL)
+    # for i in range(0, len(lon)):
+    #     lon[i] = -lon[i]
 
     var_u = 'u-component_of_wind_height_above_ground'
     var_v = 'v-component_of_wind_height_above_ground'
-    landMask = 'Land_cover_0__sea_1__land_surface'
+    #landMask = 'Land_cover_0__sea_1__land_surface'
 
-    """
-    Grabbing the u + v values at time_index, level = 0, x = nan, y = nan
-    nan = not a number
-    """
-    wind_u = data_file[var_u][time_index+104, 0, :, :]
-    wind_v = data_file[var_v][time_index+104, 0, :, :]
+    #NO CHANGE IN RESULT FROM COMMENTING OUT THIS OPERATION
+    #------------------------------------------------------------------------------
+    # wind_u = data_file.variables[var_u][:, 0, :, :] # All times of u
+    # wind_v = data_file.variables[var_v][:, 0, :, :] # All times of v
+    # print "Wind_u after first declaration:", wind_u.shape
+    # print "Wind_v after first declaration:", wind_v.shape
 
-    tmp = numpy.loadtxt('/opt/sharkeyes/src/latlon.g218')
-    lat = numpy.reshape(tmp[:, 2], [614,428])
-    lon = numpy.reshape(tmp[:, 3], [614,428])
+    wind_u = data_file.variables[var_u]
+    wind_v = data_file.variables[var_v]
 
-    x, y = bmap(lon, lat)
+    wind_u = wind_u[:, 0, :, :] # All times of u
+    wind_v = wind_v[:, 0, :, :] # All times of
 
-    wind_u = numpy.reshape(wind_u, (614, 428))
-    wind_v = numpy.reshape(wind_v, (614, 428))
+    #NO CHANGE FROM COMMENTING OUT THIS OPERATION
+    #-------------------------------------------------------------------------
+    # Remove the surface height dimension (Its only 1-Dimensional)
+    # wind_u = numpy.squeeze(wind_u) # Removes The Surface Height Dimension
+    # wind_v = numpy.squeeze(wind_v) # Ditto
+    # print "Wind_u:2", wind_u.shape
+    # print "Wind_v:2", wind_v.shape
 
+    print "INTERPOLATING"
+    #times = data_file.variables['time']
 
-    #TODO Interpolate Winds Every Hour Except Midnight and noon
+    # wind_u = numpy.reshape(wind_u, (times.shape[0], 92, 61))
+    # wind_v = numpy.reshape(wind_v, (times.shape[0], 92, 61))
 
-    #TODO Determine what length value gives the best output.
+    # Generate a time range 0 ... 139 for every 4 hours using the python thingy
+    #start_time = datetime.strptime(time.units, "Hour since %Y-%m-%dT%H:%M:%SZ")
+    #size = times.shape[0]
+
+    # Create two different time stamps used for interpolating
+    #ts11 = numpy.arange(0, size * 3, 3) # One for every 3 hours
+    #ts22 = numpy.arange(0, size * 3, 4) # One for every 4 hours
+
+    start_time = datetime.now()
+    start_time = start_time.replace(hour=0, minute=0, second=0, microsecond=0)
+    start_time = date.toordinal(start_time)*24
+    #print "start time", start_time
+
+    end_time = datetime.now()+timedelta(days=4)
+    end_time = end_time.replace(hour=0, minute=0, second=0, microsecond=0)
+    end_time = date.toordinal(end_time)*24
+    #print "end time ", end_time
+
+    array_time = end_time - start_time - 3
+    #print "array time ", array_time
+
+    ts1 = numpy.arange(0 , array_time, 3)
+    ts2 = numpy.arange(0 , array_time, 4)
+    # print "ts1a ", ts1.shape, ts1
+    # print "ts11 ", ts11.shape, ts11
+    # print "ts2a ", ts2.shape, ts2
+    # print "ts22 ", ts22.shape, ts22
+
+    wind_u_int = numpy.empty([ts2.shape[0], 92, 61]) # Array to be filled
+    wind_v_int = numpy.empty([ts2.shape[0], 92, 61]) # Ditto
+
+    # Loop through each lat and long and interpolate each value from time stamp ts1
+    # to ts2.  (ie from every 3rd hours to every 4hrs between the NAMS model time) see help(numpy.interp)
+    for i in range(0, 91):
+        for j in range(0, 60):
+            wind_u_int[:,i,j] = numpy.interp(ts2, ts1, wind_u[:,i,j])
+            wind_v_int[:,i,j] = numpy.interp(ts2, ts1, wind_v[:,i,j])
+
+    #Access the data at the required time index
+    #-------------------------------------------------------------------------
+    wind_u = wind_u_int[time_index, :, :]
+    wind_v = wind_v_int[time_index, :, :]
+
+    #wind_u = wind_u[time_index, :, :]
+    #wind_v = wind_v[time_index, :, :]
+
+    #Remove the time values from the data
+    #-------------------------------------------------------------------------
+    wind_u = numpy.squeeze(wind_u) # Squeeze out the time
+    wind_v = numpy.squeeze(wind_v) # Squeeze out the time
+    #print 'wind u dtype ', wind_u.dtype
+
+    # wind_u = wind_u.astype(numpy.float32)
+    # wind_v = wind_v.astype(numpy.float32)
+    #print 'wind u dtype ', wind_u.dtype
+
+    # wind_u = wind_u[::2]
+    # wind_v = wind_v[::2]
+    # x = x[::2]
+    # y = y[::2]
+
+    #NO CHANGE FROM COMMENTING OUT THIS OPERATION
+    #-------------------------------------------------------------------------
+    # wind_u = numpy.reshape(wind_u, (92, 61))# I swapped these
+    # wind_v = numpy.reshape(wind_v, (92, 61))# I swapped these
+    # print "Wind_u after swap: ", wind_u.shape
+    # print "Wind_v after swap: ", wind_v.shape
+
     if downsample_ratio == 1:
-        length = 2
-    elif downsample_ratio == 5:
-        length = 9
-    elif downsample_ratio == 10:
-        length = 7
+        length = 3
+    elif downsample_ratio == 2:
+        length = 4.25
 
-    for i in range(0, len(lon)):
-        lon[i] = -lon[i]
+    if(debug == 0): # Debug
+        print "Wind_u:", wind_u.shape
+        print "Wind_v:", wind_v.shape
+        #print "time.shape:", times.shape
+        #print "This is size ", size
+        print "ts1.shape:", ts1.shape[0]
+        print 'This is ts1 ', ts1
+        print "ts2.shape:", ts2.shape[0]
+        print 'This is ts2 ', ts2
+        print "length of ts2 ", len(ts2)
+        print "length of ts1 ", len(ts1)
+        print "length of wind_u", len(wind_u)
+        print "Wind_u_int:", wind_u_int.shape
+        print "Wind_v_int:", wind_v_int.shape
+        print "After pulling time"
+        print "Wind_u:", wind_u.shape
+        print "Wind_v:", wind_v.shape
+        print "Lat:", lat.shape
+        print "Lon:",  lon.shape
+        print "x:", x.shape
+        print "y:", y.shape
 
-    #TODO Determine which color gives the best output
-    bmap.barbs(         x[::downsample_ratio, ::downsample_ratio],
-                        y[::downsample_ratio, ::downsample_ratio],
-                        wind_u[::downsample_ratio, ::downsample_ratio],
-                        wind_v[::downsample_ratio, ::downsample_ratio],
-                        ax=ax,
-                        length=length,
-                        color='black')
+    print "Barbs"
+    bmap.barbs(x[::downsample_ratio, ::downsample_ratio],
+               y[::downsample_ratio, ::downsample_ratio],
+               wind_u[::downsample_ratio, ::downsample_ratio],
+               wind_v[::downsample_ratio, ::downsample_ratio],
+               ax=ax,
+               length=length)
+               #barb_increments=dict(half=.1, full=10, flag=50))
 
+    print "WIND PLOT CREATED!"
+    print "INTERPOLATED"
 
 
 def crop_and_downsample(source_array, downsample_ratio, average=True):
@@ -421,12 +511,12 @@ def crop_and_downsample_wave(source_array, downsample_ratio, average=True):
 
     # Crop off anything extra: i.e. if downsample ratio is 10, and the height % 10 has a remainder of 1, chop off 1 from the height
     cropped_array = source_array[ :xs - (xs % int(downsample_ratio))]
-  #  if average:
- #       zoomed_array = scipy.nanmean(numpy.concatenate(
-   #         [[cropped_array[i::downsample_ratio, j::downsample_ratio]
-  #                                                   for i in range(downsample_ratio)]
-  #                                                  for j in range(downsample_ratio)]), axis=0)
-  #  else:
+    #if average:
+    #   zoomed_array = scipy.nanmean(numpy.concatenate(
+    #    [[cropped_array[i::downsample_ratio, j::downsample_ratio]
+    #         for i in range(downsample_ratio)]
+    #             for j in range(downsample_ratio)]), axis=0)
+    #  else:
     zoomed_array = cropped_array[::downsample_ratio, ::downsample_ratio]
     return zoomed_array
     #return source_array

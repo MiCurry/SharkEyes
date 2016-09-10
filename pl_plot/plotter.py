@@ -1,23 +1,28 @@
-__author__ = 'avaleske'
+import os
+import shutil
+import sys
+from uuid import uuid4
+
 from scipy.io import netcdf
 import numpy
 from matplotlib import pyplot
 from mpl_toolkits.basemap import Basemap
 from pydap.client import open_url
-import os
-import shutil
-from uuid import uuid4
+
+
 from django.conf import settings
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
 from django.utils import timezone
 
-
+#TODO Move plot_functions to plotter
 
 class WaveWatchPlotter:
     data_file = None
 
     def __init__(self, file_name):
         self.load_file(file_name)
+
+    #TODO Make a get_model_times function
 
     def load_file(self, file_name):
         #Gives a netcdf file object with default mode of reading permissions only
@@ -29,15 +34,17 @@ class WaveWatchPlotter:
             )
         )
 
-    # the unchopped file's index starts at noon: index = 0 and progresses throgh 85 forecasts, one per hour, for the next 85 hours.
-   # def get_time_from_index_of_file(self, index):
-     #   self.data_file.variables
-     #   ocean_time_epoch = datetime(day=1, month=1, year=2005, hour=0, minute=0, second=0, tzinfo=timezone.utc)
-      #  seconds_since_epoch = timedelta(seconds=self.data_file.variables['ocean_time'][index])
-      #  return ocean_time_epoch + seconds_since_epoch
+    # The unchopped file's index starts at noon: index = 0 and progresses throgh 85 forecasts, one per hour,
+    # for the next 85 hours.
+    #
+    # def get_time_from_index_of_file(self, index):
+    # self.data_file.variables
+    # ocean_time_epoch = datetime(day=1, month=1, year=2005, hour=0, minute=0, second=0, tzinfo=timezone.utc)
+    # seconds_since_epoch = timedelta(seconds=self.data_file.variables['ocean_time'][index])
+    # return ocean_time_epoch + seconds_since_epoch
 
-#make a plot, with the Function to use specified, the storage directory specified, and the Index (ie 0--85 forecasts)
-# based on the title of the file
+    # Make a plot, with the Function to use specified, the storage directory specified, and the Index (ie 0--85 forecasts)
+    # Based on the title of the file
     def make_plot(self, plot_function, forecast_index,storage_dir, generated_datetime, zoom_levels, downsample_ratio=None):
 
         period_flag = 0 #This is used to determine whether or not we are plotting wave period
@@ -120,22 +127,30 @@ class WaveWatchPlotter:
 class WindPlotter:
     data_file = None
 
+    def __init__(self, file_name):
+        self.load_file(file_name)
+
     def load_file(self, file_name):
-        #This should have some form of error handling as it can fail
-        self.data_file = open_url(settings.WIND_URL)
+        #Gives a netcdf file object with default mode of reading permissions only
+        self.data_file = netcdf.netcdf_file(
+            os.path.join(
+                settings.MEDIA_ROOT,
+                settings.WIND_DIR,
+                file_name
+            )
+        )
 
     def get_number_of_model_times(self):
-        return 12
+        return 23 #This is the number of time_indexes for the wind model
 
-    #TODO Change wind times to match the times of other models. Every 4 hours.
     def get_time_at_oceantime_index(self,index):
+        print index
         time = timezone.now()
         time = time.replace(hour = 0, minute = 0, second = 0, microsecond = 0)
         if(index == 0):
-            time = time.replace(hour = 12)
+            time = time.replace(hour = 0)
         else:
             time = time + timedelta(hours = (index * 4))
-        print "Time:", time
         return time
 
     def key_check(self):
@@ -143,11 +158,8 @@ class WindPlotter:
         keyFile = os.path.join(settings.MEDIA_ROOT, settings.KEY_STORAGE_DIR, "barbKey.png")
         barbStatic = "/opt/sharkeyes/src/static_files/imgs/barbKey.png"
 
-        if(os.path.isfile(keyFile) == 1):
-            return 1
-        else:
-            shutil.copyfile(barbStatic, keyFile)
-            return 1
+        shutil.copyfile(barbStatic, keyFile)
+        return 1
 
     def make_plot(self, plot_function, zoom_levels, time_index=0, downsample_ratio=None):
 
@@ -163,6 +175,8 @@ class WindPlotter:
                        llcrnrlon=-129, urcrnrlon=-123.7265625,
                        ax=ax, epsg=4326)
 
+        #model_time = self.get_time_at_oceantime_index(time_index)
+
         plot_function(ax=ax, data_file=self.data_file, time_index=time_index, bmap=bmap, downsample_ratio=downsample_ratio)
 
         generated_datetime = timezone.now().date() #The wind png is always generated at the time of the call
@@ -171,7 +185,6 @@ class WindPlotter:
 
         key_filename = "barbKey.png"
 
-
         fig.savefig(
              os.path.join(settings.MEDIA_ROOT, settings.UNCHOPPED_STORAGE_DIR, plot_filename),
              dpi=1200, bbox_inches='tight', pad_inches=0,
@@ -179,7 +192,7 @@ class WindPlotter:
         pyplot.close(fig)
 
         # Winds use a static key, but it gets deleted from the delete function, so this ensures that it
-        # in the right place everytime.
+        # in the right place every time.
         self.key_check()
 
         return plot_filename, key_filename
@@ -209,15 +222,15 @@ class Plotter:
         return numpy.shape(self.data_file.variables['ocean_time'])[0]
 
     def make_plot(self, plot_function, zoom_levels, time_index=0,  downsample_ratio=None):
-
         fig = pyplot.figure()
         key_fig = pyplot.figure(facecolor=settings.OVERLAY_KEY_COLOR)
         ax = fig.add_subplot(111)  # one subplot in the figure
         key_ax = key_fig.add_axes([0.1, 0.2, 0.6, 0.05]) # this might be bad for when we have other types of plots
 
         # Temporary hard coded values to ensure the plotted data is the right size. Previously
-        # we used the dimensions provided by the file itself, but the change in provided data has changed the size of the
-        # image.
+        # we used the dimensions provided by the file itself, but the change in provided data has changed
+        # the size of the image.
+
         #longs = self.data_file.variables['lon_rho'][0, :] # only needed to set up longs
         longs = [-129.0, -123.726199391]
         #lats = self.data_file.variables['lat_rho'][:, 0] # only needed to set up lats
@@ -240,7 +253,7 @@ class Plotter:
         plot_filename = "{0}_{1}.png".format(plot_function.__name__, uuid4())
         key_filename = "{0}_key_{1}.png".format(plot_function.__name__, uuid4())
 
-         # TODO: set the resolution higher for the zoomed-in overlays. But we don't need
+        # TODO: set the resolution higher for the zoomed-in overlays. But we don't need
         # the original 1200 dpi for the zoomed-out images (where zoom level is 3-5, for instance)
         # There needs to be a case for each of these sets of zoom levels:  zoom_levels_for_currents = [('2-7', 8),  ('8-12', 2)]
         if zoom_levels == '8-12':

@@ -8,11 +8,6 @@ from django.db import models
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
-        # Adding field 'FeedbackHistory.sent'
-        db.add_column(u'SharkEyesCore_feedbackhistory', 'sent',
-                      self.gf('django.db.models.fields.BooleanField')(default=False),
-                      keep_default=False)
-
         # Adding field 'FeedbackHistory.feedback_name'
         db.add_column(u'SharkEyesCore_feedbackhistory', 'feedback_name',
                       self.gf('django.db.models.fields.CharField')(default='', max_length=2000, blank=True),
