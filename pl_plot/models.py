@@ -132,7 +132,7 @@ class OverlayManager(models.Manager):
                 plotter = WindPlotter(datafile.file.name)
                 number_of_times = plotter.get_number_of_model_times()
                 for t in xrange(number_of_times):
-                    task_list.append(cls.make_wave_watch_plot.subtask(args=(5, t, fid), immutable=True))
+                    task_list.append(cls.make_plot.subtask(args=(5, t, fid), immutable=True))
 
             else:
                 plotter = Plotter(datafile.file.name)
@@ -420,12 +420,9 @@ class OverlayManager(models.Manager):
         zoom_levels_for_winds = [('1-10', 2), ('11-12', 1)]
         if file_id is None:
             datafile = DataFile.objects.latest('model_date')
-        # elif overlay_definition_id == 5:
-        #     datafile = DataFile.objects.get(pk=file_id)
         else:
             datafile = DataFile.objects.get(pk=file_id)
 
-        # Checking to see if the file is a netcdf or an OpenDap file
         if overlay_definition_id == 5:
             plotter = WindPlotter(datafile.file.name)
         else:

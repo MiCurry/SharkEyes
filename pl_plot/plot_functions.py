@@ -354,7 +354,6 @@ def wind_function(ax, data_file, bmap, time_index, downsample_ratio):
     var_u = 'u-component_of_wind_height_above_ground'
     var_v = 'v-component_of_wind_height_above_ground'
     #landMask = 'Land_cover_0__sea_1__land_surface'
-    #data_file = open_url(settings.WIND_URL)
 
     #NO CHANGE IN RESULT FROM COMMENTING OUT THIS OPERATION
     #------------------------------------------------------------------------------
@@ -377,37 +376,42 @@ def wind_function(ax, data_file, bmap, time_index, downsample_ratio):
     # print "Wind_u:2", wind_u.shape
     # print "Wind_v:2", wind_v.shape
 
-    #print "INTERPOLATING"
-    times = data_file.variables['time']
+    print "INTERPOLATING"
+    #times = data_file.variables['time']
 
-    wind_u = numpy.reshape(wind_u, (times.shape[0], 92, 61))
-    wind_v = numpy.reshape(wind_v, (times.shape[0], 92, 61))
+    # wind_u = numpy.reshape(wind_u, (times.shape[0], 92, 61))
+    # wind_v = numpy.reshape(wind_v, (times.shape[0], 92, 61))
 
     # Generate a time range 0 ... 139 for every 4 hours using the python thingy
     #start_time = datetime.strptime(time.units, "Hour since %Y-%m-%dT%H:%M:%SZ")
-    size = times.shape[0]
+    #size = times.shape[0]
 
     # Create two different time stamps used for interpolating
-    ts22 = numpy.arange(0, size * 3, 4) # One for every 4 hours
-    ts11 = numpy.arange(0, size * 3, 3) # One for every 3  hours
-    print "shape ts11 ", ts11.shape
-    print "shape ts22 ", ts22.shape
+    #ts11 = numpy.arange(0, size * 3, 3) # One for every 3 hours
+    #ts22 = numpy.arange(0, size * 3, 4) # One for every 4 hours
 
     start_time = datetime.now()
-    start_time = start_time.replace(hour=2, minute=0, second=0, microsecond=0)
+    start_time = start_time.replace(hour=0, minute=0, second=0, microsecond=0)
     start_time = date.toordinal(start_time)*24
+    #print "start time", start_time
 
     end_time = datetime.now()+timedelta(days=4)
     end_time = end_time.replace(hour=0, minute=0, second=0, microsecond=0)
     end_time = date.toordinal(end_time)*24
+    #print "end time ", end_time
 
-    ts1 = numpy.arange(start_time ,end_time, 3)
-    ts2 = numpy.arange(start_time ,end_time, 4)
-    print "ts1 shape ", ts1.shape
-    print "ts2 shape ", ts2.shape
+    array_time = end_time - start_time - 3
+    #print "array time ", array_time
 
-    wind_u_int = numpy.empty([ts2.shape[0]-1, 92, 61]) # Array to be filled
-    wind_v_int = numpy.empty([ts2.shape[0]-1, 92, 61]) # Ditto
+    ts1 = numpy.arange(0 , array_time, 3)
+    ts2 = numpy.arange(0 , array_time, 4)
+    # print "ts1a ", ts1.shape, ts1
+    # print "ts11 ", ts11.shape, ts11
+    # print "ts2a ", ts2.shape, ts2
+    # print "ts22 ", ts22.shape, ts22
+
+    wind_u_int = numpy.empty([ts2.shape[0], 92, 61]) # Array to be filled
+    wind_v_int = numpy.empty([ts2.shape[0], 92, 61]) # Ditto
 
     # Loop through each lat and long and interpolate each value from time stamp ts1
     # to ts2.  (ie from every 3rd hours to every 4hrs between the NAMS model time) see help(numpy.interp)
@@ -428,6 +432,16 @@ def wind_function(ax, data_file, bmap, time_index, downsample_ratio):
     #-------------------------------------------------------------------------
     wind_u = numpy.squeeze(wind_u) # Squeeze out the time
     wind_v = numpy.squeeze(wind_v) # Squeeze out the time
+    #print 'wind u dtype ', wind_u.dtype
+
+    # wind_u = wind_u.astype(numpy.float32)
+    # wind_v = wind_v.astype(numpy.float32)
+    #print 'wind u dtype ', wind_u.dtype
+
+    # wind_u = wind_u[::2]
+    # wind_v = wind_v[::2]
+    # x = x[::2]
+    # y = y[::2]
 
     #NO CHANGE FROM COMMENTING OUT THIS OPERATION
     #-------------------------------------------------------------------------
@@ -444,7 +458,7 @@ def wind_function(ax, data_file, bmap, time_index, downsample_ratio):
     if(debug == 0): # Debug
         print "Wind_u:", wind_u.shape
         print "Wind_v:", wind_v.shape
-        print "time.shape:", times.shape
+        #print "time.shape:", times.shape
         #print "This is size ", size
         print "ts1.shape:", ts1.shape[0]
         print 'This is ts1 ', ts1
@@ -469,12 +483,11 @@ def wind_function(ax, data_file, bmap, time_index, downsample_ratio):
                wind_u[::downsample_ratio, ::downsample_ratio],
                wind_v[::downsample_ratio, ::downsample_ratio],
                ax=ax,
-               length=length,
-               rasterized=True)
+               length=length)
                #barb_increments=dict(half=.1, full=10, flag=50))
 
     print "WIND PLOT CREATED!"
-    print "INTERPOLATED- rasterized"
+    print "INTERPOLATED"
 
 
 def crop_and_downsample(source_array, downsample_ratio, average=True):

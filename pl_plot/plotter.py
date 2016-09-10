@@ -141,8 +141,7 @@ class WindPlotter:
         )
 
     def get_number_of_model_times(self):
-        #return numpy.shape(self.data_file.variables['time'])[0]
-        return 22
+        return 23 #This is the number of time_indexes for the wind model
 
     def get_time_at_oceantime_index(self,index):
         print index
