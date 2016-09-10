@@ -127,13 +127,11 @@ class OverlayManager(models.Manager):
                     if t % 4 == 0:
                         task_list.append(cls.make_wave_watch_plot.subtask(args=(4, t, fid), immutable=True))
                         task_list.append(cls.make_wave_watch_plot.subtask(args=(6, t, fid), immutable=True))
-
             elif datafile.file.name.startswith("WIND"):
                 plotter = WindPlotter(datafile.file.name)
                 number_of_times = plotter.get_number_of_model_times()
                 for t in xrange(number_of_times):
                     task_list.append(cls.make_plot.subtask(args=(5, t, fid), immutable=True))
-
             else:
                 plotter = Plotter(datafile.file.name)
                 number_of_times = plotter.get_number_of_model_times()
