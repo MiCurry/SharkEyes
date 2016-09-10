@@ -1,5 +1,6 @@
 import os
 import shutil
+import sys
 from uuid import uuid4
 
 from scipy.io import netcdf
@@ -12,7 +13,6 @@ from pydap.client import open_url
 from django.conf import settings
 from datetime import datetime, timedelta, time
 from django.utils import timezone
-
 
 #TODO Move plot_functions to plotter
 
@@ -127,13 +127,21 @@ class WaveWatchPlotter:
 class WindPlotter:
     data_file = None
 
-    def load_file(self, file_name):
-        #This should have some form of error handling as it can fail
-        self.data_file = open_url(settings.WIND_URL)
+    def __init__(self, file_name):
+        self.load_file(file_name)
 
-    #TODO Alter this use the times pulled from the OpenDAP Site
+    def load_file(self, file_name):
+        #Gives a netcdf file object with default mode of reading permissions only
+        self.data_file = netcdf.netcdf_file(
+            os.path.join(
+                settings.MEDIA_ROOT,
+                settings.WIND_DIR,
+                file_name
+            )
+        )
+
     def get_number_of_model_times(self):
-        return 12
+        return 23 #This is the number of time_indexes for the wind model
 
     def get_time_at_oceantime_index(self,index):
         print index
@@ -167,14 +175,9 @@ class WindPlotter:
                        llcrnrlon=-129, urcrnrlon=-123.7265625,
                        ax=ax, epsg=4326)
 
-        model_time = self.get_time_at_oceantime_index(time_index)
+        #model_time = self.get_time_at_oceantime_index(time_index)
 
-        if(model_time == time(0, 0) or model_time == time(12, 0)):
-            interp = "FALSE"
-        else:
-            interp = "TRUE"
-
-        plot_function(ax=ax, data_file=self.data_file, time_index=time_index, bmap=bmap, downsample_ratio=downsample_ratio, interp=interp)
+        plot_function(ax=ax, data_file=self.data_file, time_index=time_index, bmap=bmap, downsample_ratio=downsample_ratio)
 
         generated_datetime = timezone.now().date() #The wind png is always generated at the time of the call
 
@@ -189,7 +192,7 @@ class WindPlotter:
         pyplot.close(fig)
 
         # Winds use a static key, but it gets deleted from the delete function, so this ensures that it
-        # in the right place everytime.
+        # in the right place every time.
         self.key_check()
 
         return plot_filename, key_filename
