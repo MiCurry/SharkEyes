@@ -38,11 +38,12 @@ def do_pipeline():
         print '-' * 60
         traceback.print_exc(file=sys.stdout)
         print '-' * 60
-    other_files = DataFileManager.fetch_new_files()   # not calling as a task so it runs inline
+    sst_files = DataFileManager.fetch_new_files()   # not calling as a task so it runs inline
+    wind_files = DataFileManager.get_wind_file()
 
     # If no new files were returned, don't plot or tile anything.
     try:
-        if not wave_watch_files and not other_files:
+        if not wave_watch_files and not sst_files and not wind_files:
             print "No New Files Available, Quitting."
             return None
     except Exception:
