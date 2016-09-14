@@ -144,8 +144,7 @@ class WindPlotter:
         return 23 #This is the number of time_indexes for the wind model
 
     def get_time_at_oceantime_index(self,index):
-        print index
-        time = timezone.now()
+        time = timezone.now()+ timedelta(hours=7)-timedelta(days=1)
         time = time.replace(hour = 0, minute = 0, second = 0, microsecond = 0)
         if(index == 0):
             time = time.replace(hour = 0)
@@ -187,7 +186,7 @@ class WindPlotter:
 
         fig.savefig(
              os.path.join(settings.MEDIA_ROOT, settings.UNCHOPPED_STORAGE_DIR, plot_filename),
-             dpi=1200, bbox_inches='tight', pad_inches=0,
+             dpi=500, bbox_inches='tight', pad_inches=0,
              transparent=True, frameon=False)
         pyplot.close(fig)
 

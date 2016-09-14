@@ -191,8 +191,6 @@ def sst_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
     def celsius_to_fahrenheit(temp):
         return temp * 1.8 + 32
     vectorized_conversion = numpy.vectorize(celsius_to_fahrenheit)
-    plotterPrint = numpy.shape(data_file.variables['ocean_time'][0])
-    print "This is get number model times from plotter ", plotterPrint
 
     # temperature has dimensions ('ocean_time', 's_rho', 'eta_rho', 'xi_rho')
     # s_rho corresponds to layers, of which there are 30, so we take the top one.
