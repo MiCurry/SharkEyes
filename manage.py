@@ -44,6 +44,7 @@ if __name__ == "__main__":
             winds = DataFileManager.get_wind_file()
             tiles = []
             begin = time.time()
+            tiles += OverlayManager.make_plot(5, 0, winds[0])
             for t in tiles:
                 tile_overlay(t)
             finish = time.time()
