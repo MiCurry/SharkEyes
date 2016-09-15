@@ -1,15 +1,9 @@
 import math
-import os
-import sys
-import gc
 from datetime import datetime, timedelta, date
-import time
-
 import numpy
 import scipy
-from scipy import ndimage, interpolate
-from scipy.interpolate import interp1d
-from matplotlib import pyplot, colors, image
+from scipy import ndimage
+from matplotlib import pyplot, colors
 from mpl_toolkits.basemap import Basemap
 from PIL import Image
 #from pydap.client import open_url
@@ -324,12 +318,6 @@ def currents_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio)
     quiverkey2 = key_ax.quiverkey(overlay, 6.5, .4, 2*.5144, "2 knots", labelpos='S', labelcolor='white',
                                   color='white', labelsep=.5, coordinates='axes')
     key_ax.set_axis_off()
-
-def time_print(start_time, end_time):
-    start = start_time
-    end = end_time
-    total = end - start
-    print "Total time taken = " + str(round(total, 2)) + " seconds"
 
 # Wind_functions
 # The NAM's model are produced every 3 hours instead of every 4 hours like the rest
