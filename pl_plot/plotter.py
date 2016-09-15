@@ -7,11 +7,11 @@ from scipy.io import netcdf
 import numpy
 from matplotlib import pyplot
 from mpl_toolkits.basemap import Basemap
-from pydap.client import open_url
+#from pydap.client import open_url
 
 
 from django.conf import settings
-from datetime import datetime, timedelta, time
+from datetime import datetime, timedelta
 from django.utils import timezone
 
 #TODO Move plot_functions to plotter
