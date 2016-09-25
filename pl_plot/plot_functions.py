@@ -309,8 +309,7 @@ def currents_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio)
                           scale=10.0, headwidth=2, headlength=3,
                           headaxislength=2.5, minlength=0.5, minshaft=.9)
 
-    # TODO I assume this .5144 value is based on converting meters-per-second to Knots.
-    # TODO Would be good to verify, and set it as a constant.
+    # Multiplying .5, 1, and 2 by .5144 is converting from knots to meters per second
     quiverkey = key_ax.quiverkey(overlay, .95, .4, 0.5*.5144, ".5 knots", labelpos='S', labelcolor='white',
                                  color='white', labelsep=.5, coordinates='axes')
     quiverkey1 = key_ax.quiverkey(overlay, 3.75, .4, 1*.5144, "1 knot", labelpos='S', labelcolor='white',
