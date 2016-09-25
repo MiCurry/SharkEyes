@@ -141,7 +141,7 @@ class WindPlotter:
         )
 
     def get_number_of_model_times(self):
-        return 23 #This is the number of time_indexes for the wind model
+        return 23 #This is the number of time_indexes for the wind model after interpolating from 3 hour increments to 4
 
     def get_time_at_oceantime_index(self,index):
         time = timezone.now()+ timedelta(hours=7)-timedelta(days=1)
@@ -163,8 +163,6 @@ class WindPlotter:
     def make_plot(self, plot_function, zoom_levels, time_index=0, downsample_ratio=None):
 
         fig = pyplot.figure()
-        key_ax = pyplot.figure()
-
         ax = fig.add_subplot(111)  # one subplot in the figure
 
         #window cropped by picking lat and lon corners
@@ -247,7 +245,7 @@ class Plotter:
                        ax=ax, epsg=4326)
 
         plot_function(ax=ax, data_file=self.data_file, time_index=time_index, bmap=bmap, key_ax=key_ax,
-                      downsample_ratio=downsample_ratio) #todo this param is a hack for expo
+                      downsample_ratio=downsample_ratio)
 
         plot_filename = "{0}_{1}.png".format(plot_function.__name__, uuid4())
         key_filename = "{0}_key_{1}.png".format(plot_function.__name__, uuid4())

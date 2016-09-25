@@ -45,11 +45,11 @@ if __name__ == "__main__":
             print "Time taken for SST = " + str(round(totalTime, 2)) + " minutes"
 
         if wind:
-            #winds = DataFileManager.get_wind_file()
+            winds = DataFileManager.get_wind_file()
             winds = DataFile.objects.filter(type='WIND').latest('model_date')
             tiles = []
             begin = time.time()
-            tiles += OverlayManager.make_plot(5, 15, winds)
+            tiles += OverlayManager.make_plot(5, 0, winds)
             for t in tiles:
                 tile_overlay(t)
             finish = time.time()
@@ -117,7 +117,7 @@ if __name__ == "__main__":
         if wind:
             print "\n Plotting A NAM - WINDS"
             start = time.time()
-            #DataFileManager.get_wind_file()
+            DataFileManager.get_wind_file()
             winds = DataFile.objects.filter(type='WIND').latest('model_date')
             id = winds.id
             plotter = WindPlotter(winds.file.name)

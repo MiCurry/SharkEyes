@@ -20,7 +20,7 @@ def home(request):
     print str(len(overlays_view_data))
     print overlays_view_data
 
-    datetimes = overlays_view_data.values_list('applies_at_datetime', flat=True).distinct()
+    datetimes = overlays_view_data.values_list('applies_at_datetime', flat=True).distinct().order_by('applies_at_datetime')
     print "datetimes"
     for d in datetimes:
         print "    " + str(d)
