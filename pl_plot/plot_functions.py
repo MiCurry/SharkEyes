@@ -363,34 +363,35 @@ def wind_function(ax, data_file, bmap, time_index, downsample_ratio):
     # print "Wind_v:2", wind_v.shape
 
     print "INTERPOLATING"
-    #times = data_file.variables['time']
+    times = data_file.variables['time']
 
     # wind_u = numpy.reshape(wind_u, (times.shape[0], 92, 61))
     # wind_v = numpy.reshape(wind_v, (times.shape[0], 92, 61))
 
     # Generate a time range 0 ... 139 for every 4 hours using the python thingy
     #start_time = datetime.strptime(time.units, "Hour since %Y-%m-%dT%H:%M:%SZ")
-    #size = times.shape[0]
+    size = times.shape[0]
 
     # Create two different time stamps used for interpolating
-    #ts11 = numpy.arange(0, size * 3, 3) # One for every 3 hours
-    #ts22 = numpy.arange(0, size * 3, 4) # One for every 4 hours
+    ts1 = numpy.arange(0, size * 3, 3) # One for every 3 hours
+    ts2 = numpy.arange(0, size * 3, 4) # One for every 4 hours
 
-    start_time = datetime.now()
-    start_time = start_time.replace(hour=0, minute=0, second=0, microsecond=0)
-    start_time = date.toordinal(start_time)*24
+    # start_time = datetime.now()
+    # start_time = start_time.replace(hour=0, minute=0, second=0, microsecond=0)
+    # start_time = date.toordinal(start_time)*24
     #print "start time", start_time
 
-    end_time = datetime.now()+timedelta(days=4)
-    end_time = end_time.replace(hour=0, minute=0, second=0, microsecond=0)
-    end_time = date.toordinal(end_time)*24
+    # end_time = datetime.now()+timedelta(days=4)
+    # end_time = end_time.replace(hour=0, minute=0, second=0, microsecond=0)
+    # end_time = date.toordinal(end_time)*24
     #print "end time ", end_time
 
-    array_time = end_time - start_time - 3
+    #print "6"
+    #array_time = end_time - start_time - 6
     #print "array time ", array_time
 
-    ts1 = numpy.arange(0 , array_time, 3)
-    ts2 = numpy.arange(0 , array_time, 4)
+    # ts1 = numpy.arange(0 , array_time, 3)
+    # ts2 = numpy.arange(0 , array_time, 4)
     # print "ts1a ", ts1.shape, ts1
     # print "ts11 ", ts11.shape, ts11
     # print "ts2a ", ts2.shape, ts2
