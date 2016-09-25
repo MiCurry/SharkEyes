@@ -460,7 +460,7 @@ def wind_function(ax, data_file, bmap, time_index, downsample_ratio):
         print "x:", x.shape
         print "y:", y.shape
 
-    print "Barbs"
+    print "Making Unchopped Wind Barb Image"
     bmap.barbs(x[::downsample_ratio, ::downsample_ratio],
                y[::downsample_ratio, ::downsample_ratio],
                wind_u[::downsample_ratio, ::downsample_ratio],
@@ -470,8 +470,6 @@ def wind_function(ax, data_file, bmap, time_index, downsample_ratio):
                #barb_increments=dict(half=.1, full=10, flag=50))
 
     print "WIND PLOT CREATED!"
-    print "INTERPOLATED"
-
 
 def crop_and_downsample(source_array, downsample_ratio, average=True):
     ys, xs = source_array.shape
