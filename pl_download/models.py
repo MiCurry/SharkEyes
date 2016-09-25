@@ -201,7 +201,7 @@ class DataFileManager(models.Manager):
         generated_time = datetime.now().today()
         modified_datetime = timezone.make_aware(generated_time, timezone.utc)
         end_time = datetime.now().date()+timedelta(days=4)
-        begin = str(current_time) + 'T6%3A00%3A00Z'
+        begin = str(current_time) + 'T00%3A00%3A00Z'
         end = str(end_time) + 'T00%3A00%3A00Z'
 
         local_filename = "{0}_{1}_{2}.nc".format("WIND", current_time, uuid4())

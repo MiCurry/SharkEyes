@@ -442,8 +442,6 @@ def wind_function(ax, data_file, bmap, time_index, downsample_ratio):
         length = 4.25
 
     if(debug == 0): # Debug
-        print "Wind_u:", wind_u.shape
-        print "Wind_v:", wind_v.shape
         #print "time.shape:", times.shape
         #print "This is size ", size
         print "ts1.shape:", ts1.shape[0]
@@ -455,7 +453,6 @@ def wind_function(ax, data_file, bmap, time_index, downsample_ratio):
         print "length of wind_u", len(wind_u)
         print "Wind_u_int:", wind_u_int.shape
         print "Wind_v_int:", wind_v_int.shape
-        print "After pulling time"
         print "Wind_u:", wind_u.shape
         print "Wind_v:", wind_v.shape
         print "Lat:", lat.shape
