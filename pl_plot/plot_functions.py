@@ -4,16 +4,10 @@ import numpy
 import scipy
 from scipy import ndimage
 from matplotlib import pyplot, colors
-from mpl_toolkits.basemap import Basemap
-from PIL import Image
-#from pydap.client import open_url
-
-from django.conf import settings
 
 numpy.set_printoptions(threshold=numpy.inf) # This is helpful for testing purposes:
 # it sets print options so that when you print a large array, it doesn't get truncated in the middle
 # and you can see each element of the array.
-
 
 # When you add a new function, add it as a new function definition to fixtures/initial_data.json
 
@@ -30,11 +24,8 @@ METERS_TO_FEET = 3.28
 MIN_WAVE_PERIOD = 3
 MAX_WAVE_PERIOD = 26
 
-#
 def get_rho_mask(data_file):
     rho_mask = numpy.logical_not(data_file.variables['mask_rho'][:])
-    #rho_mask[207:221, 133:135] = 1
-    #rho_mask[201:202, 133:135] = 1
     return rho_mask
 
 def wave_direction_function(ax, data_file, bmap, key_ax, forecast_index, downsample_ratio):
@@ -82,23 +73,30 @@ def wave_direction_function(ax, data_file, bmap, key_ax, forecast_index, downsam
     six = 6.0*METERS_TO_FEET
 
     #get the wave period data from a netCDF file
+    #-------------------------------------------------------------------------
     all_day = data_file.variables['PERPW_surface'][:, :, :]
 
     # Mask all of the data points that are "nan" (not a number) in the data file; these represent land
+    #-------------------------------------------------------------------------
     period_masked = numpy.ma.masked_array(all_day[forecast_index][:, :],numpy.isnan(all_day[forecast_index][:,:]))
 
     #This is the average wave period for the day
+    #-------------------------------------------------------------------------
     mean_val = numpy.mean(period_masked)
     #The mean val is calculated to a large number of decimal places. This rounds it to two.
+    #-------------------------------------------------------------------------
     mean_val = round(mean_val, 2)
 
     #This is the maximum wave period value for the day
+    #-------------------------------------------------------------------------
     max_val = numpy.amax(period_masked)
     #This rounds the max value just like the average
+    #-------------------------------------------------------------------------
     max_val = round(max_val, 2)
 
-    #textBox is a hack that makes an unused Cartesian plot with a label over the top of it. This label has the wave period data.
-    #the spacing is purposefully there to have a nice readable label. The black background helps to mask the figure behind the label.
+    #TextBox is the wave period key. The spacing exists specifically for readability
+    #If you need to modify the way wave period looks in the window do it here
+    #-------------------------------------------------------------------------
     textBox = pyplot.text(0, 0,"       Wave period average and maximum values ""\n" "Average: " + str(mean_val) + " seconds " "  -  "" Maximum: " + str(max_val) + " seconds", withdash=False, backgroundcolor='black', color='white')
     key_ax.set_axis_off()
 
@@ -113,66 +111,68 @@ def wave_direction_function(ax, data_file, bmap, key_ax, forecast_index, downsam
 def wave_height_function(ax, data_file, bmap, key_ax, forecast_index, downsample_ratio):
 
      # Need to convert each point from meters to feet
+     #-------------------------------------------------------------------------
      def meters_to_feet(height):
         return height * METERS_TO_FEET
 
      vectorized_conversion = numpy.vectorize(meters_to_feet)
 
-     #grab longitude and latitude from netCDF file if we are using the old OuterGrid format which was lower resolution
-     #longs = data_file.variables['longitude'][:]
-     #lats = data_file.variables['latitude'][:]
-
      # If we are using the file with merged fields (both high-res and low-res data) provided
      # by Tuba and Gabriel
+     #-------------------------------------------------------------------------
      longs = [item for sublist in data_file.variables['longitude'][:1] for item in sublist]
      lats = data_file.variables['latitude'][:, 0]
 
      #get the wave height data from netCDF file
+     #-------------------------------------------------------------------------
      all_day = data_file.variables['HTSGW_surface'][:, :, :]
 
      #convert/mesh the latitude and longitude data into 2D arrays to be used by contourf below
+     #-------------------------------------------------------------------------
      x,y = numpy.meshgrid(longs,lats)
 
      #obtain all forecasts
      #heights is measured in meters, if a data point is over 1000 meters it is either not valid or it represents land
      #so we are masking all data over 1000
-     #heights = numpy.ma.masked_greater(all_day[forecast_index][:][:], 1000)
-
+     #-------------------------------------------------------------------------
      heights_masked = numpy.ma.masked_array(all_day[forecast_index][:, :],numpy.isnan(all_day[forecast_index][:,:]))
 
      # Need to convert each height given in meters into FEET
+     #-------------------------------------------------------------------------
      heights = vectorized_conversion(heights_masked)
 
-     #get the max and min period wave period for the day: used to set color contours
-     #min_period = int(math.floor(numpy.amin(heights))) # This was used when we determined min period for a certain day
-
      #Min period is now in feet
+     #-------------------------------------------------------------------------
      min_period = MIN_WAVE_HEIGHT*METERS_TO_FEET
 
-     #max_period = int(math.ceil(numpy.amax(numpy.ma.masked_greater(heights, 1000))))
-     #max_period = int(math.ceil(numpy.amax(heights)))
      #Max period is now in feet
+     #-------------------------------------------------------------------------
      max_period = MAX_WAVE_HEIGHT*METERS_TO_FEET
 
      #Allocates colors to the data by setting the range of the data and by setting color increments
+     #-------------------------------------------------------------------------
      contour_range = max_period - min_period
      contour_range_inc = float(contour_range)/NUM_COLOR_LEVELS_FOR_WAVES
 
      #Now the contour range
+     #-------------------------------------------------------------------------
      color_levels = []
      for i in xrange(NUM_COLOR_LEVELS_FOR_WAVES+1):
          color_levels.append(min_period+1 + i * contour_range_inc)
 
      #Fill the contours with the colors
+     #-------------------------------------------------------------------------
      overlay = bmap.contourf(x, y, heights, color_levels, ax=ax, extend='both', cmap=get_modified_jet_colormap_for_waves())
 
      #Create the color bar
+     #-------------------------------------------------------------------------
      cbar = pyplot.colorbar(overlay, orientation='horizontal', cax=key_ax)
      cbar.ax.tick_params(labelsize=10)
      cbar.ax.xaxis.label.set_color('white')
      cbar.ax.xaxis.set_tick_params(labelcolor='white')
 
-     #todo DIVISION by ZERO sometimes causes a warning but it doesn't seem to cause any problems
+     #DIVISION by ZERO sometimes causes a warning but it doesn't seem to cause any problems
+     #-------------------------------------------------------------------------
      locations = numpy.arange(0, 1.01, 1.0/(NUM_COLOR_LEVELS_FOR_WAVES))[::10]    # we just want every 10th label
      float_labels = numpy.arange(min_period, max_period + 0.01, contour_range_inc)[::10]
 
@@ -188,11 +188,13 @@ def sst_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
 
     # temperature has dimensions ('ocean_time', 's_rho', 'eta_rho', 'xi_rho')
     # s_rho corresponds to layers, of which there are 30, so we take the top one.
+    #-------------------------------------------------------------------------
     surface_temp = numpy.ma.array(vectorized_conversion(data_file.variables['temp'][time_index][39]), mask=get_rho_mask(data_file))
     longs = data_file.variables['lon_rho'][:]
     lats = data_file.variables['lat_rho'][:]
 
     #get the max and min temps for the daytem
+    #-------------------------------------------------------------------------
     all_day = data_file.variables['temp'][:, 39, :, :]
     min_temp = int(math.floor(celsius_to_fahrenheit(numpy.amin(all_day))))
     max_temp = int(math.ceil(celsius_to_fahrenheit(numpy.amax(numpy.ma.masked_greater(all_day, 1000)))))
@@ -202,6 +204,7 @@ def sst_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
     # calculate and plot colored contours for TEMPERATURE data
     # 21 levels, range from one over min to one under max, as the colorbar caps each have their color and will color
     # out of bounds data with their color.
+    #-------------------------------------------------------------------------
     contour_range = ((max_temp - 1) - (min_temp + 1))
     contour_range_inc = float(contour_range)/NUM_COLOR_LEVELS
     color_levels = []
@@ -212,6 +215,7 @@ def sst_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
     overlay = bmap.contourf(x, y, surface_temp, color_levels, ax=ax, extend='both', cmap=get_modified_jet_colormap())
 
     # add colorbar.
+    #-------------------------------------------------------------------------
     cbar = pyplot.colorbar(overlay, orientation='horizontal', cax=key_ax)
     cbar.ax.tick_params(labelsize=10)
     cbar.ax.xaxis.label.set_color('white')
@@ -226,6 +230,7 @@ def sst_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
 
 
 # We are not using the Salt model at this time.
+#-------------------------------------------------------------------------
 def salt_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
     # salt has dimensions ('ocean_time', 's_rho', 'eta_rho', 'xi_rho')
     # s_rho corresponds to layers, of which there are 30, so we take the top one.
@@ -280,6 +285,7 @@ def currents_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio)
     rho_mask = get_rho_mask(data_file)
 
     # average nearby points to align grid, and add the edge column/row so it's the right size.
+    #-------------------------------------------------------------------------
     right_column = currents_u[:, -1:]
     currents_u_adjusted = ndimage.generic_filter(scipy.hstack((currents_u, right_column)),
                                                  compute_average, footprint=[[1], [1]], mode='reflect')
@@ -288,6 +294,7 @@ def currents_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio)
                                                  compute_average, footprint=[[1], [1]], mode='reflect')
 
     # zoom
+    #-------------------------------------------------------------------------
     u_zoomed = crop_and_downsample(currents_u_adjusted, downsample_ratio)
     v_zoomed = crop_and_downsample(currents_v_adjusted, downsample_ratio)
     rho_mask[rho_mask == 1] = numpy.nan
@@ -310,6 +317,7 @@ def currents_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio)
                           headaxislength=2.5, minlength=0.5, minshaft=.9)
 
     # Multiplying .5, 1, and 2 by .5144 is converting from knots to meters per second
+    #-------------------------------------------------------------------------
     quiverkey = key_ax.quiverkey(overlay, .95, .4, 0.5*.5144, ".5 knots", labelpos='S', labelcolor='white',
                                  color='white', labelsep=.5, coordinates='axes')
     quiverkey1 = key_ax.quiverkey(overlay, 3.75, .4, 1*.5144, "1 knot", labelpos='S', labelcolor='white',
@@ -318,22 +326,26 @@ def currents_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio)
                                   color='white', labelsep=.5, coordinates='axes')
     key_ax.set_axis_off()
 
-# Wind_functions
+
 # The NAM's model are produced every 3 hours instead of every 4 hours like the rest
 # of our models. Because of that we need to interpolate them as seen below.
+#-------------------------------------------------------------------------
 def wind_function(ax, data_file, bmap, time_index, downsample_ratio):
     print "CREATING A WIND PLOT"
     print "DOWNSAMPLERATIO = ", downsample_ratio, "Time Index =", time_index
-    # Set up lat and lon variables from the provided file
+    # We now have the lat longs from the netcdf. We should not need this
+    #-------------------------------------------------------------------------
     # tmp = numpy.loadtxt('/opt/sharkeyes/src/latlon.g218')
     # lat = numpy.reshape(tmp[:, 2], data_file.variables['lat'])
     # lon = numpy.reshape(tmp[:, 3], data_file.variables['lat'])
+    # for i in range(0, len(lon)):
+    #     lon[i] = -lon[i]
+
+    #Get the lats and longs from the file
+    #-------------------------------------------------------------------------
     lat = data_file.variables['lat']
     lon = data_file.variables['lon']
     x, y = bmap(lon, lat)
-
-    # for i in range(0, len(lon)):
-    #     lon[i] = -lon[i]
 
     #Name of the variables we want to extract from Wind netcdf
     #-------------------------------------------------------------------------
@@ -351,7 +363,8 @@ def wind_function(ax, data_file, bmap, time_index, downsample_ratio):
     #-------------------------------------------------------------------------
     print "INTERPOLATING"
 
-    #Old Timestamps
+    #Old Timestamps these are equivalent in regard to interpolation
+    #We are using the timestaps for specificity
     #-------------------------------------------------------------------------
     #times = data_file.variables['time']
     #size = times.shape[0]
@@ -370,6 +383,7 @@ def wind_function(ax, data_file, bmap, time_index, downsample_ratio):
     end_time = date.toordinal(end_time)*24
 
     #Timestamps from first date to second date in increments of 3 and 4
+    #The +3 value is used to make the timestamp array fit wind_u and wind_v in interp
     #-------------------------------------------------------------------------
     ts1 = numpy.arange(start_time , end_time + 3, 3)
     ts2 = numpy.arange(start_time , end_time + 3, 4)
@@ -444,22 +458,15 @@ def crop_and_downsample(source_array, downsample_ratio, average=True):
 
 
 # Wave files are in a different format, so they need a separate downsampling function
+#-------------------------------------------------------------------------
 def crop_and_downsample_wave(source_array, downsample_ratio, average=True):
 
     xs = source_array.shape[0]
-
     # Crop off anything extra: i.e. if downsample ratio is 10, and the height % 10 has a remainder of 1, chop off 1 from the height
+    #-------------------------------------------------------------------------
     cropped_array = source_array[ :xs - (xs % int(downsample_ratio))]
-    #if average:
-    #   zoomed_array = scipy.nanmean(numpy.concatenate(
-    #    [[cropped_array[i::downsample_ratio, j::downsample_ratio]
-    #         for i in range(downsample_ratio)]
-    #             for j in range(downsample_ratio)]), axis=0)
-    #  else:
     zoomed_array = cropped_array[::downsample_ratio, ::downsample_ratio]
     return zoomed_array
-    #return source_array
-
 
 def get_modified_jet_colormap():
     modified_jet_cmap_dict = {

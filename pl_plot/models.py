@@ -1,11 +1,7 @@
 from django.db import models
-from django.core.files.storage import FileSystemStorage
-from django.core.files import File
-import math
 import os
-from django.conf import settings
 from celery import group
-from datetime import datetime, time, tzinfo, timedelta
+from datetime import timedelta
 from django.utils import timezone
 from celery import shared_task
 from pl_plot import plot_functions
@@ -25,7 +21,6 @@ HOW_LONG_TO_KEEP_FILES = settings.HOW_LONG_TO_KEEP_FILES
 
 #This is how many days' worth of older forecasts to display
 PAST_DAYS_OF_FILES_TO_DISPLAY = settings.PAST_DAYS_OF_FILES_TO_DISPLAY
-
 
 class OverlayManager(models.Manager):
     @staticmethod
@@ -61,7 +56,6 @@ class OverlayManager(models.Manager):
     def get_next_few_days_of_tiled_overlays(cls, models=[1]):
         # return all the desired entries from database using this variable
         display = Overlay.objects.none()
-        #print display
         # know what dates to look for
         dates = Overlay.objects.filter(applies_at_datetime__gte=timezone.now()-timedelta(days=PAST_DAYS_OF_FILES_TO_DISPLAY),
                                        applies_at_datetime__lte=timezone.now()+timedelta(days=4),
@@ -69,25 +63,17 @@ class OverlayManager(models.Manager):
                                        ).values_list('applies_at_datetime', flat=True).distinct()
 
         for d in dates:
-            #print "date: "
-            #print d
             over = Overlay.objects.filter(applies_at_datetime = d, is_tiled=True)
             for m in models:
-                #print m
                 tile = over.filter(definition_id=m)
                 gen = tile.aggregate(Max('created_datetime'))['created_datetime__max']
                 if gen == None:
-                    #print "Nothing on this date for model..."
                     continue
                 else:
-                    #print gen
                     gen = gen - timedelta(days=1)
-                    #print gen
                     add = tile.filter(created_datetime__gte=gen)
-                    #print add
                     display = display | add
         return display
-
 
     # these are for getting and running task groups
     @classmethod
@@ -100,17 +86,13 @@ class OverlayManager(models.Manager):
     def get_tasks_for_all_base_plots(cls, time_index=0, file_id=None):
         #Add the SST and currents plot commands
         task_list = [cls.make_plot.s(od_id, time_index, file_id, immutable=True) for od_id in [1, 3]]
-        #add the wind task
+        #add the wind task(5)
         task_list.append(cls.make_plot.s(5, time_index, file_id, immutable=True))
-
-        #Add the commands to plot wave Height (4) and Direction (6), and Period (7)
+        #Add the commands to plot wave Height (4) and Direction (6)
         task_list.append(cls.make_wave_watch_plot.s(4, time_index, file_id, immutable=True))
         task_list.append(cls.make_wave_watch_plot.s(6, time_index, file_id, immutable=True))
-        # TODO wave period
-        #task_list.append(cls.make_wave_watch_plot.s(7, time_index, file_id, immutable=True))
         job = task_list
         return job
-
 
 #PASSING IN: the file IDs of all the DataFiles stored in the database for next few days of forecasts.
     @classmethod
@@ -124,6 +106,8 @@ class OverlayManager(models.Manager):
             if datafile.file.name.startswith("OuterGrid"):
                 #plotter = WaveWatchPlotter(datafile.file.name)
                 for t in xrange(0, 85):
+                    # The unchopped file's index starts at noon: index = 0 and progresses throgh 85 forecasts, one per hour,
+                    # for the next 85 hours.
                     # Only plot every 4th index to match up with the SST forecast.
                     # WaveWatch has forecasts for every hour but at this time we don't need them all.
                     if t % 4 == 0:
@@ -137,16 +121,13 @@ class OverlayManager(models.Manager):
             else:
                 plotter = Plotter(datafile.file.name)
                 number_of_times = plotter.get_number_of_model_times()
-                #make_plot needs to be called once for each time range
+
                 for t in xrange(number_of_times):
-                    if t % 2 != 0: #The SST files double the available number of available times. This is used to only plot the times that we want.
+                    #SST Now has values every 2 hours, but we only want every 4
+                    #This only adds the task for every other time stamp
+                    if t % 2 != 0:
                         #using EXTEND because we are adding multiple items: might also be able to use APPEND
                         task_list.extend(cls.make_plot.subtask(args=(od_id, t, fid), immutable=True) for od_id in [1, 3])
-
-        # Wind Plot Data
-        # for t in xrange(14):
-        #     task_list.extend(cls.make_plot.subtask(args=(5, t, 0), immutable=True) for od_id in [1, 3])
-
         return task_list
 
     @classmethod
@@ -168,7 +149,8 @@ class OverlayManager(models.Manager):
 
         return True
 
-
+#Development function: Not used during normal operation
+#--------------------------------------------------------------------------------------------------------
     @staticmethod
     def get_currents_data(forecast_index, file_id):
         datafile = DataFile.objects.get(pk=file_id)
@@ -179,8 +161,10 @@ class OverlayManager(models.Manager):
         print "currents u:", 10.0*currents_u
         print "\n\n\ncurrents v:", 10.0*currents_v
 
-    # Just a helper function so that you can examine the first forecast (latitude, longitude, and wave height)
-    # from the NetCDF file. Pass in the file id of the WaveWatch NetCDF file you want to plot.
+#Development function: Not used during normal operation
+#--------------------------------------------------------------------------------------------------------
+# Just a helper function so that you can examine the first forecast (latitude, longitude, and wave height)
+# from the NetCDF file. Pass in the file id of the WaveWatch NetCDF file you want to plot.
     @staticmethod
     def get_data(forecast_index, file_id):
         datafile = DataFile.objects.get(pk=file_id)
@@ -215,16 +199,9 @@ class OverlayManager(models.Manager):
         V = 10.*np.sin(np.deg2rad(directions_mod))
 
         print "height:", all_day_height[:10, :10]
-        #print "\n\n\n\n\n\n\nV:", V[:10, :10]
 
-        #print "\n\n\n\n\n\n\n\nDIRECTION"
-        #for each in directions:
-            #print each
-
-        #print "\n\n\n\n\n\n\n\nDIRECTIONS MODIFIED"
-        #for each in directions_mod:
-            #print each
-
+#Development function: Not used during normal operation
+#--------------------------------------------------------------------------------------------------------
     @staticmethod
     def get_period_data(forecast_index, file_id):
         datafile = DataFile.objects.get(pk=file_id)
@@ -233,17 +210,11 @@ class OverlayManager(models.Manager):
         print variable_names_in_file
 
         all_day_period = file.variables['PERPW_surface'][forecast_index][:,:]
-        #print all_day_period
-        #all_day_times = file.variables['time'][forecast_index][:,:]
-        #print "times: "
-        #for each in all_day_times:
-            #print each
-
-
         print "Period of waves, in seconds:", all_day_period
 
-
-    # Helper function to view the variable names from a generic NetCDF file such as NASA's Altimetry data.
+#Helper function to view the variable names from a generic NetCDF file such as NASA's Altimetry data.
+#Not used during normal operation
+#--------------------------------------------------------------------------------------------------------
     @staticmethod
     def get_alt_data():
         # This assumes that you have a NetCDF file names JA2...nc in your Media directory on your local machine.
@@ -259,7 +230,8 @@ class OverlayManager(models.Manager):
         print sea_surface
         print bathymetry
 
-
+#Development function: Not used during normal operation
+#--------------------------------------------------------------------------------------------------------
     @staticmethod
     def time_help():
          print "timezone:", timezone.get_current_timezone()
@@ -267,7 +239,6 @@ class OverlayManager(models.Manager):
          print "local time now:", timezone.localtime(timezone.now())  #this prints current PST time, with DST correct
          print "timezone now:", timezone.make_aware(timezone.now() , timezone.utc)  #this is the UTC version of right-now's time
          print "", timezone.is_naive(timezone.localtime(timezone.now()))
-
 
     @staticmethod
     @shared_task(name='pl_plot.make_wave_watch_plot')
@@ -299,14 +270,6 @@ class OverlayManager(models.Manager):
 
         #returns a netcdf file object with read mode
         plotter = WaveWatchPlotter(datafile.file.name)
-
-        #Here is code in case you want to save the overlays in a separate folder. Recommend saving them all
-        # in the UNCHOPPED folder however.
-        #new_dir = settings.MEDIA_ROOT + settings.WAVE_WATCH_STORAGE_DIR + "/" + "Wave_Height_Forecast_" + generated_datetime
-        #if not os.path.exists(new_dir):
-            #os.makedirs(new_dir)
-            #os.chmod(new_dir,0o777)
-        #wave_storage_dir = settings.WAVE_WATCH_STORAGE_DIR + "/" + "Wave_Height_Forecast_" + generated_datetime
 
         # Setting the time for applies_at, based on the Time variable in the file.
         # The time variable is # of seconds since start of time epoch, so we convert to UTC
@@ -351,31 +314,15 @@ class OverlayManager(models.Manager):
             overlay.save()
             overlay_ids.append(overlay.id)
 
-        # # This code was used to view what is contained in the netCDF file
+        # This code is used to view what is contained in the netCDF file
         # file = netcdf_file(os.path.join(settings.MEDIA_ROOT, settings.WAVE_WATCH_DIR, datafile.file.name))
         # variable_names_in_file = file.variables.keys()
         # print variable_names_in_file
-        # # This prints all the wave height data
+        # This prints all the wave height data
         # file.variables['HTSGW_surface'][:]
-        # # This prints the dimensions of the wave height data
+        # This prints the dimensions of the wave height data
         # value = numpy.shape(file.variables['HTSGW_surface'][:])
         return overlay_ids
-
-
-
-    # make_wind_plot(int database_id = NONE, int time_index = 0);
-    #   @param: overlay_definition_id   The id of the file that is wished to be plotted.
-    #       Leaving empty or NONE returns a plot of the current time and day's forecast.
-    #   @param: time_index The time of the model which is wished to be plotted. Default is 0.
-    #
-    #
-    # @staticmethod
-    # @shared_task(name='pl_plot.make_wave_watch_plot')
-    # def make_wind_plot(database_id=None, time_index):
-    #
-    #     if database_id == None or database_id == 0:
-    #         database_id = DataFile.objects.filter(type == 'WIND').filter
-
 
     @staticmethod
     @shared_task(name='pl_plot.make_plot')
@@ -385,11 +332,16 @@ class OverlayManager(models.Manager):
         zoom_levels_for_winds = [('1-10', 2), ('11-12', 1)]
         if file_id is None:
             datafile = DataFile.objects.latest('model_date')
+
+        #If plotting winds grab the latest wind file
+        #-------------------------------------------------------------------------
         elif overlay_definition_id == 5:
             datafile = DataFile.objects.filter(type='WIND').latest('model_date')
         else:
             datafile = DataFile.objects.get(pk=file_id)
 
+        #Wind has its own plotter if plotting winds use WindPlotter
+        #-------------------------------------------------------------------------
         if overlay_definition_id == 5:
             plotter = WindPlotter(datafile.file.name)
         else:
@@ -432,7 +384,6 @@ class OverlayDefinition(models.Model):
         ('FC', 'Filled Contour'),
     )
     type = models.CharField(max_length=4, choices=OVERLAY_TYPES)
-        #it might turn out that these don't have to be unique
     display_name_long = models.CharField(max_length=240, unique=True)
     display_name_short = models.CharField(max_length=64)
     function_name = models.CharField(max_length=64, unique=True)
