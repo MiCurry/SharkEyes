@@ -324,7 +324,6 @@ def currents_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio)
 def wind_function(ax, data_file, bmap, time_index, downsample_ratio):
     print "CREATING A WIND PLOT"
     print "DOWNSAMPLERATIO = ", downsample_ratio, "Time Index =", time_index
-    debug = 1
     # Set up lat and lon variables from the provided file
     # tmp = numpy.loadtxt('/opt/sharkeyes/src/latlon.g218')
     # lat = numpy.reshape(tmp[:, 2], data_file.variables['lat'])
@@ -336,16 +335,11 @@ def wind_function(ax, data_file, bmap, time_index, downsample_ratio):
     # for i in range(0, len(lon)):
     #     lon[i] = -lon[i]
 
+    #Name of the variables we want to extract from Wind netcdf
+    #-------------------------------------------------------------------------
     var_u = 'u-component_of_wind_height_above_ground'
     var_v = 'v-component_of_wind_height_above_ground'
-    #landMask = 'Land_cover_0__sea_1__land_surface'
 
-    #NO CHANGE IN RESULT FROM COMMENTING OUT THIS OPERATION
-    #------------------------------------------------------------------------------
-    # wind_u = data_file.variables[var_u][:, 0, :, :] # All times of u
-    # wind_v = data_file.variables[var_v][:, 0, :, :] # All times of v
-    # print "Wind_u after first declaration:", wind_u.shape
-    # print "Wind_v after first declaration:", wind_v.shape
 
     wind_u = data_file.variables[var_u]
     wind_v = data_file.variables[var_v]
@@ -353,64 +347,53 @@ def wind_function(ax, data_file, bmap, time_index, downsample_ratio):
     wind_u = wind_u[:, 0, :, :] # All times of u
     wind_v = wind_v[:, 0, :, :] # All times of
 
-    #NO CHANGE FROM COMMENTING OUT THIS OPERATION
+    #Interpolation process
     #-------------------------------------------------------------------------
-    # Remove the surface height dimension (Its only 1-Dimensional)
-    # wind_u = numpy.squeeze(wind_u) # Removes The Surface Height Dimension
-    # wind_v = numpy.squeeze(wind_v) # Ditto
-    # print "Wind_u:2", wind_u.shape
-    # print "Wind_v:2", wind_v.shape
-
     print "INTERPOLATING"
-    times = data_file.variables['time']
 
-    # wind_u = numpy.reshape(wind_u, (times.shape[0], 92, 61))
-    # wind_v = numpy.reshape(wind_v, (times.shape[0], 92, 61))
-
-    # Generate a time range 0 ... 139 for every 4 hours using the python thingy
-    #start_time = datetime.strptime(time.units, "Hour since %Y-%m-%dT%H:%M:%SZ")
-    size = times.shape[0]
-
+    #Old Timestamps
+    #-------------------------------------------------------------------------
+    #times = data_file.variables['time']
+    #size = times.shape[0]
     # Create two different time stamps used for interpolating
-    ts1 = numpy.arange(0, size * 3, 3) # One for every 3 hours
-    ts2 = numpy.arange(0, size * 3, 4) # One for every 4 hours
+    #ts1 = numpy.arange(0, size * 3, 3) # One for every 3 hours
+    #ts2 = numpy.arange(0, size * 3, 4) # One for every 4 hours
 
-    # start_time = datetime.now()
-    # start_time = start_time.replace(hour=0, minute=0, second=0, microsecond=0)
-    # start_time = date.toordinal(start_time)*24
-    #print "start time", start_time
+    #Time values for Interpolation
+    #-------------------------------------------------------------------------
+    start_time = datetime.now()
+    start_time = start_time.replace(hour=0, minute=0, second=0, microsecond=0)
+    start_time = date.toordinal(start_time)*24
 
-    # end_time = datetime.now()+timedelta(days=4)
-    # end_time = end_time.replace(hour=0, minute=0, second=0, microsecond=0)
-    # end_time = date.toordinal(end_time)*24
-    #print "end time ", end_time
+    end_time = datetime.now()+timedelta(days=4)
+    end_time = end_time.replace(hour=0, minute=0, second=0, microsecond=0)
+    end_time = date.toordinal(end_time)*24
 
-    #print "6"
-    #array_time = end_time - start_time - 6
-    #print "array time ", array_time
+    #Timestamps from first date to second date in increments of 3 and 4
+    #-------------------------------------------------------------------------
+    ts1 = numpy.arange(start_time , end_time + 3, 3)
+    ts2 = numpy.arange(start_time , end_time + 3, 4)
 
-    # ts1 = numpy.arange(0 , array_time, 3)
-    # ts2 = numpy.arange(0 , array_time, 4)
-    # print "ts1a ", ts1.shape, ts1
-    # print "ts11 ", ts11.shape, ts11
-    # print "ts2a ", ts2.shape, ts2
-    # print "ts22 ", ts22.shape, ts22
-
+    #Empty arrays for putting interpolated data
+    #-------------------------------------------------------------------------
     wind_u_int = numpy.empty([ts2.shape[0], 92, 61]) # Array to be filled
     wind_v_int = numpy.empty([ts2.shape[0], 92, 61]) # Ditto
 
-    # Loop through each lat and long and interpolate each value from time stamp ts1
-    # to ts2.  (ie from every 3rd hours to every 4hrs between the NAMS model time) see help(numpy.interp)
+    #Interpolation Process interpolates wind_u and wind_v from ts1 to ts2
+    #-------------------------------------------------------------------------
     for i in range(0, 91):
         for j in range(0, 60):
             wind_u_int[:,i,j] = numpy.interp(ts2, ts1, wind_u[:,i,j])
             wind_v_int[:,i,j] = numpy.interp(ts2, ts1, wind_v[:,i,j])
 
-    #Access the data at the required time index
+    #Access the data at the current time index
     #-------------------------------------------------------------------------
     wind_u = wind_u_int[time_index, :, :]
     wind_v = wind_v_int[time_index, :, :]
 
+    #Enable this if you need to run winds without interpolation
+    #You will need to comment out the interpolation code
+    #-------------------------------------------------------------------------
     #wind_u = wind_u[time_index, :, :]
     #wind_v = wind_v[time_index, :, :]
 
@@ -418,48 +401,23 @@ def wind_function(ax, data_file, bmap, time_index, downsample_ratio):
     #-------------------------------------------------------------------------
     wind_u = numpy.squeeze(wind_u) # Squeeze out the time
     wind_v = numpy.squeeze(wind_v) # Squeeze out the time
-    #print 'wind u dtype ', wind_u.dtype
 
-    # wind_u = wind_u.astype(numpy.float32)
-    # wind_v = wind_v.astype(numpy.float32)
-    #print 'wind u dtype ', wind_u.dtype
-
-    # wind_u = wind_u[::2]
-    # wind_v = wind_v[::2]
-    # x = x[::2]
-    # y = y[::2]
-
-    #NO CHANGE FROM COMMENTING OUT THIS OPERATION
+    #Interp returns an array of float64. This turns it into float32 to reduce memory usage
     #-------------------------------------------------------------------------
-    # wind_u = numpy.reshape(wind_u, (92, 61))# I swapped these
-    # wind_v = numpy.reshape(wind_v, (92, 61))# I swapped these
-    # print "Wind_u after swap: ", wind_u.shape
-    # print "Wind_v after swap: ", wind_v.shape
+    wind_u = wind_u.astype(numpy.float32)
+    wind_v = wind_v.astype(numpy.float32)
+    # print 'wind u dtype ', wind_u.dtype
+    # print "Size of wind u ", wind_u.nbytes
 
+    #Modify downsample ratio to change size of barbs
+    #-------------------------------------------------------------------------
     if downsample_ratio == 1:
         length = 3
     elif downsample_ratio == 2:
         length = 4.25
 
-    if(debug == 0): # Debug
-        #print "time.shape:", times.shape
-        #print "This is size ", size
-        print "ts1.shape:", ts1.shape[0]
-        print 'This is ts1 ', ts1
-        print "ts2.shape:", ts2.shape[0]
-        print 'This is ts2 ', ts2
-        print "length of ts2 ", len(ts2)
-        print "length of ts1 ", len(ts1)
-        print "length of wind_u", len(wind_u)
-        print "Wind_u_int:", wind_u_int.shape
-        print "Wind_v_int:", wind_v_int.shape
-        print "Wind_u:", wind_u.shape
-        print "Wind_v:", wind_v.shape
-        print "Lat:", lat.shape
-        print "Lon:",  lon.shape
-        print "x:", x.shape
-        print "y:", y.shape
-
+    #Creates the unchopped png to be tiled
+    #-------------------------------------------------------------------------
     print "Making Unchopped Wind Barb Image"
     bmap.barbs(x[::downsample_ratio, ::downsample_ratio],
                y[::downsample_ratio, ::downsample_ratio],
