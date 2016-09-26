@@ -1,17 +1,13 @@
-from django.db import models
-from django.conf import settings
 from celery import shared_task
-from urlparse import urljoin
 from django.utils import timezone
 import urllib
-from scipy.io import netcdf_file
 import os
 from uuid import uuid4
 from urlparse import urljoin
 import urllib2
 from defusedxml import ElementTree
 from datetime import datetime, timedelta
-from dateutil import parser, tz
+from dateutil import parser
 from django.db.models.aggregates import Max
 from django.db.models import Q
 from operator import __or__ as OR
@@ -19,10 +15,6 @@ from ftplib import FTP
 from django.db import models
 from scipy.io import netcdf_file
 from django.conf import settings
-#from pydap.client import open_url
-
-
-
 
 CATALOG_XML_NAME = "catalog.xml"
 XML_NAMESPACE = "{http://www.unidata.ucar.edu/namespaces/thredds/InvCatalog/v1.0}"
@@ -141,7 +133,7 @@ class DataFileManager(models.Manager):
             #NOTE: this assumes that the file contains one day of hindcasts, so the model date is one day BEHIND
             # the date on which we download the file.
             # This is prone to fail. However, when we actually save the record in the database,
-            # THAT model_date is guarenteed to be correct.
+            # THAT model_date is guaranteed to be correct.
             model_date=datetime.date( modified_datetime - timedelta(days=1)),
             type='WAVE'
         )
@@ -153,7 +145,6 @@ class DataFileManager(models.Manager):
             # The date in local_filename is actually 1 day LATER than the file actually applies at
             local_filename = "{0}_{1}_{2}.nc".format("OuterGrid", initial_datetime, uuid4())
             urllib.urlretrieve(url=url, filename=os.path.join(destination_directory, local_filename))
-
 
             file = netcdf_file(os.path.join(settings.MEDIA_ROOT, settings.WAVE_WATCH_DIR, local_filename))
 
@@ -190,7 +181,6 @@ class DataFileManager(models.Manager):
     @staticmethod
     @shared_task(name='pl_download.get_wind_file')
     def get_wind_file():
-        debug = 1
         #list of file ids created
         new_file_ids = []
 
@@ -205,8 +195,6 @@ class DataFileManager(models.Manager):
         end = str(end_time) + 'T00%3A00%3A00Z'
 
         local_filename = "{0}_{1}_{2}.nc".format("WIND", current_time, uuid4())
-        #dest_file = os.path.join(destination_directory, local_filename)
-        #urllib.urlretrieve(url = settings.WIND_URL, filename = dest_file)
 
         #Check to see if we've download this file before
         matches_old_file = DataFile.objects.filter(
@@ -216,10 +204,10 @@ class DataFileManager(models.Manager):
 
         if not matches_old_file:
             print "Downloading Wind file "
+            #If you need to modify the time, or coordinates for the downloaded wind file change this values in url
             url = 'http://thredds.ucar.edu/thredds/ncss/grib/NCEP/NAM/CONUS_12km/conduit/Best?var=u-component_of_wind_height_above_ground&var=v-component_of_wind_height_above_ground&north=48.563922&west=-129.876507&east=-123.863860&south=40&horizStride=1&time_start='+begin+'&time_end='+end+'&timeStride=1&vertCoord=&addLatLon=true&accept=netcdf'
             urllib.urlretrieve(url=url, filename=os.path.join(destination_directory, local_filename))
             print "Download Complete "
-            #downloadTime = timezone.now()-timedelta(hours=7)
 
             #Saving the file to the database
             datafile = DataFile(
@@ -232,30 +220,10 @@ class DataFileManager(models.Manager):
             datafile.save()
             new_file_ids.append(datafile.id)
 
-            if debug == 0:
-                print "Wind Data File Info"
-                print "Type: ", datafile.type
-                print "Current Time ", current_time
-                print "Generated Time ", generated_time
-                print "End Time ", end_time
-                print "Download Date: ", datafile.download_datetime
-                print "Generated Date:", datafile.generated_datetime
-                print "Model Date: ", datafile.model_date
-                print "File: ", datafile.file
-
             return new_file_ids
         else:
             print "No new wind files "
             return []
-
-        #This might be useful later. Delete once winds are done
-        # Finding the correct dates of the model
-        # print "This is datestring ", dataset.time.units[11:]
-        # dateString = dataset.time.units[11:] #Date from which of forecasts available: normally 13 days in the past
-        # modified_datetime = datetime.strptime(dateString, "%Y-%m-%dT%H:%M:%SZ").date() #strip date
-        # print "This is modified datetime ", modified_datetime
-        # current_datetime = modified_datetime+timedelta(days=13) #should give us the current day
-        # print "This is current datetime ", current_datetime
 
     @classmethod
     def get_next_few_days_files_from_db(cls):
@@ -274,7 +242,7 @@ class DataFileManager(models.Manager):
                       generated_datetime=filedata.get('newest_generation_time'))
             q_objects.append(new_q)
 
-        # assumes you're not redownloading the same file for the same model and generation dates.
+        # assumes you're not re-downloading the same file for the same model and generation dates.
         actual_datafile_objects = DataFile.objects.filter(reduce(OR, q_objects))
 
         return actual_datafile_objects
@@ -283,15 +251,9 @@ class DataFileManager(models.Manager):
     def is_new_file_to_download(cls):
         three_days_ago = timezone.now().date()-timedelta(days=3)
         today = timezone.now().date()
-        #print "date today: " + str(today)
-        #print "date 3-day: " + str(three_days_ago)
-
-        #Look back at the past 3 days of datafiles
 
         #Just for ROMS model
         recent_netcdf_files = DataFile.objects.filter(type="NCDF", model_date__range=[three_days_ago, today])
-        #print "number of elements recen datafiles: " + str(len(recent_netcdf_files))
-        #print recent_netcdf_files
 
         # empty lists return false
         if not recent_netcdf_files:
@@ -303,13 +265,9 @@ class DataFileManager(models.Manager):
         tags = tree.iter(XML_NAMESPACE + 'dataset')
 
         for elem in tags:
-            #print "file name: " + str(elem.get('name'))
             if not elem.get('name').startswith('ocean_his'):
                 continue
             server_file_modified_datetime = extract_modified_datetime_from_xml(elem)
-            #print "\tserver file time: " + str(server_file_modified_datetime)
-            #print "\tlocal file time: " + str(local_file_modified_datetime)
-            #print "\tserver > local: " + str(server_file_modified_datetime > local_file_modified_datetime)
             if server_file_modified_datetime.date() > local_file_modified_datetime.date():
                 return True
 

@@ -1,28 +1,20 @@
 import os
 import shutil
-import sys
 from uuid import uuid4
-
 from scipy.io import netcdf
 import numpy
 from matplotlib import pyplot
 from mpl_toolkits.basemap import Basemap
-#from pydap.client import open_url
-
-
 from django.conf import settings
 from datetime import datetime, timedelta
 from django.utils import timezone
 
 #TODO Move plot_functions to plotter
-
 class WaveWatchPlotter:
     data_file = None
 
     def __init__(self, file_name):
         self.load_file(file_name)
-
-    #TODO Make a get_model_times function
 
     def load_file(self, file_name):
         #Gives a netcdf file object with default mode of reading permissions only
@@ -36,21 +28,9 @@ class WaveWatchPlotter:
 
     # The unchopped file's index starts at noon: index = 0 and progresses throgh 85 forecasts, one per hour,
     # for the next 85 hours.
-    #
-    # def get_time_from_index_of_file(self, index):
-    # self.data_file.variables
-    # ocean_time_epoch = datetime(day=1, month=1, year=2005, hour=0, minute=0, second=0, tzinfo=timezone.utc)
-    # seconds_since_epoch = timedelta(seconds=self.data_file.variables['ocean_time'][index])
-    # return ocean_time_epoch + seconds_since_epoch
-
     # Make a plot, with the Function to use specified, the storage directory specified, and the Index (ie 0--85 forecasts)
     # Based on the title of the file
     def make_plot(self, plot_function, forecast_index,storage_dir, generated_datetime, zoom_levels, downsample_ratio=None):
-
-        period_flag = 0 #This is used to determine whether or not we are plotting wave period
-        if storage_dir == "": # Wave period has no storage_dir so if it is blank we are plotting wave period
-            period_flag = 1
-
         fig = pyplot.figure()
         key_fig = pyplot.figure(facecolor=settings.OVERLAY_KEY_COLOR)
 
@@ -69,17 +49,13 @@ class WaveWatchPlotter:
                        llcrnrlat=lats[0][0], urcrnrlat=lats[-1][0],
                        llcrnrlon=longs[0][0], urcrnrlon=longs[-1][-1],
                       ax=ax, epsg=4326)
-        if period_flag == 0:
-            plot_function(ax=ax, data_file=self.data_file, forecast_index=forecast_index, bmap=bmap, key_ax=key_ax, downsample_ratio=downsample_ratio)
-        else:
-            plot_function(data_file=self.data_file, forecast_index=forecast_index)
-        if period_flag == 0: #Wave period does not need a plot_filename, so only do this if the model is not wave period
-            plot_filename = "{0}_{1}_{2}_{3}.png".format(plot_function.__name__,forecast_index,generated_datetime, uuid4())
+        plot_function(ax=ax, data_file=self.data_file, forecast_index=forecast_index, bmap=bmap, key_ax=key_ax, downsample_ratio=downsample_ratio)
+        plot_filename = "{0}_{1}_{2}_{3}.png".format(plot_function.__name__,forecast_index,generated_datetime, uuid4())
         key_filename = "{0}_key_{1}_{2}.png".format(plot_function.__name__,generated_datetime, uuid4())
 
         # TODO: set the resolution higher for the zoomed-in overlays. The code below
         # seems to set the resolution properly, but at the expense of performance: it takes
-        # 5 minutes to plot the biggest images, which is two long if we don't have better
+        # 5 minutes to plot the biggest images, which is too long if we don't have better
         # parallelization.
         # if zoom_levels == '9-11' :
         #     DPI = 1800
@@ -104,25 +80,19 @@ class WaveWatchPlotter:
         # dpi=2000 and got a strange error. Internet sources suggest that there may be some sort of off-by-one
         # error when the size of the image given to gdal is irregular in some way. Moving DPI to 1800 fixed the
         # issue.
+        fig.savefig(
+             os.path.join(settings.MEDIA_ROOT, storage_dir, plot_filename),
+             dpi=DPI, bbox_inches='tight', pad_inches=0,
+             transparent=True, frameon=False)
+        pyplot.close(fig)
 
-        if period_flag == 0: #This saves a figure to the media folder. Only do this if the model is not wave period.
-            fig.savefig(
-                 os.path.join(settings.MEDIA_ROOT, storage_dir, plot_filename),
-                 dpi=DPI, bbox_inches='tight', pad_inches=0,
-                 transparent=True, frameon=False)
-            pyplot.close(fig)
-
-        #This saves the key. Every model needs this.
         key_fig.savefig(
                  os.path.join(settings.MEDIA_ROOT, settings.KEY_STORAGE_DIR, key_filename),
                  dpi=500, bbox_inches='tight', pad_inches=0,
                  transparent=True, facecolor=key_fig.get_facecolor())
         pyplot.close(key_fig)
 
-        if period_flag == 0:
-            return plot_filename, key_filename
-        else:
-            return key_filename #Wave period only needs key_filename
+        return plot_filename, key_filename
 
 class WindPlotter:
     data_file = None
@@ -141,7 +111,7 @@ class WindPlotter:
         )
 
     def get_number_of_model_times(self):
-        return 23 #This is the number of time_indexes for the wind model after interpolating from 3 hour increments to 4
+        return 24 #This is the number of time_indexes for the wind model after interpolating from 3 hour increments to 4
 
     def get_time_at_oceantime_index(self,index):
         time = timezone.now()+ timedelta(hours=7)-timedelta(days=1)
@@ -153,7 +123,7 @@ class WindPlotter:
         return time
 
     def key_check(self):
-        # The Barb Key is Static, so make sure its in the correctly directory each time we make a plot
+        # The Barb Key is Static, so make sure its in the correct directory each time we make a plot
         keyFile = os.path.join(settings.MEDIA_ROOT, settings.KEY_STORAGE_DIR, "barbKey.png")
         barbStatic = "/opt/sharkeyes/src/static_files/imgs/barbKey.png"
 
@@ -161,7 +131,6 @@ class WindPlotter:
         return 1
 
     def make_plot(self, plot_function, zoom_levels, time_index=0, downsample_ratio=None):
-
         fig = pyplot.figure()
         ax = fig.add_subplot(111)  # one subplot in the figure
 
@@ -172,11 +141,9 @@ class WindPlotter:
                        llcrnrlon=-129, urcrnrlon=-123.7265625,
                        ax=ax, epsg=4326)
 
-        #model_time = self.get_time_at_oceantime_index(time_index)
-
         plot_function(ax=ax, data_file=self.data_file, time_index=time_index, bmap=bmap, downsample_ratio=downsample_ratio)
 
-        generated_datetime = timezone.now().date() #The wind png is always generated at the time of the call
+        generated_datetime = timezone.now().date()
 
         plot_filename = "{0}_{1}_{2}_{3}.png".format(plot_function.__name__, time_index, generated_datetime, uuid4())
 
@@ -250,9 +217,6 @@ class Plotter:
         plot_filename = "{0}_{1}.png".format(plot_function.__name__, uuid4())
         key_filename = "{0}_key_{1}.png".format(plot_function.__name__, uuid4())
 
-        # TODO: set the resolution higher for the zoomed-in overlays. But we don't need
-        # the original 1200 dpi for the zoomed-out images (where zoom level is 3-5, for instance)
-        # There needs to be a case for each of these sets of zoom levels:  zoom_levels_for_currents = [('2-7', 8),  ('8-12', 2)]
         if zoom_levels == '8-12':
             DPI = 1800
         else:

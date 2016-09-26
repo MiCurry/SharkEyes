@@ -56,18 +56,6 @@ if __name__ == "__main__":
             totalTime = (finish - begin)/ 60
             print "Time taken for Winds = " + str(round(totalTime, 2)) + " minutes"
 
-    #Small test to see what times the WindPlotter returns
-    elif sys.argv[-1] == "wtest":
-        from pl_plot.plotter import WindPlotter
-        from pl_plot.models import OverlayManager
-        pl = WindPlotter()
-        for i in range(7):
-            print pl.get_time_at_oceantime_index(i)
-
-        t = OverlayManager.make_plot(5, 2, 0)
-        print t
-
-
     elif sys.argv[-1] == "plot-all":
         from pl_download.models import DataFileManager, DataFile
         from pl_plot.models import OverlayManager as om

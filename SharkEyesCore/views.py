@@ -10,23 +10,13 @@ from django.http import HttpResponse
 
 #This is where we associate the Javascript variables (overlays, defs etc) with the Django objects from the database.
 def home(request):
-    # maybe not sure how wind is stored in the database...
+    #This determines which models are ran
+    #1 = SST, 3 = Currents, 4 = Wave Height, 5 = Winds, 6 = Wave Direction
+    #-------------------------------------------------------------------------
     models = [1,3,4,5,6]
-
     overlays_view_data = OverlayManager.get_next_few_days_of_tiled_overlays(models)
-    print
-    print
-    print "overlay view data"
-    print str(len(overlays_view_data))
-    print overlays_view_data
-
     datetimes = overlays_view_data.values_list('applies_at_datetime', flat=True).distinct().order_by('applies_at_datetime')
-    print "datetimes"
-    for d in datetimes:
-        print "    " + str(d)
-
     context = {'overlays': overlays_view_data, 'defs': OverlayDefinition.objects.filter(is_base=True, id__in=models), 'times':datetimes }
-
     return render(request, 'index.html', context)
 
 def oops(request):
@@ -37,6 +27,9 @@ def about(request):
 
 @csrf_exempt
 def tides(request):
+    #This responds to requests from the Javascript to grab tide info
+    #It retrieves the information from the static tide files
+    #-------------------------------------------------------------------------
     station_id = json.loads(request.body)["station_id"]
     display_date = json.loads(request.body)["display_date"]
     address = '/opt/sharkeyes/src/static_files/tides/' + station_id + '.txt'

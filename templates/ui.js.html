@@ -29,7 +29,7 @@ var visibleKeys = [];
 var visible_FC = false;
 // is there an active vector (V) being displayed
 var visible_V = false;
-//These are variables for the tide stations. They are referenced in multiple functions.
+//These are variables for the tide stations.
 var southBeachContent = '';
 var astoriaContent = '';
 var coosContent = '';
@@ -39,9 +39,6 @@ var coosFlag = 0;
 var southBeachId = 'southbeach'; //If you want to add new stations these ids can be found at http://tidesandcurrents.noaa.gov/map/
 var astoriaId = 'astoria';
 var coosId = 'coosbay';
-
-console.log("This is datetime")
-console.log(datetime)
 
 // *************************************************************
 // array holding overlays for given datetime
@@ -179,7 +176,7 @@ function makeTideMarker(date, station, location){
         success: function(data){
                 tideInfo += data;
         },
-        async: false,
+        async: false, //This is async to prevent visible slowdown on initial page load.
         error: function(xhr, ajaxOptions, thrownError){
             alert(xhr.status);
             alert(thrownError);
@@ -257,7 +254,6 @@ function makeDateString(date){
         date_str += dates[1];
     }
     return date_str;
-
 }
 
 // *********************************************************************************************************************
@@ -478,24 +474,14 @@ function update_overlays(date) {
         if (datedic[date][name] == null) {
             console.log("disable true " + name);
             $("#" + name).prop('class', 'disabled');
-            //("#" + name + ".toggle-checkbox").prop('disabled', true);
-            //$("#" + name).prop('disabled', true);
-            //$("#" + name).prop('hidden', true);
-            //$("#" + name).hide("slow")
         }
         else {
             console.log("disable false " + name);
             $("#" + name).prop('class', 'option');
-            //$("#" + name + ".toggle-checkbox").prop('disabled', false);
-            //$("#" + name).prop('disabled', false);
-            //$("#" + name).prop('hidden', false);
-            //$("#" + name).show("slow")
         }
         // enable desired overlays
         if($("#" + name + ".toggle-checkbox").prop("checked")) {
             if (insert_overlay(date, name) != true) {
-
-                //$("#" + name + ".toggle-checkbox").prop('checked', false);
                 remove_overlay(name);
                 warning_message(date, name);
             }
@@ -580,6 +566,8 @@ function remove_overlay(type) {
         $("#key").hide();
     }
     // this is bad makes assumption that only ever two in visibleKeys
+    // If you increase the number of fields that can be shown on
+    // On screen you will need to change this.
     else {
         $("#key-img").attr("src", visibleKeys[0]);
     }
