@@ -316,7 +316,7 @@ def currents_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio)
                           scale=10.0, headwidth=2, headlength=3,
                           headaxislength=2.5, minlength=0.5, minshaft=.9)
 
-    # Multiplying .5, 1, and 2 by .5144 is converting from knots to meters per second
+    # Multiplying .5, 1, and 2 by .5144 is converting from knots to m/s
     #-------------------------------------------------------------------------
     quiverkey = key_ax.quiverkey(overlay, .95, .4, 0.5*.5144, ".5 knots", labelpos='S', labelcolor='white',
                                  color='white', labelsep=.5, coordinates='axes')
@@ -333,7 +333,7 @@ def currents_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio)
 def wind_function(ax, data_file, bmap, time_index, downsample_ratio):
     print "CREATING A WIND PLOT"
     print "DOWNSAMPLERATIO = ", downsample_ratio, "Time Index =", time_index
-    # We now have the lat longs from the netcdf. We should not need this
+    # We now have the 2D lat longs from the netcdf. We should not need this
     #-------------------------------------------------------------------------
     # tmp = numpy.loadtxt('/opt/sharkeyes/src/latlon.g218')
     # lat = numpy.reshape(tmp[:, 2], data_file.variables['lat'])
@@ -359,48 +359,54 @@ def wind_function(ax, data_file, bmap, time_index, downsample_ratio):
     wind_u = wind_u[:, 0, :, :] # All times of u
     wind_v = wind_v[:, 0, :, :] # All times of
 
+    #The wind data comes in meters per second. This converts it into knots.
+    #-------------------------------------------------------------------------
+    wind_u = numpy.multiply(wind_u, 1.943)
+    wind_v = numpy.multiply(wind_v, 1.943)
+
     #Interpolation process
     #-------------------------------------------------------------------------
     print "INTERPOLATING"
 
-    #Old Timestamps these are equivalent in regard to interpolation
-    #We are using the timestaps for specificity
+    #Timestamps for interpolation purposes.
     #-------------------------------------------------------------------------
-    #times = data_file.variables['time']
-    #size = times.shape[0]
+    times = data_file.variables['time']
+    size = times.shape[0]
+
     # Create two different time stamps used for interpolating
-    #ts1 = numpy.arange(0, size * 3, 3) # One for every 3 hours
-    #ts2 = numpy.arange(0, size * 3, 4) # One for every 4 hours
+    ts1 = numpy.arange(0, size * 3, 3) # One for every 3 hours
+    ts2 = numpy.arange(0, size * 3, 4) # One for every 4 hours
 
-    #Time values for Interpolation
+    #Time values for Interpolation - These work well on the vagrant machine, but they don't work on the actual
+    #production and staging machines. The interpolated values are the same for both timestamp values.
     #-------------------------------------------------------------------------
-    start_time = datetime.now()
-    start_time = start_time.replace(hour=0, minute=0, second=0, microsecond=0)
-    start_time = date.toordinal(start_time)*24
+    #start_time = datetime.now()
+    #start_time = start_time.replace(hour=0, minute=0, second=0, microsecond=0)
+    #start_time = date.toordinal(start_time)*24
 
-    end_time = datetime.now()+timedelta(days=4)
-    end_time = end_time.replace(hour=0, minute=0, second=0, microsecond=0)
-    end_time = date.toordinal(end_time)*24
+    #end_time = datetime.now()+timedelta(days=4)
+    #end_time = end_time.replace(hour=0, minute=0, second=0, microsecond=0)
+    #end_time = date.toordinal(end_time)*24
 
     #Timestamps from first date to second date in increments of 3 and 4
     #The +3 value is used to make the timestamp array fit wind_u and wind_v in interp
     #-------------------------------------------------------------------------
-    ts1 = numpy.arange(start_time , end_time + 3, 3)
-    ts2 = numpy.arange(start_time , end_time + 3, 4)
+    #ts1 = numpy.arange(start_time , end_time + 3, 3)
+    #ts2 = numpy.arange(start_time , end_time + 3, 4)
 
     #Empty arrays for putting interpolated data
     #-------------------------------------------------------------------------
     wind_u_int = numpy.empty([ts2.shape[0], 92, 61]) # Array to be filled
     wind_v_int = numpy.empty([ts2.shape[0], 92, 61]) # Ditto
 
-    #Interpolation Process interpolates wind_u and wind_v from ts1 to ts2
+    #Interpolation Process interpolates wind_u and wind_v from ts1 to ts2 - Disable to turn off interpolation
     #-------------------------------------------------------------------------
     for i in range(0, 91):
         for j in range(0, 60):
             wind_u_int[:,i,j] = numpy.interp(ts2, ts1, wind_u[:,i,j])
             wind_v_int[:,i,j] = numpy.interp(ts2, ts1, wind_v[:,i,j])
 
-    #Access the data at the current time index
+    #Access the data at the current time index - Turn off if not interpolating
     #-------------------------------------------------------------------------
     wind_u = wind_u_int[time_index, :, :]
     wind_v = wind_v_int[time_index, :, :]
