@@ -13,11 +13,12 @@ if __name__ == "__main__":
         from pl_download.models import DataFileManager, DataFile
         from pl_plot.models import OverlayManager
         from pl_chop.tasks import tile_overlay, tile_wave_watch_overlay
-        wave = 0
+        wave = 1
         sst = 0
         wind = 1
         if wave:
             wave = DataFileManager.get_latest_wave_watch_files()
+            wave = DataFile.objects.filter(type='WAVE').latest('model_date')
             tiles = []
             begin = time.time()
             #first entry is day-1 at 12pm
@@ -61,26 +62,26 @@ if __name__ == "__main__":
         from pl_plot.models import OverlayManager as om
         from pl_chop.tasks import tile_overlay, tile_wave_watch_overlay
         from pl_plot.plotter import WaveWatchPlotter, WindPlotter, Plotter
-        wind = 1
         wave = 0
         sst = 0
+        wind = 1
 
         if wave:
             DataFileManager.get_latest_wave_watch_files()
             print "\n--- Plotting WW3 - Height and Direction ---"
-            wave = DataFile.objects.filter(type = "WAVE").values_list('id', flat=True)
-            for id in wave:
-                for t in xrange(0, 85, 4):
-                    try:
-                        print "Plotting and Tiling WW3 - File ID:", id, "Time Index:", t
-                        tile_wave_watch_overlay(om.make_wave_watch_plot(4, t, id))
-                        tile_wave_watch_overlay(om.make_wave_watch_plot(6, t, id))
-                        print "plot/tile success"
-                    except Exception:
-                        print '-' * 60
-                        traceback.print_exc(file=sys.stdout)
-                        print '-' * 60
-                    print
+            wave = DataFile.objects.filter(type='WAVE').latest('model_date')
+            id = wave.id
+            for t in xrange(0, 85, 4):
+                try:
+                    print "Plotting and Tiling WW3 - File ID:", id, "Time Index:", t
+                    tile_wave_watch_overlay(om.make_wave_watch_plot(4, t, id))
+                    tile_wave_watch_overlay(om.make_wave_watch_plot(6, t, id))
+                    print "plot/tile success"
+                except Exception:
+                    print '-' * 60
+                    traceback.print_exc(file=sys.stdout)
+                    print '-' * 60
+                print
         if sst:
             DataFileManager.fetch_new_files()
             print "\n--- Plotting ROMS - SST and Currents ---"
