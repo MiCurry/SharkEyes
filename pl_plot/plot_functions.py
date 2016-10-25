@@ -444,7 +444,7 @@ def wind_function(ax, data_file, bmap, time_index, downsample_ratio):
                wind_u[::downsample_ratio, ::downsample_ratio],
                wind_v[::downsample_ratio, ::downsample_ratio],
                ax=ax,
-               length=length)
+               length=length, sizes=dict(spacing=0.2, height=0.3))
                #barb_increments=dict(half=.1, full=10, flag=50))
 
     print "WIND PLOT CREATED!"

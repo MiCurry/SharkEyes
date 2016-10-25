@@ -13,7 +13,7 @@ if __name__ == "__main__":
         from pl_download.models import DataFileManager, DataFile
         from pl_plot.models import OverlayManager
         from pl_chop.tasks import tile_overlay, tile_wave_watch_overlay
-        wave = 1
+        wave = 0
         sst = 0
         wind = 1
         if wave:
