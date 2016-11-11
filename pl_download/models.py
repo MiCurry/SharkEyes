@@ -139,27 +139,18 @@ class DataFileManager(models.Manager):
             type='WAVE'
         )
         if not matches_old_file:
-            timeout = 2000
-            socket.setdefaulttimeout(timeout)
             print "new wavewatch"
             #Create File Name and Download actual File into media folder
             url = urljoin(settings.WAVE_WATCH_URL, file_name)
-            print "1"
             # The date in local_filename is actually 1 day LATER than the file actually applies at
             local_filename = "{0}_{1}_{2}.nc".format("OuterGrid", initial_datetime, uuid4())
-            print "2"
             urllib.urlretrieve(url=url, filename=os.path.join(destination_directory, local_filename))
-            print "3"
             file = netcdf_file(os.path.join(settings.MEDIA_ROOT, settings.WAVE_WATCH_DIR, local_filename))
-            print "4"
             # The times in the file are UTC in seconds since Jan 1, 1970.
             all_day_times = file.variables['time'][:]
-            print "5"
             basetime = datetime(1970,1,1,0,0,0)
-            print "6"
             # Check the first value of the forecast
             first_forecast_time = basetime + timedelta(all_day_times[0]/3600.0/24.0,0,0)
-            print "7"
             #Save the File name into the Database
             datafile = DataFile(
                 type='WAVE',
@@ -168,13 +159,10 @@ class DataFileManager(models.Manager):
                 model_date = first_forecast_time,
                 file=local_filename,
             )
-            print "8"
             datafile.save()
             new_file_ids.append(datafile.id)
-            print "9"
             #quit ftp connection cause we accessed all the data we need
             ftp.quit()
-            print "10"
             return new_file_ids
         #Must have already downloaded this file
         else:

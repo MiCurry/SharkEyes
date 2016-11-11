@@ -25,7 +25,7 @@ if __name__ == "__main__":
             #need to offset 16 to match with sst plot
             #NOTE it increments in 1 hour changes
             tiles += OverlayManager.make_wave_watch_plot(4, 16, wave[0])
-            #tiles += OverlayManager.make_wave_watch_plot(6, 16, wave[0])
+            tiles += OverlayManager.make_wave_watch_plot(6, 16, wave[0])
             for t in tiles:
                 tile_wave_watch_overlay(t)
             finish = time.time()
@@ -38,7 +38,7 @@ if __name__ == "__main__":
             #NOTE it increments in 4 hour changes
             begin = time.time()
             tiles += OverlayManager.make_plot(1, 0, sst[0])
-            #tiles += OverlayManager.make_plot(3, 0, sst[0])
+            tiles += OverlayManager.make_plot(3, 0, sst[0])
             for t in tiles:
                 tile_overlay(t)
             finish = time.time()

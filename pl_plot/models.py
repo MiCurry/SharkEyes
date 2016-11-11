@@ -418,7 +418,6 @@ class Overlay(models.Model):
         #Delete the Key image
         if os.path.isfile(self.key.path):
             #The wind barb key is static. We don't want to delete it.
-            print "THIS IS THE PATH!!!!!!!!!!!!!!!!", self.key.path
             if self.key.path != '/opt/sharkeyes/media/keys/barbKey.png':
                 os.remove(self.key.path)
 
