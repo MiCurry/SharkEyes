@@ -62,8 +62,8 @@ if __name__ == "__main__":
         from pl_plot.models import OverlayManager as om
         from pl_chop.tasks import tile_overlay, tile_wave_watch_overlay
         from pl_plot.plotter import WaveWatchPlotter, WindPlotter, Plotter
-        wave = 0
-        sst = 0
+        wave = 1
+        sst = 1
         wind = 1
 
         if wave:
