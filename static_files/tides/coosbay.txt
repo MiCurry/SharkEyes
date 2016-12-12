@@ -1547,4 +1547,3 @@ Date 		Day	Time		Pred(Ft)	Pred(cm)	High/Low
 2017/12/31	Sun	05:13 AM	2.5		76		L
 2017/12/31	Sun	11:23 AM	9.0		274		H
 2017/12/31	Sun	06:21 PM	-1.1		-34		L
-
