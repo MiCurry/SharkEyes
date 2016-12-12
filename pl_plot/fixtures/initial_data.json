@@ -7,7 +7,8 @@
             "is_base": true,
             "type": "FC",
             "display_name_short": "SST",
-            "function_name": "sst_function"
+            "function_name": "sst_function",
+            "forecast": 53
         }
     },
 
@@ -19,7 +20,8 @@
             "is_base": false,
             "type": "FC",
             "display_name_short": "Salt",
-            "function_name": "salt_function"
+            "function_name": "salt_function",
+            "forecast": 53
         }
     },
 
@@ -31,9 +33,11 @@
             "is_base": true,
             "type": "V",
             "display_name_short": "Currents",
-            "function_name": "currents_function"
+            "function_name": "currents_function",
+            "forecast": 53
         }
     },
+
     {
         "model": "pl_plot.overlaydefinition",
         "pk": 4,
@@ -42,9 +46,11 @@
             "is_base": true,
             "type": "FC",
             "display_name_short": "Wave Height",
-            "function_name": "wave_height_function"
+            "function_name": "wave_height_function",
+            "forecast": 65
         }
     },
+
     {
           "model": "pl_plot.overlaydefinition",
           "pk": 5,
@@ -53,20 +59,34 @@
               "is_base": true,
               "type": "V",
               "display_name_short": "Wind",
-              "function_name": "wind_function"
+              "function_name": "wind_function",
+            "forecast": 65
           }
-      },
-      {
+    },
+
+    {
         "model": "pl_plot.overlaydefinition",
         "pk": 6,
         "fields": {
-            "display_name_long": "Wave Direction/Height",
+            "display_name_long": "Wave Direction/Period",
             "is_base": true,
             "type": "V",
-            "display_name_short": "Wave Direction/Height",
-            "function_name": "wave_direction_function"
+            "display_name_short": "Wave Direction/Period",
+            "function_name": "wave_direction_function",
+            "forecast": 65
         }
+    },
 
-      }
-
+    {
+        "model": "pl_plot.overlaydefinition",
+        "pk": 7,
+        "fields": {
+            "display_name_long": "Wave Period",
+            "is_base": false,
+            "type": "FC",
+            "display_name_short": "Wave Period",
+            "function_name": "wave_period_function",
+            "forecast": 65
+        }
+    }
 ]

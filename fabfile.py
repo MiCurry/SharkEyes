@@ -30,7 +30,8 @@ python_packages = ['numpy==1.8',
                    'south==0.8.4',
                    'defusedxml==0.4.1',
                    'pygdal==1.10.1.0',
-                   'pydap'
+                   'pydap',
+                   'requests'
                    ]
 
 # these aren't used everywhere yet...
@@ -52,8 +53,8 @@ def vagrant():
 
 
 def staging():
-    env.user = 'developer'
-    hostname = 'baker.coas.oregonstate.edu'
+    env.user = 'root'
+    hostname = 'brad.coas.oregonstate.edu'
     port = 22
     env.hosts = env.hosts = ["%s:%s" % (hostname,port)]
     env.branch = 'staging'
@@ -155,7 +156,7 @@ def setup_media_directory():
     if not exists('/opt/sharkeyes/media/'):
         make_dir('/opt/sharkeyes/media/')
     with cd('/opt/sharkeyes/media'):
-        for d in ['netcdf', 'unchopped', 'vrt_files', 'tiles', 'keys', 'wave_watch_datafiles', 'wave_watch_forecasts']:
+        for d in ['netcdf', 'unchopped', 'vrt_files', 'tiles', 'keys', 'wind_datafiles', 'wave_watch_datafiles', 'wave_watch_forecasts']:
             if not exists(d):
                 make_dir(d)
     if not env.user == 'vagrant':
@@ -331,7 +332,7 @@ def deploy():
             branch = prompt("Branch to run? (Enter to leave unchanged): ")
             if branch:
                 run('git checkout {0}'.format(branch))
-            run('git pull')
+            sudo('git pull')
         with prefix('source /opt/sharkeyes/env_sharkeyes/bin/activate'):
             print("!-"*50)
             print("If this is your first run, Django will ask you to create a super user. "

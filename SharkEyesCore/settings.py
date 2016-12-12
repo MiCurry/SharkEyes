@@ -54,7 +54,6 @@ ROOT_URLCONF = 'SharkEyesCore.urls'
 
 WSGI_APPLICATION = 'SharkEyesCore.apache.wsgi.application'
 
-
 # Internationalization
 # https://docs.djangoproject.com/en/1.6/topics/i18n/
 # https://docs.djangoproject.com/en/1.8/topics/i18n/timezones/
@@ -65,7 +64,6 @@ TIME_ZONE = 'America/Los_Angeles'
 USE_I18N = True
 USE_L10N = True
 USE_TZ = True
-
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.6/howto/static-files/
@@ -96,16 +94,14 @@ WAVE_WATCH_STORAGE_DIR = "wave_watch_forecasts"
 WIND_DIR = "wind_datafiles"
 WIND_STORAGE_DIR = "wind_forecasts"
 
-
 MEDIA_ROOT = "/opt/sharkeyes/media/"
 MEDIA_URL = "/media/"
 
-
-#BASE_NETCDF_URL = "http://ingria.coas.oregonstate.edu/opendap/ACTZ/"
 BASE_NETCDF_URL = "http://ingria.coas.oregonstate.edu/opendap/ORWA/"
 WAVE_WATCH_URL = "ftp://cil-www.oce.orst.edu/pub/outgoing/ww3data/"
 FTP_WAVE_WAVE_URL = "cil-wwww.oce.orst.edu"
-WIND_URL = "http://thredds.ucar.edu/thredds/dodsC/grib/NCEP/NAM/CONUS_12km/conduit/Best"
+#Not Currently used. Can be used if you need to stream wind data for some reason.
+#WIND_URL = "http://thredds.ucar.edu/thredds/dodsC/grib/NCEP/NAM/CONUS_12km/conduit/Best"
 
 #some database
 CONN_MAX_AGE = None
@@ -115,7 +111,6 @@ BROKER_HOST = "127.0.0.1"
 BROKER_PORT = 5672
 BROKER_VHOST = "sharkeyes"
 
-
 CELERY_RESULT_BACKEND = 'djcelery.backends.database:DatabaseBackend'
 CELERYBEAT_SCHEDULER = 'djcelery.schedulers.DatabaseScheduler'
 CELERY_IMPORTS = ('SharkEyesCore.tasks',)
@@ -123,11 +118,10 @@ CELERY_IMPORTS = ('SharkEyesCore.tasks',)
 CELERYBEAT_SCHEDULE = {
    'plot_pipeline': {
        'task': 'sharkeyescore.pipeline',
-       'schedule': timedelta(hours=4),
+       'schedule': timedelta(hours=6),
        'args': ()
    },
 }
-
 # import local settings. PyCharm thinks it's unused, but PyCharm is silly.
 # noinspection PyUnresolvedReferences
 from .settings_local import *
