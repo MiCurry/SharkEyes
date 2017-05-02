@@ -14,8 +14,8 @@ if __name__ == "__main__":
         from pl_plot.models import OverlayManager
         from pl_chop.tasks import tile_overlay, tile_wave_watch_overlay
         wave = 0
-        sst = 0
-        wind = 1
+        sst = 1
+        wind = 0
         if wave:
             wave = DataFileManager.get_latest_wave_watch_files()
             wave = DataFile.objects.filter(type='WAVE').latest('model_date')
@@ -37,8 +37,9 @@ if __name__ == "__main__":
             #first entry is day at 4am
             #NOTE it increments in 4 hour changes
             begin = time.time()
-            tiles += OverlayManager.make_plot(1, 0, sst[0])
-            tiles += OverlayManager.make_plot(3, 0, sst[0])
+            #tiles += OverlayManager.make_plot(1, 0, sst[0])
+            tiles += OverlayManager.make_plot(2, 0, sst[0])
+            #tiles += OverlayManager.make_plot(3, 0, sst[0])
             for t in tiles:
                 tile_overlay(t)
             finish = time.time()

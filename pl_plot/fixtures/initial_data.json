@@ -17,7 +17,7 @@
         "pk": 2,
         "fields": {
             "display_name_long": "Salinity",
-            "is_base": false,
+            "is_base": true,
             "type": "FC",
             "display_name_short": "Salt",
             "function_name": "salt_function",
