@@ -85,7 +85,8 @@ class OverlayManager(models.Manager):
     @classmethod
     def get_tasks_for_all_base_plots(cls, time_index=0, file_id=None):
         #Add the SST and currents plot commands
-        task_list = [cls.make_plot.s(od_id, time_index, file_id, immutable=True) for od_id in [1, 3]]
+        task_list = [cls.make_plot.s(od_id, time_index, file_id, immutable=True) for od_id in [1, 2, 3]]
+        #task_list.append(cls.make_plot.s(2, time_index, file_id, immutable=True))
         #add the wind task(5)
         task_list.append(cls.make_plot.s(5, time_index, file_id, immutable=True))
         #Add the commands to plot wave Height (4) and Direction (6)
@@ -127,7 +128,7 @@ class OverlayManager(models.Manager):
                     #This only adds the task for every other time stamp
                     if t % 2 != 0:
                         #using EXTEND because we are adding multiple items: might also be able to use APPEND
-                        task_list.extend(cls.make_plot.subtask(args=(od_id, t, fid), immutable=True) for od_id in [1, 3])
+                        task_list.extend(cls.make_plot.subtask(args=(od_id, t, fid), immutable=True) for od_id in [1, 2, 3])
         return task_list
 
     @classmethod

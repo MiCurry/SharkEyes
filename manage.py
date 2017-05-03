@@ -14,8 +14,8 @@ if __name__ == "__main__":
         from pl_plot.models import OverlayManager
         from pl_chop.tasks import tile_overlay, tile_wave_watch_overlay
         wave = 0
-        sst = 0
-        wind = 1
+        sst = 1
+        wind = 0
         if wave:
             wave = DataFileManager.get_latest_wave_watch_files()
             wave = DataFile.objects.filter(type='WAVE').latest('model_date')
@@ -32,13 +32,14 @@ if __name__ == "__main__":
             totalTime = (finish - begin)/ 60
             print "Time taken for Waves = " + str(round(totalTime, 2)) + " minutes"
         if sst:
-            sst = DataFileManager.fetch_new_files()
+            #sst = DataFileManager.fetch_new_files()
             tiles = []
             #first entry is day at 4am
             #NOTE it increments in 4 hour changes
             begin = time.time()
-            tiles += OverlayManager.make_plot(1, 0, sst[0])
-            tiles += OverlayManager.make_plot(3, 0, sst[0])
+            #tiles += OverlayManager.make_plot(1, 0, sst[0])
+            tiles += OverlayManager.make_plot(2, 0, sst[0])
+            #tiles += OverlayManager.make_plot(3, 0, sst[0])
             for t in tiles:
                 tile_overlay(t)
             finish = time.time()
@@ -62,9 +63,9 @@ if __name__ == "__main__":
         from pl_plot.models import OverlayManager as om
         from pl_chop.tasks import tile_overlay, tile_wave_watch_overlay
         from pl_plot.plotter import WaveWatchPlotter, WindPlotter, Plotter
-        wave = 1
+        wave = 0
         sst = 1
-        wind = 1
+        wind = 0
 
         if wave:
             DataFileManager.get_latest_wave_watch_files()
@@ -83,7 +84,7 @@ if __name__ == "__main__":
                     print '-' * 60
                 print
         if sst:
-            DataFileManager.fetch_new_files()
+            #DataFileManager.fetch_new_files()
             print "\n--- Plotting ROMS - SST and Currents ---"
             sst_files = DataFile.objects.all().filter(type = "NCDF")
             for file in sst_files:
@@ -94,8 +95,9 @@ if __name__ == "__main__":
                     if t % 2 != 0:
                         try:
                             print "Plotting ROMS - File ID:", id, "Time Index:", t
-                            tile_overlay(om.make_plot(1, t, id))
-                            tile_overlay(om.make_plot(3, t, id))
+                            #tile_overlay(om.make_plot(1, t, id))
+                            tile_overlay(om.make_plot(2, t, id))
+                            #tile_overlay(om.make_plot(3, t, id))
                             print "plot/tile success"
                         except Exception:
                             print '-' * 60
