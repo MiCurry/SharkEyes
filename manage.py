@@ -96,7 +96,7 @@ if __name__ == "__main__":
                         try:
                             print "Plotting ROMS - File ID:", id, "Time Index:", t
                             #tile_overlay(om.make_plot(1, t, id))
-                            tile_overlay(om.make_plot(2, t, id))
+                            tile_overlay(om.make_plot(7, t, id))
                             #tile_overlay(om.make_plot(3, t, id))
                             print "plot/tile success"
                         except Exception:

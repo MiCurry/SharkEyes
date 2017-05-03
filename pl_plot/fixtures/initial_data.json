@@ -81,12 +81,12 @@
         "model": "pl_plot.overlaydefinition",
         "pk": 7,
         "fields": {
-            "display_name_long": "Wave Period",
-            "is_base": false,
+            "display_name_long": "Bottom Salinity",
+            "is_base": true,
             "type": "FC",
-            "display_name_short": "Wave Period",
-            "function_name": "wave_period_function",
-            "forecast": 65
+            "display_name_short": "bSalt",
+            "function_name": "bottom_salt_function",
+            "forecast": 53
         }
     }
 ]
