@@ -134,10 +134,13 @@ class DataFileManager(models.Manager):
 
             return new_file_ids
 
+        #The normal server we use can be unreliable. Using this alternate downloader will get the files from a more reliable server. This method
+        #requires you to check the server at http://wilson.coas.oregonstate.edu:8080/thredds/catalog/NANOOS/OCOS_Files/catalog.html
+        #for the current newNum values. It will be a four digit number after ocean_his in the filename. Use the value for the current day's file
         elif alternate == 1:
-                 # download new file for next few days
+            # download new file for next few days
             days_to_retrieve = [timezone.now().date(),
-                                 timezone.now().date()+timedelta(days=1),
+                                timezone.now().date()+timedelta(days=1),
                                 timezone.now().date()+timedelta(days=2),
                                 timezone.now().date()+timedelta(days=3)]
 
@@ -148,30 +151,32 @@ class DataFileManager(models.Manager):
             print "\t" + str(days_to_retrieve[3])
 
             new_file_ids = []
+            files_to_retrieve = []
+            destination_directory = os.path.join(settings.MEDIA_ROOT, settings.NETCDF_STORAGE_DIR)
+            for x in range(0, 3, 1):
+                #newNum is the number corresponding to the filename numbers from the server. You will need to check the server for the current numbers.
+                newNum = 4506 + x #4455 is old. This number needs to be changed to match the current server files each time you run the alternate downloader.
+                ref_number = str(newNum) + "_"
+                model_date = make_date_string(str(datetime.now().date()+timedelta(days=x)))
+                files_to_retrieve.append((model_date, ref_number))
 
             for model_date, stupid_number in files_to_retrieve:
-            url = "http://wilson.coas.oregonstate.edu:8080/thredds/fileServer/NANOOS/OCOS_Files/ocean_his_"+stupid_number+model_date+".nc"
-            print "url", url
-            local_filename = "{0}_{1}.nc".format(model_date, uuid4())
-            print "Retrieving: " + str(local_filename)
-            begin = time.time()
-            urllib.urlretrieve(url=url, filename=os.path.join(destination_directory, local_filename)) # this also needs a try/catch
-            datafile = DataFile(
-                type='NCDF',
-                download_datetime=timezone.now(),
-                generated_datetime=timezone.now(),
-                model_date=datetime.now().date(),
-                file=local_filename,
-            )
+                url = "http://wilson.coas.oregonstate.edu:8080/thredds/fileServer/NANOOS/OCOS_Files/ocean_his_"+ref_number+model_date+".nc"
+                print "url", url
+                local_filename = "{0}_{1}.nc".format(model_date, uuid4())
+                print "Retrieving: " + str(local_filename)
+                urllib.urlretrieve(url=url, filename=os.path.join(destination_directory, local_filename))
+                datafile = DataFile(
+                    type='NCDF',
+                    download_datetime=timezone.now(),
+                    generated_datetime=timezone.now(),
+                    model_date=datetime.now().date(),
+                    file=local_filename,
+                )
             datafile.save()
-            finish = time.time()
-            totalTime = (finish - begin)/ 60
-            print "time taken to download = ", totalTime, " seconds"
-
             new_file_ids.append(datafile.id)
 
             return new_file_ids
-
 
     @staticmethod
     @shared_task(name='pl_download.get_latest_wave_watch_files')
