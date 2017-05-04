@@ -88,5 +88,18 @@
             "function_name": "bottom_salt_function",
             "forecast": 53
         }
+    },
+
+    {
+        "model": "pl_plot.overlaydefinition",
+        "pk": 8,
+        "fields": {
+            "display_name_long": "Bottom Temperature",
+            "is_base": true,
+            "type": "FC",
+            "display_name_short": "BT",
+            "function_name": "bottom_temp_function",
+            "forecast": 53
+        }
     }
 ]
