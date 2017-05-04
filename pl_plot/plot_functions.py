@@ -228,9 +228,53 @@ def sst_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
     cbar.ax.xaxis.set_ticklabels(labels)
     cbar.set_label("Fahrenheit")
 
+def bottom_temp_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
+    def celsius_to_fahrenheit(temp):
+        return temp * 1.8 + 32
+    vectorized_conversion = numpy.vectorize(celsius_to_fahrenheit)
 
-# We are not using the Salt model at this time.
-#-------------------------------------------------------------------------
+    # temperature has dimensions ('ocean_time', 's_rho', 'eta_rho', 'xi_rho')
+    # s_rho corresponds to layers, of which there are 30, so we take the top one.
+    #-------------------------------------------------------------------------
+    surface_temp = numpy.ma.array(vectorized_conversion(data_file.variables['temp'][time_index][0]), mask=get_rho_mask(data_file))
+    longs = data_file.variables['lon_rho'][:]
+    lats = data_file.variables['lat_rho'][:]
+
+    #get the max and min temps for the daytem
+    #-------------------------------------------------------------------------
+    all_day = data_file.variables['temp'][:, 0, :, :]
+    min_temp = int(math.floor(celsius_to_fahrenheit(numpy.amin(all_day))))
+    max_temp = int(math.ceil(celsius_to_fahrenheit(numpy.amax(numpy.ma.masked_greater(all_day, 1000)))))
+
+    x, y = bmap(longs, lats)
+
+    # calculate and plot colored contours for TEMPERATURE data
+    # 21 levels, range from one over min to one under max, as the colorbar caps each have their color and will color
+    # out of bounds data with their color.
+    #-------------------------------------------------------------------------
+    contour_range = ((max_temp - 1) - (min_temp + 1))
+    contour_range_inc = float(contour_range)/NUM_COLOR_LEVELS
+    color_levels = []
+    for i in xrange(NUM_COLOR_LEVELS+1):
+        color_levels.append(min_temp+1 + i * contour_range_inc)
+
+    bmap.drawmapboundary(linewidth=0.0, ax=ax)
+    overlay = bmap.contourf(x, y, surface_temp, color_levels, ax=ax, extend='both', cmap=get_modified_jet_colormap())
+
+    # add colorbar.
+    #-------------------------------------------------------------------------
+    cbar = pyplot.colorbar(overlay, orientation='horizontal', cax=key_ax)
+    cbar.ax.tick_params(labelsize=10)
+    cbar.ax.xaxis.label.set_color('white')
+    cbar.ax.xaxis.set_tick_params(labelcolor='white')
+
+    locations = numpy.arange(0, 1.01, 1.0/(NUM_COLOR_LEVELS))[::10]    # we just want every 10th label
+    float_labels = numpy.arange(min_temp, max_temp + 0.01, contour_range_inc)[::10]
+    labels = ["%.1f" % num for num in float_labels]
+    cbar.ax.xaxis.set_ticks(locations)
+    cbar.ax.xaxis.set_ticklabels(labels)
+    cbar.set_label("Fahrenheit")
+
 def salt_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
     # salt has dimensions ('ocean_time', 's_rho', 'eta_rho', 'xi_rho')
     # s_rho corresponds to layers, of which there are 30, so we take the top one.
@@ -272,6 +316,46 @@ def salt_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
     cbar.ax.xaxis.set_ticklabels(labels)
     cbar.set_label("Salinity (PSU)")
 
+def bottom_salt_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
+    # salt has dimensions ('ocean_time', 's_rho', 'eta_rho', 'xi_rho')
+    # s_rho corresponds to layers, of which there are 30, so we take the top one.
+    surface_salt = numpy.ma.array(data_file.variables['salt'][time_index][0], mask=get_rho_mask(data_file))
+
+    longs = data_file.variables['lon_rho'][:]
+    lats = data_file.variables['lat_rho'][:]
+
+    #get the max and min salinity for the day
+    all_day = data_file.variables['salt'][:, 0, :, :]
+    min_salt = int(math.floor(numpy.amin(all_day)))
+    max_salt = int(math.ceil(numpy.amax(numpy.ma.masked_greater(all_day, 1000))))
+
+    x, y = bmap(longs, lats)
+
+    # calculate and plot colored contours for salinity data
+    # 21 levels, range from one over min to one under max, as the colorbar caps each have their color and will color
+    # out of bounds data with their color.
+    contour_range = ((max_salt - 1) - (min_salt + 1))
+    contour_range_inc = float(contour_range)/NUM_COLOR_LEVELS
+
+    color_levels = []
+    for i in xrange(NUM_COLOR_LEVELS+1):
+        color_levels.append(min_salt+1 + i * contour_range_inc)
+
+    bmap.drawmapboundary(linewidth=0.0, ax=ax)
+    overlay = bmap.contourf(x, y, surface_salt, color_levels, ax=ax, extend='both', cmap=get_modified_jet_colormap())
+
+    # add colorbar.
+    cbar = pyplot.colorbar(overlay, orientation='horizontal', cax=key_ax)
+    cbar.ax.tick_params(labelsize=10)
+    cbar.ax.xaxis.label.set_color('white')
+    cbar.ax.xaxis.set_tick_params(labelcolor='white')
+
+    locations = numpy.arange(0, 1.01, 1.0/(NUM_COLOR_LEVELS))[::10]    # we just want every third label
+    float_labels = numpy.arange(min_salt, max_salt + 0.01, contour_range_inc)[::10]
+    labels = ["%.1f" % num for num in float_labels]
+    cbar.ax.xaxis.set_ticks(locations)
+    cbar.ax.xaxis.set_ticklabels(labels)
+    cbar.set_label("Salinity (PSU)")
 
 def currents_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
     def compute_average(array):
