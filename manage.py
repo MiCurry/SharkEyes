@@ -9,7 +9,19 @@ if __name__ == "__main__":
     import SharkEyesCore.startup as startup
     startup.run()
 
-    if sys.argv[-1] == "plot":
+    if sys.argv[-1] == "download":
+        from pl_download.models import DataFileManager, DataFile
+        wave = 0
+        sst = 0
+        wind = 1
+        if wave:
+            DataFileManager.get_latest_wave_watch_files()
+        if sst:
+            DataFileManager.fetch_new_files()
+        if wind:
+            DataFileManager.get_wind_file()
+
+    elif sys.argv[-1] == "plot":
         from pl_download.models import DataFileManager, DataFile
         from pl_plot.models import OverlayManager
         from pl_chop.tasks import tile_overlay, tile_wave_watch_overlay
