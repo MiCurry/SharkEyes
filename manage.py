@@ -54,6 +54,7 @@ if __name__ == "__main__":
             #tiles += OverlayManager.make_plot(3, 0, sst[0])
             tiles += OverlayManager.make_plot(7, 0, sst[0])
             tiles += OverlayManager.make_plot(8, 0, sst[0])
+            tiles += OverlayManager.make_plot(9, 0, sst[0])
             for t in tiles:
                 tile_overlay(t)
             finish = time.time()
@@ -88,7 +89,7 @@ if __name__ == "__main__":
             id = wave.id
             for t in xrange(0, 85, 4):
                 try:
-                    print "Plotting and Tiling WW3 - File ID:", id, "Time Index:", t
+                    print "Plotting WW3 - File ID:", id, "Time Index:", t
                     tile_wave_watch_overlay(om.make_wave_watch_plot(4, t, id))
                     tile_wave_watch_overlay(om.make_wave_watch_plot(6, t, id))
                     print "plot/tile success"
@@ -99,7 +100,7 @@ if __name__ == "__main__":
                 print
         if sst:
             #DataFileManager.fetch_new_files()
-            print "\n--- Plotting ROMS - SST and Currents ---"
+            print "\n--- Plotting ROMS Fields - SST, Salinity, SSH ---"
             sst_files = DataFile.objects.all().filter(type = "NCDF")
             for file in sst_files:
                 plotter = Plotter(file.file.name)
@@ -110,10 +111,11 @@ if __name__ == "__main__":
                         try:
                             print "Plotting ROMS - File ID:", id, "Time Index:", t
                             #tile_overlay(om.make_plot(1, t, id))
-                            tile_overlay(om.make_plot(2, t, id))
+                            #tile_overlay(om.make_plot(2, t, id))
                             #tile_overlay(om.make_plot(3, t, id))
-                            tile_overlay(om.make_plot(7, t, id))
-                            tile_overlay(om.make_plot(8, t, id))
+                            #tile_overlay(om.make_plot(7, t, id))
+                            #tile_overlay(om.make_plot(8, t, id))
+                            tile_overlay(om.make_plot(9, t, id))
                             print "plot/tile success"
                         except Exception:
                             print '-' * 60
@@ -122,7 +124,7 @@ if __name__ == "__main__":
                         print
 
         if wind:
-            print "\n Plotting A NAM - WINDS"
+            print "\n Plotting NAMS - Winds"
             start = time.time()
             DataFileManager.get_wind_file()
             winds = DataFile.objects.filter(type='WIND').latest('model_date')
