@@ -357,6 +357,55 @@ def bottom_salt_function(ax, data_file, bmap, key_ax, time_index, downsample_rat
     cbar.ax.xaxis.set_ticklabels(labels)
     cbar.set_label("Salinity (PSU)")
 
+def ssh_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
+    def meters_to_feet(height):
+        return height * METERS_TO_FEET
+    vectorized_conversion = numpy.vectorize(meters_to_feet)
+
+    # temperature has dimensions ('ocean_time', 's_rho', 'eta_rho', 'xi_rho')
+    # s_rho corresponds to layers, of which there are 30, so we take the top one.
+    #-------------------------------------------------------------------------
+    surface_height = numpy.ma.array(vectorized_conversion(data_file.variables['zeta'][time_index]), mask=get_rho_mask(data_file))
+    longs = data_file.variables['lon_rho'][:]
+    lats = data_file.variables['lat_rho'][:]
+
+    #get the max and min temps for the daytem
+    #-------------------------------------------------------------------------
+    all_day = data_file.variables['zeta'][:, :, :]
+    #min_height = int(math.floor(meters_to_feet(numpy.amin(all_day))))
+    #max_height = int(math.ceil(meters_to_feet(numpy.amax(numpy.ma.masked_greater(all_day, 1000)))))
+    min_height = -4
+    max_height = 5
+
+    x, y = bmap(longs, lats)
+
+    # calculate and plot colored contours for TEMPERATURE data
+    # 21 levels, range from one over min to one under max, as the colorbar caps each have their color and will color
+    # out of bounds data with their color.
+    #-------------------------------------------------------------------------
+    contour_range = ((max_height - 1) - (min_height + 1))
+    contour_range_inc = float(contour_range)/NUM_COLOR_LEVELS
+    color_levels = []
+    for i in xrange(NUM_COLOR_LEVELS+1):
+        color_levels.append(min_height+1 + i * contour_range_inc)
+
+    bmap.drawmapboundary(linewidth=0.0, ax=ax)
+    overlay = bmap.contourf(x, y, surface_height, color_levels, ax=ax, extend='both', cmap=get_modified_jet_colormap())
+
+    # add colorbar.
+    #-------------------------------------------------------------------------
+    cbar = pyplot.colorbar(overlay, orientation='horizontal', cax=key_ax)
+    cbar.ax.tick_params(labelsize=10)
+    cbar.ax.xaxis.label.set_color('white')
+    cbar.ax.xaxis.set_tick_params(labelcolor='white')
+
+    locations = numpy.arange(0, 1.01, 1.0/(NUM_COLOR_LEVELS))[::6]
+    float_labels = numpy.arange(min_height, max_height + 0.01, contour_range_inc)[::6]
+    labels = ["%.1f" % num for num in float_labels]
+    cbar.ax.xaxis.set_ticks(locations)
+    cbar.ax.xaxis.set_ticklabels(labels)
+    cbar.set_label("Feet")
+
 def currents_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
     def compute_average(array):
         avg = numpy.average(array)

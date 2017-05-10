@@ -101,5 +101,18 @@
             "function_name": "bottom_temp_function",
             "forecast": 53
         }
+    },
+
+    {
+        "model": "pl_plot.overlaydefinition",
+        "pk": 9,
+        "fields": {
+            "display_name_long": "Sea Surface Height",
+            "is_base": true,
+            "type": "FC",
+            "display_name_short": "ssh",
+            "function_name": "ssh_function",
+            "forecast": 53
+        }
     }
 ]
