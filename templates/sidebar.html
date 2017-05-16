@@ -29,114 +29,23 @@
 
       <table>
 
-        <tr id="{{ sst_function }}" class="option overlay-toggle">
-          <td class="col-one">{{ 'Surface Temperature' }}</td>
+        {% for item in defs %}
+        <tr id="{{ item.function_name }}" class="option overlay-toggle">
+          <td class="col-one">{{ item.display_name_long }}</td>
           <td class="col-two">
             <div class="toggle">
-                <input type="checkbox" class="toggle-checkbox" id="{{ sst_function }}"/>
-              <label class="toggle-label" for="{{ sst_function }}">
+         <!--     <input type="checkbox" class="toggle-checkbox" id="t1"/>  -->
+                <input type="checkbox" class="toggle-checkbox" id="{{ item.function_name }}"/>
+                <!--TODO set the id to be unique, not "t1": one ID for each toggle so we can access them individually-->
+              <label class="toggle-label" for="{{ item.function_name }}">
               <div class="toggle-inner"></div>
               <div class="toggle-switch"></div>
               </label>
             </div>
           </td>
         </tr>
-        <tr id="{{ currents_function }}" class="option overlay-toggle">
-          <td class="col-one">{{ 'Currents' }}</td>
-          <td class="col-two">
-            <div class="toggle">
-                <input type="checkbox" class="toggle-checkbox" id="{{ currents_function }}"/>
-              <label class="toggle-label" for="{{ currents_function }}">
-              <div class="toggle-inner"></div>
-              <div class="toggle-switch"></div>
-              </label>
-            </div>
-          </td>
-        </tr>
-        <tr id="{{ wave_height_function }}" class="option overlay-toggle">
-          <td class="col-one">{{ 'Wave Height' }}</td>
-          <td class="col-two">
-            <div class="toggle">
-                <input type="checkbox" class="toggle-checkbox" id="{{wave_height_function  }}"/>
-              <label class="toggle-label" for="{{ wave_height_function }}">
-              <div class="toggle-inner"></div>
-              <div class="toggle-switch"></div>
-              </label>
-            </div>
-          </td>
-        </tr>
-        <tr id="{{ wave_direction_function }}" class="option overlay-toggle">
-          <td class="col-one">{{ 'Wave Direction/Period'  }}</td>
-          <td class="col-two">
-            <div class="toggle">
-                <input type="checkbox" class="toggle-checkbox" id="{{ wave_direction_function }}"/>
-              <label class="toggle-label" for="{{ wave_direction_function }}">
-              <div class="toggle-inner"></div>
-              <div class="toggle-switch"></div>
-              </label>
-            </div>
-          </td>
-        </tr>
-        <tr id="{{ wind_function }}" class="option overlay-toggle">
-          <td class="col-one">{{ 'Winds' }}</td>
-          <td class="col-two">
-            <div class="toggle">
-                <input type="checkbox" class="toggle-checkbox" id="{{ wind_function }}"/>
-              <label class="toggle-label" for="{{ wind_function }}">
-              <div class="toggle-inner"></div>
-              <div class="toggle-switch"></div>
-              </label>
-            </div>
-          </td>
-        </tr>
-        <tr id="{{ bottom_temp_function }}" class="option overlay-toggle">
-          <td class="col-one">{{ 'Bottom Temperature'  }}</td>
-          <td class="col-two">
-            <div class="toggle">
-                <input type="checkbox" class="toggle-checkbox" id="{{ bottom_temp_function }}"/>
-              <label class="toggle-label" for="{{ bottom_temp_function }}">
-              <div class="toggle-inner"></div>
-              <div class="toggle-switch"></div>
-              </label>
-            </div>
-          </td>
-        </tr>
-        <tr id="{{ salt_function }}" class="option overlay-toggle">
-          <td class="col-one">{{ 'Salinity' }}</td>
-          <td class="col-two">
-            <div class="toggle">
-                <input type="checkbox" class="toggle-checkbox" id="{{ salt_function }}"/>
-              <label class="toggle-label" for="{{ salt_function }}">
-              <div class="toggle-inner"></div>
-              <div class="toggle-switch"></div>
-              </label>
-            </div>
-          </td>
-        </tr>
-        <tr id="{{ bottom_salt_function }}" class="option overlay-toggle">
-          <td class="col-one">{{ 'Bottom Salinity' }}</td>
-          <td class="col-two">
-            <div class="toggle">
-                <input type="checkbox" class="toggle-checkbox" id="{{ bottom_salt_function }}"/>
-              <label class="toggle-label" for="{{ bottom_salt_function }}">
-              <div class="toggle-inner"></div>
-              <div class="toggle-switch"></div>
-              </label>
-            </div>
-          </td>
-        </tr>
-       <tr id="{{ ssh_function }}" class="option overlay-toggle">
-          <td class="col-one">{{ 'Surface Height'  }}</td>
-          <td class="col-two">
-            <div class="toggle">
-                <input type="checkbox" class="toggle-checkbox" id="{{ ssh_function }}"/>
-              <label class="toggle-label" for="{{ ssh_function }}">
-              <div class="toggle-inner"></div>
-              <div class="toggle-switch"></div>
-              </label>
-            </div>
-          </td>
-        </tr>
+        {% endfor %}
+
       </table>
 
         <h2>Options</h2>
