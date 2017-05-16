@@ -195,9 +195,11 @@ def sst_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
 
     #get the max and min temps for the daytem
     #-------------------------------------------------------------------------
-    all_day = data_file.variables['temp'][:, 39, :, :]
-    min_temp = int(math.floor(celsius_to_fahrenheit(numpy.amin(all_day))))
-    max_temp = int(math.ceil(celsius_to_fahrenheit(numpy.amax(numpy.ma.masked_greater(all_day, 1000)))))
+    #all_day = data_file.variables['temp'][:, 39, :, :]
+    #min_temp = int(math.floor(celsius_to_fahrenheit(numpy.amin(all_day))))
+    #max_temp = int(math.ceil(celsius_to_fahrenheit(numpy.amax(numpy.ma.masked_greater(all_day, 1000)))))
+    min_temp = 34
+    max_temp = 65
 
     x, y = bmap(longs, lats)
 
@@ -205,7 +207,7 @@ def sst_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
     # 21 levels, range from one over min to one under max, as the colorbar caps each have their color and will color
     # out of bounds data with their color.
     #-------------------------------------------------------------------------
-    contour_range = ((max_temp - 1) - (min_temp + 1))
+    contour_range = ((max_temp) - (min_temp))
     contour_range_inc = float(contour_range)/NUM_COLOR_LEVELS
     color_levels = []
     for i in xrange(NUM_COLOR_LEVELS+1):
@@ -242,9 +244,11 @@ def bottom_temp_function(ax, data_file, bmap, key_ax, time_index, downsample_rat
 
     #get the max and min temps for the daytem
     #-------------------------------------------------------------------------
-    all_day = data_file.variables['temp'][:, 0, :, :]
-    min_temp = int(math.floor(celsius_to_fahrenheit(numpy.amin(all_day))))
-    max_temp = int(math.ceil(celsius_to_fahrenheit(numpy.amax(numpy.ma.masked_greater(all_day, 1000)))))
+    #all_day = data_file.variables['temp'][:, 0, :, :]
+    #min_temp = int(math.floor(celsius_to_fahrenheit(numpy.amin(all_day))))
+    #max_temp = int(math.ceil(celsius_to_fahrenheit(numpy.amax(numpy.ma.masked_greater(all_day, 1000)))))
+    min_temp = 32
+    max_temp = 60
 
     x, y = bmap(longs, lats)
 
@@ -252,7 +256,7 @@ def bottom_temp_function(ax, data_file, bmap, key_ax, time_index, downsample_rat
     # 21 levels, range from one over min to one under max, as the colorbar caps each have their color and will color
     # out of bounds data with their color.
     #-------------------------------------------------------------------------
-    contour_range = ((max_temp - 1) - (min_temp + 1))
+    contour_range = ((max_temp) - (min_temp))
     contour_range_inc = float(contour_range)/NUM_COLOR_LEVELS
     color_levels = []
     for i in xrange(NUM_COLOR_LEVELS+1):
@@ -284,16 +288,18 @@ def salt_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
     lats = data_file.variables['lat_rho'][:]
 
     #get the max and min salinity for the day
-    all_day = data_file.variables['salt'][:, 39, :, :]
-    min_salt = int(math.floor(numpy.amin(all_day)))
-    max_salt = int(math.ceil(numpy.amax(numpy.ma.masked_greater(all_day, 1000))))
+    #all_day = data_file.variables['salt'][:, 39, :, :]
+    #min_salt = int(math.floor(numpy.amin(all_day)))
+    #max_salt = int(math.ceil(numpy.amax(numpy.ma.masked_greater(all_day, 1000))))
+    min_salt = 28
+    max_salt = 34
 
     x, y = bmap(longs, lats)
 
     # calculate and plot colored contours for salinity data
     # 21 levels, range from one over min to one under max, as the colorbar caps each have their color and will color
     # out of bounds data with their color.
-    contour_range = ((max_salt - 1) - (min_salt + 1))
+    contour_range = ((max_salt) - (min_salt))
     contour_range_inc = float(contour_range)/NUM_COLOR_LEVELS
 
     color_levels = []
@@ -325,16 +331,18 @@ def bottom_salt_function(ax, data_file, bmap, key_ax, time_index, downsample_rat
     lats = data_file.variables['lat_rho'][:]
 
     #get the max and min salinity for the day
-    all_day = data_file.variables['salt'][:, 0, :, :]
-    min_salt = int(math.floor(numpy.amin(all_day)))
-    max_salt = int(math.ceil(numpy.amax(numpy.ma.masked_greater(all_day, 1000))))
+    #all_day = data_file.variables['salt'][:, 0, :, :]
+    #min_salt = int(math.floor(numpy.amin(all_day)))
+    #max_salt = int(math.ceil(numpy.amax(numpy.ma.masked_greater(all_day, 1000))))
+    min_salt = 32
+    max_salt = 34
 
     x, y = bmap(longs, lats)
 
     # calculate and plot colored contours for salinity data
     # 21 levels, range from one over min to one under max, as the colorbar caps each have their color and will color
     # out of bounds data with their color.
-    contour_range = ((max_salt - 1) - (min_salt + 1))
+    contour_range = ((max_salt) - (min_salt))
     contour_range_inc = float(contour_range)/NUM_COLOR_LEVELS
 
     color_levels = []
@@ -371,11 +379,11 @@ def ssh_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
 
     #get the max and min temps for the daytem
     #-------------------------------------------------------------------------
-    all_day = data_file.variables['zeta'][:, :, :]
+    #all_day = data_file.variables['zeta'][:, :, :]
     #min_height = int(math.floor(meters_to_feet(numpy.amin(all_day))))
     #max_height = int(math.ceil(meters_to_feet(numpy.amax(numpy.ma.masked_greater(all_day, 1000)))))
-    min_height = -4
-    max_height = 5
+    min_height = -3
+    max_height = 4
 
     x, y = bmap(longs, lats)
 
@@ -383,7 +391,7 @@ def ssh_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
     # 21 levels, range from one over min to one under max, as the colorbar caps each have their color and will color
     # out of bounds data with their color.
     #-------------------------------------------------------------------------
-    contour_range = ((max_height - 1) - (min_height + 1))
+    contour_range = ((max_height) - (min_height))
     contour_range_inc = float(contour_range)/NUM_COLOR_LEVELS
     color_levels = []
     for i in xrange(NUM_COLOR_LEVELS+1):
