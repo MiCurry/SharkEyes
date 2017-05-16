@@ -79,7 +79,7 @@ class DataFileManager(models.Manager):
 
     #FETCH FILES FOR CURRENTS AND SST
     def fetch_new_files():
-        alternate = 0
+        alternate = 1
         if alternate == 0:
             if not DataFileManager.is_new_file_to_download():
                 print "No New SST Files Available."
@@ -155,12 +155,12 @@ class DataFileManager(models.Manager):
             destination_directory = os.path.join(settings.MEDIA_ROOT, settings.NETCDF_STORAGE_DIR)
             for x in range(0, 3, 1):
                 #newNum is the number corresponding to the filename numbers from the server. You will need to check the server for the current numbers.
-                newNum = 4506 + x #4455 is old. This number needs to be changed to match the current server files each time you run the alternate downloader.
+                newNum = 4518 + x #4455 is old. This number needs to be changed to match the current server files each time you run the alternate downloader.
                 ref_number = str(newNum) + "_"
                 model_date = make_date_string(str(datetime.now().date()+timedelta(days=x)))
                 files_to_retrieve.append((model_date, ref_number))
 
-            for model_date, stupid_number in files_to_retrieve:
+            for model_date, ref_number in files_to_retrieve:
                 url = "http://wilson.coas.oregonstate.edu:8080/thredds/fileServer/NANOOS/OCOS_Files/ocean_his_"+ref_number+model_date+".nc"
                 print "url", url
                 local_filename = "{0}_{1}.nc".format(model_date, uuid4())
@@ -173,8 +173,8 @@ class DataFileManager(models.Manager):
                     model_date=datetime.now().date(),
                     file=local_filename,
                 )
-            datafile.save()
-            new_file_ids.append(datafile.id)
+                datafile.save()
+                new_file_ids.append(datafile.id)
 
             return new_file_ids
 
