@@ -44,13 +44,13 @@ if __name__ == "__main__":
             totalTime = (finish - begin)/ 60
             print "Time taken for Waves = " + str(round(totalTime, 2)) + " minutes"
         if sst:
-            #sst = DataFileManager.fetch_new_files()
+            sst = DataFileManager.fetch_new_files()
             tiles = []
             #first entry is day at 4am
             #NOTE it increments in 4 hour changes
             begin = time.time()
             #tiles += OverlayManager.make_plot(1, 0, sst[0])
-            tiles += OverlayManager.make_plot(2, 0, sst[0])
+            #tiles += OverlayManager.make_plot(2, 0, sst[0])
             #tiles += OverlayManager.make_plot(3, 0, sst[0])
             tiles += OverlayManager.make_plot(7, 0, sst[0])
             tiles += OverlayManager.make_plot(8, 0, sst[0])
