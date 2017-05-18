@@ -79,7 +79,7 @@ class DataFileManager(models.Manager):
 
     #FETCH FILES FOR CURRENTS AND SST
     def fetch_new_files():
-        alternate = 1
+        alternate = 0
         if alternate == 0:
             if not DataFileManager.is_new_file_to_download():
                 print "No New SST Files Available."
