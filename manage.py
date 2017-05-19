@@ -110,12 +110,12 @@ if __name__ == "__main__":
                     if t % 2 != 0:
                         try:
                             print "Plotting ROMS - File ID:", id, "Time Index:", t
-                            tile_overlay(om.make_plot(1, t, id))
+                            #tile_overlay(om.make_plot(1, t, id))
                             #tile_overlay(om.make_plot(2, t, id))
                             #tile_overlay(om.make_plot(3, t, id))
                             #tile_overlay(om.make_plot(7, t, id))
                             #tile_overlay(om.make_plot(8, t, id))
-                            #tile_overlay(om.make_plot(9, t, id))
+                            tile_overlay(om.make_plot(9, t, id))
                             print "plot/tile success"
                         except Exception:
                             print '-' * 60

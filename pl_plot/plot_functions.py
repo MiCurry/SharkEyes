@@ -370,20 +370,35 @@ def ssh_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
         return height * METERS_TO_FEET
     vectorized_conversion = numpy.vectorize(meters_to_feet)
 
-    # temperature has dimensions ('ocean_time', 's_rho', 'eta_rho', 'xi_rho')
-    # s_rho corresponds to layers, of which there are 30, so we take the top one.
+    # Sea Surface Height has dimensions ('ocean_time', 'eta_rho', 'xi_rho')
     #-------------------------------------------------------------------------
+
+    #all_day = data_file.variables['PERPW_surface'][:, :, :]
+
+    # Mask all of the data points that are "nan" (not a number) in the data file; these represent land
+    #-------------------------------------------------------------------------
+    #period_masked = numpy.ma.masked_array(all_day[forecast_index][:, :],numpy.isnan(all_day[forecast_index][:,:]))
+
+
     surface_height = numpy.ma.array(vectorized_conversion(data_file.variables['zeta'][time_index]), mask=get_rho_mask(data_file))
+    min_val = numpy.amin(surface_height)
+    max_val = numpy.amax(surface_height)
+    print "Min value = ", min_val
+    print "Max value = ", max_val
+    surface_mean = numpy.mean(surface_height)
+    surface_mean = round(surface_mean, 2)
+    print "SURFACE MEAN = ", surface_mean
+    surface_height_no_mean = numpy.subtract(surface_height, surface_mean)
     longs = data_file.variables['lon_rho'][:]
     lats = data_file.variables['lat_rho'][:]
 
-    #get the max and min temps for the daytem
+    #get the max and min temps for the day
     #-------------------------------------------------------------------------
     #all_day = data_file.variables['zeta'][:, :, :]
     #min_height = int(math.floor(meters_to_feet(numpy.amin(all_day))))
     #max_height = int(math.ceil(meters_to_feet(numpy.amax(numpy.ma.masked_greater(all_day, 1000)))))
-    min_height = -3
-    max_height = 4
+    min_height = -2
+    max_height = 2
 
     x, y = bmap(longs, lats)
 
@@ -398,7 +413,7 @@ def ssh_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
         color_levels.append(min_height+1 + i * contour_range_inc)
 
     bmap.drawmapboundary(linewidth=0.0, ax=ax)
-    overlay = bmap.contourf(x, y, surface_height, color_levels, ax=ax, extend='both', cmap=get_modified_jet_colormap())
+    overlay = bmap.contourf(x, y, surface_height_no_mean, color_levels, ax=ax, extend='both', cmap=get_modified_jet_colormap())
 
     # add colorbar.
     #-------------------------------------------------------------------------
