@@ -155,7 +155,7 @@ class DataFileManager(models.Manager):
             destination_directory = os.path.join(settings.MEDIA_ROOT, settings.NETCDF_STORAGE_DIR)
             for x in range(0, 3, 1):
                 #newNum is the number corresponding to the filename numbers from the server. You will need to check the server for the current numbers.
-                newNum = 4518 + x #4455 is old. This number needs to be changed to match the current server files each time you run the alternate downloader.
+                newNum = 4539 + x #4455 is old. This number needs to be changed to match the current server files each time you run the alternate downloader.
                 ref_number = str(newNum) + "_"
                 model_date = make_date_string(str(datetime.now().date()+timedelta(days=x)))
                 files_to_retrieve.append((model_date, ref_number))
