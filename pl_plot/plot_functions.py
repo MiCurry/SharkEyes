@@ -1,6 +1,8 @@
 import math
 from datetime import datetime, timedelta, date
 import numpy
+import os
+import xarray as xr
 import scipy
 from scipy import ndimage
 from matplotlib import pyplot, colors
@@ -373,32 +375,44 @@ def ssh_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
     # Sea Surface Height has dimensions ('ocean_time', 'eta_rho', 'xi_rho')
     #-------------------------------------------------------------------------
 
-    #all_day = data_file.variables['PERPW_surface'][:, :, :]
-
-    # Mask all of the data points that are "nan" (not a number) in the data file; these represent land
-    #-------------------------------------------------------------------------
-    #period_masked = numpy.ma.masked_array(all_day[forecast_index][:, :],numpy.isnan(all_day[forecast_index][:,:]))
-
-
-    surface_height = numpy.ma.array(vectorized_conversion(data_file.variables['zeta'][time_index]), mask=get_rho_mask(data_file))
-    min_val = numpy.amin(surface_height)
-    max_val = numpy.amax(surface_height)
-    print "Min value = ", min_val
-    print "Max value = ", max_val
-    surface_mean = numpy.mean(surface_height)
-    surface_mean = round(surface_mean, 2)
-    print "SURFACE MEAN = ", surface_mean
-    surface_height_no_mean = numpy.subtract(surface_height, surface_mean)
+    #all_day = data_file.variables['zeta'][:, :, :]
+    zeta = data_file.variables['zeta'][:].copy()
     longs = data_file.variables['lon_rho'][:]
     lats = data_file.variables['lat_rho'][:]
+    no_columbia_slice = zeta[time_index,:,:]
+    no_columbia_slice = no_columbia_slice[75:354,:]
+    no_columbia_slice[:,196:309]=numpy.nan
+    no_columbia_slice = numpy.reshape(no_columbia_slice, 86490)
+    for x in range(len(no_columbia_slice)):
+        if no_columbia_slice[x] > 10:
+            no_columbia_slice[x] = numpy.nan
+    surface_height = numpy.ma.array(vectorized_conversion(data_file.variables['zeta'][time_index]), mask=get_rho_mask(data_file))
+    # temp2 = vectorized_conversion(data_file.variables['zeta'][time_index,75:354,:])
+    # temp2 = numpy.reshape(temp2, 86490)
+    # for x in range(len(temp2)):
+    #     if temp2[x] > 10:
+    #         temp2[x] = numpy.nan
+    # min_val = numpy.nanmin(temp2)
+    # max_val = numpy.nanmax(temp2)
+    # print "Min value ssh = ", min_val
+    # print "Max value ssh = ", max_val
+    # min_val_dummy = numpy.nanmin(no_columbia_slice)
+    # max_val_dummy = numpy.nanmax(no_columbia_slice)
+    # print "Min value ssh sliced = ", meters_to_feet(min_val_dummy)
+    # print "Max value ssh sliced = ", meters_to_feet(max_val_dummy)
+    surface_mean = numpy.nanmean(no_columbia_slice)
+    surface_mean = meters_to_feet(surface_mean)
+    # print "Mean of complete SSH ", numpy.nanmean(temp2)
+    # print "Mean of sliced ssh = ", surface_mean
+    surface_height_no_mean = numpy.subtract(surface_height, surface_mean)
 
     #get the max and min temps for the day
     #-------------------------------------------------------------------------
     #all_day = data_file.variables['zeta'][:, :, :]
     #min_height = int(math.floor(meters_to_feet(numpy.amin(all_day))))
     #max_height = int(math.ceil(meters_to_feet(numpy.amax(numpy.ma.masked_greater(all_day, 1000)))))
-    min_height = -2
-    max_height = 2
+    min_height = -1.5
+    max_height = .25
 
     x, y = bmap(longs, lats)
 
