@@ -16,22 +16,22 @@ from fabric.context_managers import shell_env
 from getpass import getpass
 
 # we'd use requirements.txt, but some of these have install time dependencies because they suck
-python_packages = ['numpy==1.8',
-                   'nose==1.1',
-                   'scipy==0.10',
-                   'matplotlib==1.1',
-                   'pandas==0.8',
-                   'MySQL-python==1.2.3c1',
-                   'django==1.6.2',
-                   'pillow==2.3.0',
-                   'pytz==2013.9',
-                   'celery==3.1.17',
-                   'django-celery==3.1.16',
-                   'south==0.8.4',
-                   'defusedxml==0.4.1',
-                   'pygdal==1.10.1.0',
-                   'pydap',
-                   'requests'
+python_packages = [#'numpy==1.8',
+                   #'nose==1.1',
+                   #'scipy==0.10',
+                   #'matplotlib==1.1',
+                   'pandas==0.15',
+                   #'MySQL-python==1.2.3c1',
+                   #'django==1.6.2',
+                   #'pillow==2.3.0',
+                   #'pytz==2013.9',
+                   #'celery==3.1.17',
+                   #'django-celery==3.1.16',
+                   #'south==0.8.4',
+                   #'defusedxml==0.4.1',
+                   #'pygdal==1.10.1.0',
+                   #'pydap',
+                   #'requests',
                    ]
 
 # these aren't used everywhere yet...
