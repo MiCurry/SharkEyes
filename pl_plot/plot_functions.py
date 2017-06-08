@@ -2,7 +2,6 @@ import math
 from datetime import datetime, timedelta, date
 import numpy
 import os
-import xarray as xr
 import scipy
 from scipy import ndimage
 from matplotlib import pyplot, colors
