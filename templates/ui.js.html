@@ -38,12 +38,15 @@ var visible_V = false;
 var southBeachContent = '';
 var astoriaContent = '';
 var coosContent = '';
+var orfordContent = '';
 var southBeachFlag = 0;       //These flags are used to prevent the map markers from reloading the data every time they are clicked.
 var astoriaFlag = 0;
 var coosFlag = 0;
+var orfordFlag = 0;
 var southBeachId = 'southbeach'; //If you want to add new stations these ids can be found at http://tidesandcurrents.noaa.gov/map/
 var astoriaId = 'astoria';
 var coosId = 'coosbay';
+var orfordId = 'orford';
 
 // *************************************************************
 // array holding overlays for given datetime
@@ -369,6 +372,27 @@ function initialize() {
         });
         coosInfoWindow.open(map, coosMarker);
     });
+
+    //Make the Port Orford marker
+    var orfordInfoWindow;
+    var orfordMarker = new google.maps.Marker({
+	    position: new google.maps.LatLng(42.754579, -124.323011),
+        map: map,
+        icon: image,
+        title: 'Port Orford, Port Orford OR'
+    });
+
+    orfordMarker.addListener('click', function(){
+        if(orfordFlag == 0) {
+            orfordContent += makeTideMarker(datetime[0], orfordId, 'Port Orford');
+            orfordFlag = 1;
+        }
+        orfordInfoWindow = new google.maps.InfoWindow({
+            content: orfordContent
+        });
+        orfordInfoWindow.open(map, orfordMarker);
+    });
+
 }
 
 // *********************************************************************************************************************
