@@ -1,6 +1,7 @@
 import math
 from datetime import datetime, timedelta, date
 import numpy
+import os
 import scipy
 from scipy import ndimage
 from matplotlib import pyplot, colors
@@ -195,9 +196,11 @@ def sst_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
 
     #get the max and min temps for the daytem
     #-------------------------------------------------------------------------
-    all_day = data_file.variables['temp'][:, 39, :, :]
-    min_temp = int(math.floor(celsius_to_fahrenheit(numpy.amin(all_day))))
-    max_temp = int(math.ceil(celsius_to_fahrenheit(numpy.amax(numpy.ma.masked_greater(all_day, 1000)))))
+    #all_day = data_file.variables['temp'][:, 39, :, :]
+    #min_temp = int(math.floor(celsius_to_fahrenheit(numpy.amin(all_day))))
+    #max_temp = int(math.ceil(celsius_to_fahrenheit(numpy.amax(numpy.ma.masked_greater(all_day, 1000)))))
+    min_temp = 34
+    max_temp = 65
 
     x, y = bmap(longs, lats)
 
@@ -205,7 +208,7 @@ def sst_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
     # 21 levels, range from one over min to one under max, as the colorbar caps each have their color and will color
     # out of bounds data with their color.
     #-------------------------------------------------------------------------
-    contour_range = ((max_temp - 1) - (min_temp + 1))
+    contour_range = ((max_temp) - (min_temp))
     contour_range_inc = float(contour_range)/NUM_COLOR_LEVELS
     color_levels = []
     for i in xrange(NUM_COLOR_LEVELS+1):
@@ -228,9 +231,55 @@ def sst_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
     cbar.ax.xaxis.set_ticklabels(labels)
     cbar.set_label("Fahrenheit")
 
+def bottom_temp_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
+    def celsius_to_fahrenheit(temp):
+        return temp * 1.8 + 32
+    vectorized_conversion = numpy.vectorize(celsius_to_fahrenheit)
 
-# We are not using the Salt model at this time.
-#-------------------------------------------------------------------------
+    # temperature has dimensions ('ocean_time', 's_rho', 'eta_rho', 'xi_rho')
+    # s_rho corresponds to layers, of which there are 30, so we take the top one.
+    #-------------------------------------------------------------------------
+    surface_temp = numpy.ma.array(vectorized_conversion(data_file.variables['temp'][time_index][0]), mask=get_rho_mask(data_file))
+    longs = data_file.variables['lon_rho'][:]
+    lats = data_file.variables['lat_rho'][:]
+
+    #get the max and min temps for the daytem
+    #-------------------------------------------------------------------------
+    #all_day = data_file.variables['temp'][:, 0, :, :]
+    #min_temp = int(math.floor(celsius_to_fahrenheit(numpy.amin(all_day))))
+    #max_temp = int(math.ceil(celsius_to_fahrenheit(numpy.amax(numpy.ma.masked_greater(all_day, 1000)))))
+    min_temp = 32
+    max_temp = 60
+
+    x, y = bmap(longs, lats)
+
+    # calculate and plot colored contours for TEMPERATURE data
+    # 21 levels, range from one over min to one under max, as the colorbar caps each have their color and will color
+    # out of bounds data with their color.
+    #-------------------------------------------------------------------------
+    contour_range = ((max_temp) - (min_temp))
+    contour_range_inc = float(contour_range)/NUM_COLOR_LEVELS
+    color_levels = []
+    for i in xrange(NUM_COLOR_LEVELS+1):
+        color_levels.append(min_temp+1 + i * contour_range_inc)
+
+    bmap.drawmapboundary(linewidth=0.0, ax=ax)
+    overlay = bmap.contourf(x, y, surface_temp, color_levels, ax=ax, extend='both', cmap=get_modified_jet_colormap())
+
+    # add colorbar.
+    #-------------------------------------------------------------------------
+    cbar = pyplot.colorbar(overlay, orientation='horizontal', cax=key_ax)
+    cbar.ax.tick_params(labelsize=10)
+    cbar.ax.xaxis.label.set_color('white')
+    cbar.ax.xaxis.set_tick_params(labelcolor='white')
+
+    locations = numpy.arange(0, 1.01, 1.0/(NUM_COLOR_LEVELS))[::10]    # we just want every 10th label
+    float_labels = numpy.arange(min_temp, max_temp + 0.01, contour_range_inc)[::10]
+    labels = ["%.1f" % num for num in float_labels]
+    cbar.ax.xaxis.set_ticks(locations)
+    cbar.ax.xaxis.set_ticklabels(labels)
+    cbar.set_label("Fahrenheit")
+
 def salt_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
     # salt has dimensions ('ocean_time', 's_rho', 'eta_rho', 'xi_rho')
     # s_rho corresponds to layers, of which there are 30, so we take the top one.
@@ -240,16 +289,18 @@ def salt_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
     lats = data_file.variables['lat_rho'][:]
 
     #get the max and min salinity for the day
-    all_day = data_file.variables['salt'][:, 39, :, :]
-    min_salt = int(math.floor(numpy.amin(all_day)))
-    max_salt = int(math.ceil(numpy.amax(numpy.ma.masked_greater(all_day, 1000))))
+    #all_day = data_file.variables['salt'][:, 39, :, :]
+    #min_salt = int(math.floor(numpy.amin(all_day)))
+    #max_salt = int(math.ceil(numpy.amax(numpy.ma.masked_greater(all_day, 1000))))
+    min_salt = 28
+    max_salt = 34
 
     x, y = bmap(longs, lats)
 
     # calculate and plot colored contours for salinity data
     # 21 levels, range from one over min to one under max, as the colorbar caps each have their color and will color
     # out of bounds data with their color.
-    contour_range = ((max_salt - 1) - (min_salt + 1))
+    contour_range = ((max_salt) - (min_salt))
     contour_range_inc = float(contour_range)/NUM_COLOR_LEVELS
 
     color_levels = []
@@ -265,13 +316,131 @@ def salt_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
     cbar.ax.xaxis.label.set_color('white')
     cbar.ax.xaxis.set_tick_params(labelcolor='white')
 
-    locations = numpy.arange(0, 1.01, 1.0/(NUM_COLOR_LEVELS))[::3]    # we just want every third label
-    float_labels = numpy.arange(min_salt, max_salt + 0.01, contour_range_inc)[::3]
+    locations = numpy.arange(0, 1.01, 1.0/(NUM_COLOR_LEVELS))[::10]    # we just want every third label
+    float_labels = numpy.arange(min_salt, max_salt + 0.01, contour_range_inc)[::10]
     labels = ["%.1f" % num for num in float_labels]
     cbar.ax.xaxis.set_ticks(locations)
     cbar.ax.xaxis.set_ticklabels(labels)
     cbar.set_label("Salinity (PSU)")
 
+def bottom_salt_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
+    # salt has dimensions ('ocean_time', 's_rho', 'eta_rho', 'xi_rho')
+    # s_rho corresponds to layers, of which there are 30, so we take the top one.
+    surface_salt = numpy.ma.array(data_file.variables['salt'][time_index][0], mask=get_rho_mask(data_file))
+
+    longs = data_file.variables['lon_rho'][:]
+    lats = data_file.variables['lat_rho'][:]
+
+    #get the max and min salinity for the day
+    #all_day = data_file.variables['salt'][:, 0, :, :]
+    #min_salt = int(math.floor(numpy.amin(all_day)))
+    #max_salt = int(math.ceil(numpy.amax(numpy.ma.masked_greater(all_day, 1000))))
+    min_salt = 32
+    max_salt = 34
+
+    x, y = bmap(longs, lats)
+
+    # calculate and plot colored contours for salinity data
+    # 21 levels, range from one over min to one under max, as the colorbar caps each have their color and will color
+    # out of bounds data with their color.
+    contour_range = ((max_salt) - (min_salt))
+    contour_range_inc = float(contour_range)/NUM_COLOR_LEVELS
+
+    color_levels = []
+    for i in xrange(NUM_COLOR_LEVELS+1):
+        color_levels.append(min_salt+1 + i * contour_range_inc)
+
+    bmap.drawmapboundary(linewidth=0.0, ax=ax)
+    overlay = bmap.contourf(x, y, surface_salt, color_levels, ax=ax, extend='both', cmap=get_modified_jet_colormap())
+
+    # add colorbar.
+    cbar = pyplot.colorbar(overlay, orientation='horizontal', cax=key_ax)
+    cbar.ax.tick_params(labelsize=10)
+    cbar.ax.xaxis.label.set_color('white')
+    cbar.ax.xaxis.set_tick_params(labelcolor='white')
+
+    locations = numpy.arange(0, 1.01, 1.0/(NUM_COLOR_LEVELS))[::10]    # we just want every third label
+    float_labels = numpy.arange(min_salt, max_salt + 0.01, contour_range_inc)[::10]
+    labels = ["%.1f" % num for num in float_labels]
+    cbar.ax.xaxis.set_ticks(locations)
+    cbar.ax.xaxis.set_ticklabels(labels)
+    cbar.set_label("Salinity (PSU)")
+
+def ssh_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
+    def meters_to_feet(height):
+        return height * METERS_TO_FEET
+    vectorized_conversion = numpy.vectorize(meters_to_feet)
+
+    # Sea Surface Height has dimensions ('ocean_time', 'eta_rho', 'xi_rho')
+    #-------------------------------------------------------------------------
+
+    #all_day = data_file.variables['zeta'][:, :, :]
+    zeta = data_file.variables['zeta'][:].copy()
+    longs = data_file.variables['lon_rho'][:]
+    lats = data_file.variables['lat_rho'][:]
+    no_columbia_slice = zeta[time_index,:,:]
+    no_columbia_slice = no_columbia_slice[75:354,:]
+    no_columbia_slice[:,196:309]=numpy.nan
+    no_columbia_slice = numpy.reshape(no_columbia_slice, 86490)
+    for x in range(len(no_columbia_slice)):
+        if no_columbia_slice[x] > 10:
+            no_columbia_slice[x] = numpy.nan
+    surface_height = numpy.ma.array(vectorized_conversion(data_file.variables['zeta'][time_index]), mask=get_rho_mask(data_file))
+    # temp2 = vectorized_conversion(data_file.variables['zeta'][time_index,75:354,:])
+    # temp2 = numpy.reshape(temp2, 86490)
+    # for x in range(len(temp2)):
+    #     if temp2[x] > 10:
+    #         temp2[x] = numpy.nan
+    # min_val = numpy.nanmin(temp2)
+    # max_val = numpy.nanmax(temp2)
+    # print "Min value ssh = ", min_val
+    # print "Max value ssh = ", max_val
+    # min_val_dummy = numpy.nanmin(no_columbia_slice)
+    # max_val_dummy = numpy.nanmax(no_columbia_slice)
+    # print "Min value ssh sliced = ", meters_to_feet(min_val_dummy)
+    # print "Max value ssh sliced = ", meters_to_feet(max_val_dummy)
+    surface_mean = numpy.nanmean(no_columbia_slice)
+    surface_mean = meters_to_feet(surface_mean)
+    # print "Mean of complete SSH ", numpy.nanmean(temp2)
+    # print "Mean of sliced ssh = ", surface_mean
+    surface_height_no_mean = numpy.subtract(surface_height, surface_mean)
+
+    #get the max and min temps for the day
+    #-------------------------------------------------------------------------
+    #all_day = data_file.variables['zeta'][:, :, :]
+    #min_height = int(math.floor(meters_to_feet(numpy.amin(all_day))))
+    #max_height = int(math.ceil(meters_to_feet(numpy.amax(numpy.ma.masked_greater(all_day, 1000)))))
+    min_height = -1.5
+    max_height = .25
+
+    x, y = bmap(longs, lats)
+
+    # calculate and plot colored contours for TEMPERATURE data
+    # 21 levels, range from one over min to one under max, as the colorbar caps each have their color and will color
+    # out of bounds data with their color.
+    #-------------------------------------------------------------------------
+    contour_range = ((max_height) - (min_height))
+    contour_range_inc = float(contour_range)/NUM_COLOR_LEVELS
+    color_levels = []
+    for i in xrange(NUM_COLOR_LEVELS+1):
+        color_levels.append(min_height+1 + i * contour_range_inc)
+
+    bmap.drawmapboundary(linewidth=0.0, ax=ax)
+    overlay = bmap.contourf(x, y, surface_height_no_mean, color_levels, ax=ax, extend='both', cmap=get_modified_jet_colormap())
+
+    # add colorbar.
+    #-------------------------------------------------------------------------
+    cbar = pyplot.colorbar(overlay, orientation='horizontal', cax=key_ax)
+    cbar.ax.tick_params(labelsize=10)
+    cbar.ax.xaxis.label.set_color('white')
+    cbar.ax.xaxis.set_tick_params(labelcolor='white')
+
+    locations = numpy.arange(0, 1.01, 1.0/(NUM_COLOR_LEVELS))[::6]
+    float_labels = numpy.arange(min_height, max_height + 0.01, contour_range_inc)[::6]
+    labels = ["%.1f" % num for num in float_labels]
+    cbar.ax.xaxis.set_ticks(locations)
+    cbar.ax.xaxis.set_ticklabels(labels)
+    cbar.set_label("Feet")
 
 def currents_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
     def compute_average(array):

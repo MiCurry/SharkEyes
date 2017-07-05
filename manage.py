@@ -9,13 +9,25 @@ if __name__ == "__main__":
     import SharkEyesCore.startup as startup
     startup.run()
 
-    if sys.argv[-1] == "plot":
+    if sys.argv[-1] == "download":
+        from pl_download.models import DataFileManager, DataFile
+        wave = 0
+        sst = 1
+        wind = 0
+        if wave:
+            DataFileManager.get_latest_wave_watch_files()
+        if sst:
+            DataFileManager.fetch_new_files()
+        if wind:
+            DataFileManager.get_wind_file()
+
+    elif sys.argv[-1] == "plot":
         from pl_download.models import DataFileManager, DataFile
         from pl_plot.models import OverlayManager
         from pl_chop.tasks import tile_overlay, tile_wave_watch_overlay
         wave = 0
-        sst = 0
-        wind = 1
+        sst = 1
+        wind = 0
         if wave:
             wave = DataFileManager.get_latest_wave_watch_files()
             wave = DataFile.objects.filter(type='WAVE').latest('model_date')
@@ -38,7 +50,11 @@ if __name__ == "__main__":
             #NOTE it increments in 4 hour changes
             begin = time.time()
             tiles += OverlayManager.make_plot(1, 0, sst[0])
-            tiles += OverlayManager.make_plot(3, 0, sst[0])
+            #tiles += OverlayManager.make_plot(2, 0, sst[0])
+            #tiles += OverlayManager.make_plot(3, 0, sst[0])
+            #tiles += OverlayManager.make_plot(7, 0, sst[0])
+            #tiles += OverlayManager.make_plot(8, 0, sst[0])
+            #tiles += OverlayManager.make_plot(9, 0, sst[0])
             for t in tiles:
                 tile_overlay(t)
             finish = time.time()
@@ -62,9 +78,9 @@ if __name__ == "__main__":
         from pl_plot.models import OverlayManager as om
         from pl_chop.tasks import tile_overlay, tile_wave_watch_overlay
         from pl_plot.plotter import WaveWatchPlotter, WindPlotter, Plotter
-        wave = 1
+        wave = 0
         sst = 1
-        wind = 1
+        wind = 0
 
         if wave:
             DataFileManager.get_latest_wave_watch_files()
@@ -73,7 +89,7 @@ if __name__ == "__main__":
             id = wave.id
             for t in xrange(0, 85, 4):
                 try:
-                    print "Plotting and Tiling WW3 - File ID:", id, "Time Index:", t
+                    print "Plotting WW3 - File ID:", id, "Time Index:", t
                     tile_wave_watch_overlay(om.make_wave_watch_plot(4, t, id))
                     tile_wave_watch_overlay(om.make_wave_watch_plot(6, t, id))
                     print "plot/tile success"
@@ -83,8 +99,8 @@ if __name__ == "__main__":
                     print '-' * 60
                 print
         if sst:
-            DataFileManager.fetch_new_files()
-            print "\n--- Plotting ROMS - SST and Currents ---"
+            #DataFileManager.fetch_new_files()
+            print "\n--- Plotting ROMS Fields - SST, Salinity, SSH ---"
             sst_files = DataFile.objects.all().filter(type = "NCDF")
             for file in sst_files:
                 plotter = Plotter(file.file.name)
@@ -94,8 +110,12 @@ if __name__ == "__main__":
                     if t % 2 != 0:
                         try:
                             print "Plotting ROMS - File ID:", id, "Time Index:", t
-                            tile_overlay(om.make_plot(1, t, id))
-                            tile_overlay(om.make_plot(3, t, id))
+                            #tile_overlay(om.make_plot(1, t, id))
+                            #tile_overlay(om.make_plot(2, t, id))
+                            #tile_overlay(om.make_plot(3, t, id))
+                            #tile_overlay(om.make_plot(7, t, id))
+                            #tile_overlay(om.make_plot(8, t, id))
+                            tile_overlay(om.make_plot(9, t, id))
                             print "plot/tile success"
                         except Exception:
                             print '-' * 60
@@ -104,7 +124,7 @@ if __name__ == "__main__":
                         print
 
         if wind:
-            print "\n Plotting A NAM - WINDS"
+            print "\n Plotting NAMS - Winds"
             start = time.time()
             DataFileManager.get_wind_file()
             winds = DataFile.objects.filter(type='WIND').latest('model_date')

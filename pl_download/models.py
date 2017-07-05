@@ -25,6 +25,37 @@ HOW_LONG_TO_KEEP_FILES = settings.HOW_LONG_TO_KEEP_FILES
 PAST_DAYS_OF_FILES_TO_DISPLAY = settings.PAST_DAYS_OF_FILES_TO_DISPLAY
 
 
+#Function used to format a date string for the alternate download option
+def make_date_string(dateString):
+        newdate = dateString.split("-")
+        month = ""
+        if newdate[1] == '01':
+            month = "Jan"
+        elif newdate[1] == '02':
+            month = "Feb"
+        elif newdate[1] == '03':
+            month = "Mar"
+        elif newdate[1] == '04':
+            month = "Apr"
+        elif newdate[1] == '05':
+            month = "May"
+        elif newdate[1] == '06':
+            month = "Jun"
+        elif newdate[1] == '07':
+            month = "Jul"
+        elif newdate[1] == '08':
+            month = "Aug"
+        elif newdate[1] == '09':
+            month = "Sep"
+        elif newdate[1] == '10':
+            month = "Oct"
+        elif newdate[1] == '11':
+            month = "Nov"
+        else:
+            month = "Dec"
+        modified_date = newdate[2] + "-" + month +"-"+ newdate [0]
+        return modified_date
+
 #gets list of avalible files on ftp site (SST)
 def get_ingria_xml_tree():
     # todo: need to handle if the xml file isn't available
@@ -48,58 +79,104 @@ class DataFileManager(models.Manager):
 
     #FETCH FILES FOR CURRENTS AND SST
     def fetch_new_files():
-        if not DataFileManager.is_new_file_to_download():
-            print "No New SST Files Available."
-            return []
+        alternate = 0
+        if alternate == 0:
+            if not DataFileManager.is_new_file_to_download():
+                print "No New SST Files Available."
+                return []
 
-        # download new file for next few days
-        days_to_retrieve = [timezone.now().date(),
-                             timezone.now().date()+timedelta(days=1),
-                            timezone.now().date()+timedelta(days=2),
-                            timezone.now().date()+timedelta(days=3)]
+            # download new file for next few days
+            days_to_retrieve = [timezone.now().date(),
+                                 timezone.now().date()+timedelta(days=1),
+                                timezone.now().date()+timedelta(days=2),
+                                timezone.now().date()+timedelta(days=3)]
 
-        print "NetCDF File Dates To Attempt Retrieval Of:"
-        print "\t" + str(days_to_retrieve[0])
-        print "\t" + str(days_to_retrieve[1])
-        print "\t" + str(days_to_retrieve[2])
-        print "\t" + str(days_to_retrieve[3])
+            print "NetCDF File Dates To Attempt Retrieval Of:"
+            print "\t" + str(days_to_retrieve[0])
+            print "\t" + str(days_to_retrieve[1])
+            print "\t" + str(days_to_retrieve[2])
+            print "\t" + str(days_to_retrieve[3])
 
-        files_to_retrieve = []
-        tree = get_ingria_xml_tree()    # yes, we just did this to see if there's a new file. refactor later.
-        tags = tree.iter(XML_NAMESPACE + 'dataset')
+            files_to_retrieve = []
+            tree = get_ingria_xml_tree()    # yes, we just did this to see if there's a new file. refactor later.
+            tags = tree.iter(XML_NAMESPACE + 'dataset')
 
-        for elem in tags:
-            server_filename = elem.get('name')
-            if not server_filename.startswith('ocean_his'):
-                continue
-            date_string_from_filename = server_filename.split('_')[-1]
-            model_date = datetime.strptime(date_string_from_filename, "%d-%b-%Y.nc").date()   # this could fail, need error handling badly
-            modified_datetime = extract_modified_datetime_from_xml(elem)
+            for elem in tags:
+                server_filename = elem.get('name')
+                if not server_filename.startswith('ocean_his'):
+                    continue
+                date_string_from_filename = server_filename.split('_')[-1]
+                model_date = datetime.strptime(date_string_from_filename, "%d-%b-%Y.nc").date()   # this could fail, need error handling badly
+                modified_datetime = extract_modified_datetime_from_xml(elem)
 
-            for day_to_retrieve in days_to_retrieve:
-                if model_date - day_to_retrieve == timedelta(days=0):
-                    files_to_retrieve.append((server_filename, model_date, modified_datetime))
-        destination_directory = os.path.join(settings.MEDIA_ROOT, settings.NETCDF_STORAGE_DIR)
+                for day_to_retrieve in days_to_retrieve:
+                    if model_date - day_to_retrieve == timedelta(days=0):
+                        files_to_retrieve.append((server_filename, model_date, modified_datetime))
+            destination_directory = os.path.join(settings.MEDIA_ROOT, settings.NETCDF_STORAGE_DIR)
 
-        new_file_ids = []
+            new_file_ids = []
 
-        for server_filename, model_date, modified_datetime in files_to_retrieve:
-            url = urljoin(settings.BASE_NETCDF_URL, server_filename)
-            local_filename = "{0}_{1}.nc".format(model_date, uuid4())
-            print "Retrieving: " + str(local_filename)
-            urllib.urlretrieve(url=url, filename=os.path.join(destination_directory, local_filename)) # this also needs a try/catch
-            datafile = DataFile(
-                type='NCDF',
-                download_datetime=timezone.now(),
-                generated_datetime=modified_datetime,
-                model_date=model_date,
-                file=local_filename,
-            )
-            datafile.save()
+            for server_filename, model_date, modified_datetime in files_to_retrieve:
+                url = urljoin(settings.BASE_NETCDF_URL, server_filename)
+                local_filename = "{0}_{1}.nc".format(model_date, uuid4())
+                print "Retrieving: " + str(local_filename)
+                urllib.urlretrieve(url=url, filename=os.path.join(destination_directory, local_filename)) # this also needs a try/catch
+                datafile = DataFile(
+                    type='NCDF',
+                    download_datetime=timezone.now(),
+                    generated_datetime=modified_datetime,
+                    model_date=model_date,
+                    file=local_filename,
+                )
+                datafile.save()
 
-            new_file_ids.append(datafile.id)
+                new_file_ids.append(datafile.id)
 
-        return new_file_ids
+            return new_file_ids
+
+        #The normal server we use can be unreliable. Using this alternate downloader will get the files from a more reliable server. This method
+        #requires you to check the server at http://wilson.coas.oregonstate.edu:8080/thredds/catalog/NANOOS/OCOS_Files/catalog.html
+        #for the current newNum values. It will be a four digit number after ocean_his in the filename. Use the value for the current day's file
+        elif alternate == 1:
+            # download new file for next few days
+            days_to_retrieve = [timezone.now().date(),
+                                timezone.now().date()+timedelta(days=1),
+                                timezone.now().date()+timedelta(days=2),
+                                timezone.now().date()+timedelta(days=3)]
+
+            print "NetCDF File Dates To Attempt Retrieval Of:"
+            print "\t" + str(days_to_retrieve[0])
+            print "\t" + str(days_to_retrieve[1])
+            print "\t" + str(days_to_retrieve[2])
+            print "\t" + str(days_to_retrieve[3])
+
+            new_file_ids = []
+            files_to_retrieve = []
+            destination_directory = os.path.join(settings.MEDIA_ROOT, settings.NETCDF_STORAGE_DIR)
+            for x in range(0, 3, 1):
+                #newNum is the number corresponding to the filename numbers from the server. You will need to check the server for the current numbers.
+                newNum = 4539 + x #4455 is old. This number needs to be changed to match the current server files each time you run the alternate downloader.
+                ref_number = str(newNum) + "_"
+                model_date = make_date_string(str(datetime.now().date()+timedelta(days=x)))
+                files_to_retrieve.append((model_date, ref_number))
+
+            for model_date, ref_number in files_to_retrieve:
+                url = "http://wilson.coas.oregonstate.edu:8080/thredds/fileServer/NANOOS/OCOS_Files/ocean_his_"+ref_number+model_date+".nc"
+                print "url", url
+                local_filename = "{0}_{1}.nc".format(model_date, uuid4())
+                print "Retrieving: " + str(local_filename)
+                urllib.urlretrieve(url=url, filename=os.path.join(destination_directory, local_filename))
+                datafile = DataFile(
+                    type='NCDF',
+                    download_datetime=timezone.now(),
+                    generated_datetime=timezone.now(),
+                    model_date=datetime.now().date(),
+                    file=local_filename,
+                )
+                datafile.save()
+                new_file_ids.append(datafile.id)
+
+            return new_file_ids
 
     @staticmethod
     @shared_task(name='pl_download.get_latest_wave_watch_files')
