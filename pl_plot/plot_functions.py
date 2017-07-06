@@ -199,7 +199,7 @@ def sst_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
     #all_day = data_file.variables['temp'][:, 39, :, :]
     #min_temp = int(math.floor(celsius_to_fahrenheit(numpy.amin(all_day))))
     #max_temp = int(math.ceil(celsius_to_fahrenheit(numpy.amax(numpy.ma.masked_greater(all_day, 1000)))))
-    min_temp = 34
+    min_temp = 46
     max_temp = 65
 
     x, y = bmap(longs, lats)
