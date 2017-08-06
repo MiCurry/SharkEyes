@@ -8,13 +8,9 @@ from SharkEyesCore.models import FeedbackHistory
 from SharkEyesCore.models import FeedbackQuestionaire
 import sys , traceback
 
-#------------------------------------------
-# SharkEyesCore\tasks.py
-
-#----------------------------------------
-# do_pipeline()
 @shared_task(name='sharkeyescore.pipeline')
 def do_pipeline():
+
     # Cleaning up old files from the database and the disk
     DataFileManager.delete_old_files()
     OverlayManager.delete_old_files()
@@ -24,19 +20,30 @@ def do_pipeline():
     FeedbackQuestionaire.send_feedback_survey()
 
     #Downloading the latest datafiles for our models. See the appropriate functions
-    #pl_download/models.py.DataFileManager.get_latest_wave_watch_files() and
-    #pl_download/models.py.DataFileManager.fetch_new_files() respectively
+    #   pl_download/models.py.DataFileManager.get_latest_wave_watch_files() and
+    #   pl_download/models.py.DataFileManager.fetch_new_files() respectively
+
+    #Sometimes even though the file downloads this process hangs and fails.
+    #The try catch is a stop-gap fix so that the pipeline doesn't stop here
+    #When it fails in that manner the file is downloaded and can be used
     try:
-        #Sometimes even though the file downloads this process hangs and fails.
-        #The try catch is a stop-gap fix so that the pipeline doesn't stop here
-        #When it fails in that manner the file is downloaded and can be used
         wave_watch_files = DataFileManager.get_latest_wave_watch_files()
     except Exception:
         print '-' * 60
         traceback.print_exc(file=sys.stdout)
         print '-' * 60
+
+    """
     try:
         sst_files = DataFileManager.fetch_new_files()   # not calling as a task so it runs inline
+    except Exception:
+        print '-' * 60
+        traceback.print_exc(file=sys.stdout)
+        print '-' * 60
+    """
+
+    try:
+        sst_files = DataFileManager.download_osu_roms()
     except Exception:
         print '-' * 60
         traceback.print_exc(file=sys.stdout)
