@@ -53,6 +53,9 @@ var orfordId = 'orford';
 // also sets up some other handy variables
 // *************************************************************
 // fill datedic array with nulls
+
+model_down_message()
+
 {% for t in times %}
     // so we know how many dates in array
     datetime[numDates] = "{{ t }}";
@@ -621,4 +624,9 @@ function warning_message(date, type) {
     }
 
 }
+
+function model_down_message() {
+    window.alert("We are currently having troubles with one of our models. We're working on downloading from. We're working on downloading from an alternative site. We hope to have it up asap. Thank you for your patience!")
+}
+
 </script>
