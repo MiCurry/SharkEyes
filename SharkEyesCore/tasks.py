@@ -35,7 +35,13 @@ def do_pipeline():
         print '-' * 60
         traceback.print_exc(file=sys.stdout)
         print '-' * 60
-    sst_files = DataFileManager.fetch_new_files()   # not calling as a task so it runs inline
+    try:
+        sst_files = DataFileManager.fetch_new_files()   # not calling as a task so it runs inline
+    except Exception:
+        print '-' * 60
+        traceback.print_exc(file=sys.stdout)
+        print '-' * 60
+
     wind_files = DataFileManager.get_wind_file()
 
     # If no new files were returned, don't plot or tile anything.
