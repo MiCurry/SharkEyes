@@ -16,24 +16,22 @@ def do_pipeline():
     OverlayManager.delete_old_files()
 
     # Check for new feedback surveys or comments, and email them to Flaxen
-    #FeedbackHistory.send_feedback_forms()
-    #FeedbackQuestionaire.send_feedback_survey()
+    FeedbackHistory.send_feedback_forms()
+    FeedbackQuestionaire.send_feedback_survey()
 
     #Downloading the latest datafiles for our models. See the appropriate functions
-    #pl_download/models.py.DataFileManager.get_latest_wave_watch_files() and
-    #pl_download/models.py.DataFileManager.fetch_new_files() respectively
+    #   pl_download/models.py.DataFileManager.get_latest_wave_watch_files() and
+    #   pl_download/models.py.DataFileManager.fetch_new_files() respectively
 
     #Sometimes even though the file downloads this process hangs and fails.
     #The try catch is a stop-gap fix so that the pipeline doesn't stop here
     #When it fails in that manner the file is downloaded and can be used
-    """
     try:
         wave_watch_files = DataFileManager.get_latest_wave_watch_files()
     except Exception:
         print '-' * 60
         traceback.print_exc(file=sys.stdout)
         print '-' * 60
-    """
 
     """
     try:
