@@ -7,6 +7,7 @@ from uuid import uuid4
 from urlparse import urljoin
 import urllib2
 from defusedxml import ElementTree
+from lxml import etree
 from datetime import datetime, timedelta
 from dateutil import parser
 from django.db.models.aggregates import Max
@@ -74,10 +75,10 @@ def extract_modified_datetime_from_xml(elem):
 class DataFileManager(models.Manager):
     # grabs file for next few days.
     # todo make each file download in a separate task
-    @staticmethod
-    @shared_task(name='pl_download.fetch_new_files')
 
     #FETCH FILES FOR CURRENTS AND SST
+    @staticmethod
+    @shared_task(name='pl_download.fetch_new_files')
     def fetch_new_files():
         alternate = 0
         if alternate == 0:
@@ -177,6 +178,67 @@ class DataFileManager(models.Manager):
                 new_file_ids.append(datafile.id)
 
             return new_file_ids
+
+    @staticmethod
+    @shared_task(name='pl_download.download_osu_roms')
+    def download_osu_roms():
+        """ Downloads Alex's K's OSU ROMS' Model from Craig Risens 'Wilson'
+        server:
+
+        http://wilson.coas.oregonstate.edu:8080/thredds/catalog/NANOOS/OCOS_Files/catalog.html
+
+        url = "http://wilson.coas.oregonstate.edu:8080/thredds/fileServer/NANOOS/OCOS_Files/ocean_his_"+ref_number+model_date+".nc"
+
+        :return:
+        """
+        verbose = 0
+
+        if verbose > 0:
+            print "OSU_ROMS DOWNLOAD"
+
+        local_filename = ""
+        destination_directory = os.path.join(settings.MEDIA_ROOT, settings.NETCDF_STORAGE_DIR)
+        BASE_URL = "http://wilson.coas.oregonstate.edu:8080/thredds/fileServer/NANOOS/OCOS_Files/"
+        XML_URL = 'http://wilson.coas.oregonstate.edu:8080/thredds/catalog/NANOOS/OCOS_Files/catalog.xml'
+
+        catalog = etree.parse(XML_URL)
+
+        file_ids = []
+
+        for element in catalog.iter():
+            file = element.get('name')
+
+            if not file:
+                continue
+            elif file.startswith('ocean_his'):
+                datestring = file.split('_')[-1]
+                file_date = datetime.strptime(datestring, "%d-%b-%Y.nc").date()
+
+                url = BASE_URL + file
+                local_filename = "OSU_ROMS-{0}_{1}.nc".format(file_date, uuid4())
+
+                try:
+                    print "Downloading OSU ROMS File {0}".format(url,)
+                    urllib.urlretrieve(url=url, filename=os.path.join(destination_directory, local_filename))
+                    datafile = DataFile(
+                        type='NCDF',
+                        download_datetime=timezone.now(),
+                        generated_datetime=timezone.now(),
+                        model_date=datetime.now().date(),
+                        file=local_filename,
+                    )
+                    datafile.save()
+                    file_ids.append(datafile.id)
+
+                except Exception:
+                    print "Unable to download OSU ROMS File from wilson.coas.oregonstat.edu"
+                    continue
+
+                print "Downloaded OSU ROMS File from wilson {0}".format(local_filename)
+
+        return file_ids
+
+
 
     @staticmethod
     @shared_task(name='pl_download.get_latest_wave_watch_files')
