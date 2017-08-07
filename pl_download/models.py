@@ -224,7 +224,7 @@ class DataFileManager(models.Manager):
                         type='NCDF',
                         download_datetime=timezone.now(),
                         generated_datetime=timezone.now(),
-                        model_date=datetime.now().date(),
+                        model_date=file_date,
                         file=local_filename,
                     )
                     datafile.save()
