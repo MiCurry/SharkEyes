@@ -13,7 +13,7 @@ Mobile:
 <img src="resources/ios_screenshot.png" width="200"/>
 
 Desktop:
-<img src="resources/desktop_screenshot.png" width="200"/>
+<img src="resources/desktop_screenshot.png" width="300"/>
 
 ## Table of Contents <a name="Contents"/>
 
