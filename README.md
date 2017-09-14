@@ -1,6 +1,7 @@
 # Seacast
 
 <a name="About"/> ## About
+
 Seacast.org is a Django site created by students at Oregon State University for the College of Earth, Oceanic, and 
 Atmospheric Sciences. It takes oceanic models and uses Matplotlib, Basemap, and Celery to plot them as Google Maps 
 overlays, with the goal of helping Oregon's coastal fisherman find fish more easily.
@@ -17,6 +18,7 @@ Desktop:
 <img src="resources/desktop_screenshot.png?raw=true">
 
 ## Table of Contents
+
 1. [Quick Start Installation](#QuickStart)
 2. [PyCharm Set-up](#PyCharmSetup)
 
@@ -114,6 +116,7 @@ there is a list of common problems that we encountered during the setup process 
 #### Community:
 
 #### Proffessional:
+
 If you have a subscription to the proffesional version of PyCharm you can follow the directions below to configure
 its ability to use Django.
 
