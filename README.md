@@ -17,7 +17,7 @@ Desktop:
 **UPDATE THIS**
 <img src="resources/desktop_screenshot.png?raw=true">
 
-## Table of Contents
+## Table of Contents <a name="Contents"/>
 
 1. [Quick Start Installation](#QuickStart)
 2. [PyCharm Set-up](#PyCharmSetup)
@@ -110,8 +110,7 @@ there is a list of common problems that we encountered during the setup process 
     If you don't see the development server you may need to forward the port on your vagrant box: you can do that
     by adding the following to your Vagrant File: ```config.vm.network :forwarded_port, guest: 8000, host: 8001```
         
-
-<a name="PyCharmSetup"/> ### PyCharm Setup
+### PyCharm Setup <a name="PyCharmSetup"/>
     
 #### Community:
 
