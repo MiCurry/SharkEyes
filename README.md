@@ -6,11 +6,13 @@ Seacast.org is a Django site created by students at Oregon State University for 
 Atmospheric Sciences. It takes oceanic models and uses Matplotlib, Basemap, and Celery to plot them as Google Maps 
 overlays, with the goal of helping Oregon's coastal fisherman find fish more easily.
 
+<img src="resources/ios_screenshot.png" width="200"/> <img src="resources/desktop_screenshot.png" width="400"/>
+Seacast supports mobile and desktop browsers.
+
 We have a staging server at [staging.seacast.org](http://staging.seacast.org), and we just deployed to production 
 at [seacast.org](http://seacast.org).
 
-Mobile:
-<img src="resources/ios_screenshot.png" width="200"/> <img src="resources/desktop_screenshot.png" width="300"/>
+
 
 ## Table of Contents <a name="Contents"/>
 
