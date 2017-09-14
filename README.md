@@ -10,10 +10,7 @@ We have a staging server at [staging.seacast.org](http://staging.seacast.org), a
 at [seacast.org](http://seacast.org).
 
 Mobile:
-<img src="resources/ios_screenshot.png" width="200"/>
-
-Desktop:
-<img src="resources/desktop_screenshot.png" width="300"/>
+<img src="resources/ios_screenshot.png" width="200"/> <img src="resources/desktop_screenshot.png" width="300"/>
 
 ## Table of Contents <a name="Contents"/>
 
