@@ -1,7 +1,8 @@
 # Seacast
 
-[seacast.org](http://seacast.org) - Stable Release Server
-[staging.seacast.org](http://staging.seacast.org) - Development Server
+[http://www.seacast.org](http://seacast.org) - Stable Release Server
+
+[http://www.staging.seacast.org](http://staging.seacast.org) - Development Server
 
 
 ## About <a name="About"/>
