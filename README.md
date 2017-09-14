@@ -24,7 +24,7 @@ Seacast supports mobile and desktop browsers.
 1. [Quick Start Installation](#QuickStart)
 2. [PyCharm Set-up](#PyCharmSetup)
 
-<a name="QuickStart"/> ## Quick Start Installation
+## Quick Start Installation <a name="QuickStart"/> 
 
 All these requirements should be cross platform. If you're on Windows, you can also use the Git Bash for these 
 over Command Prompt (lets you use Linux-based commands). Throughout these steps are mentioned the project directory, 
