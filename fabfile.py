@@ -68,6 +68,7 @@ def production():
     env.hosts = env.hosts = ["%s:%s" % (hostname,port)]
     env.branch = 'master'
 
+
 def install_prereqs():
     #handle selinux
     with settings(warn_only=True):
@@ -391,27 +392,45 @@ def startdev():
 
 def runserver():
     with cd('/opt/sharkeyes/src'):
-        run('./runserver.sh')
+        run('./scripts/runserver.sh')
 
 
 def provision():
+    print "Install Prereqs"
     install_prereqs()
+    print "install python 2.7"
     install_python27()
+    print "install apache"
     install_apache()
+    print "install mysql"
     install_mysql()
+    print "install group"
     setup_group()
+    print "install selinux"
     disable_selinux()
+    print "setup project director"
     setup_project_directory()
+    print "setup media directory"
     setup_media_directory()
+    print "setup geotools"
     install_geotools()
+    print "setupt python"
     setup_python()
+    print "clone repo"
     clone_repo()
+    print "configure mod wsgi"
     configure_mod_wsgi()
+    print "configure apache"
     configure_apache()
+    print "configure mysql"
     configure_mysql()
+    print "configure rabbit mq"
     configure_rabbitmq()
+    print "configure celery"
     configure_celery()
+    print "set all to start on startup"
     set_all_to_start_on_startup()
+    print "deploy"
     deploy()
     print("!-"*50)
     print("And provisioning is complete. Awesome! Just restart the system (so selinux is turned off) and you'll be good.")

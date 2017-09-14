@@ -24,7 +24,6 @@ ALLOWED_HOSTS = [
 ]
 
 # Application definition
-
 INSTALLED_APPS = (
     'celery',
     'djcelery',
@@ -75,6 +74,27 @@ TEMPLATE_LOADERS = (
     )),
 )
 
+#some database
+CONN_MAX_AGE = None
+
+# For celery
+BROKER_HOST = "127.0.0.1"
+BROKER_PORT = 5672
+BROKER_VHOST = "sharkeyes"
+
+CELERY_RESULT_BACKEND = 'djcelery.backends.database:DatabaseBackend'
+CELERYBEAT_SCHEDULER = 'djcelery.schedulers.DatabaseScheduler'
+CELERY_IMPORTS = ('SharkEyesCore.tasks',)
+
+CELERYBEAT_SCHEDULE = {
+    'plot_pipeline': {
+        'task': 'sharkeyescore.pipeline',
+        'schedule': timedelta(hours=6),
+        'args': ()
+    },
+}
+
+### Globals ###
 TEMPLATE_DIRS = BASE_DIR + '/templates/'
 
 STATIC_URL = '/static/'
@@ -93,35 +113,36 @@ WAVE_WATCH_DIR = "wave_watch_datafiles"
 WAVE_WATCH_STORAGE_DIR = "wave_watch_forecasts"
 WIND_DIR = "wind_datafiles"
 WIND_STORAGE_DIR = "wind_forecasts"
+HYCOM_DIR = "hycom_datafiles"
+WW3_DIR = "ww3_datafiles"
 
 MEDIA_ROOT = "/opt/sharkeyes/media/"
 MEDIA_URL = "/media/"
 
-BASE_NETCDF_URL = "http://ingria.coas.oregonstate.edu/opendap/ORWA/"
+BASE_NETCDF_URL = "http://ingria.coas.oregonstate.edu/opendap/ORWA/" #OSU_ROMS URL
 WAVE_WATCH_URL = "ftp://cil-www.oce.orst.edu/pub/outgoing/ww3data/"
 FTP_WAVE_WAVE_URL = "cil-wwww.oce.orst.edu"
 #Not Currently used. Can be used if you need to stream wind data for some reason.
 #WIND_URL = "http://thredds.ucar.edu/thredds/dodsC/grib/NCEP/NAM/CONUS_12km/conduit/Best"
 
-#some database
-CONN_MAX_AGE = None
+# Model Datafile File Start names
+OSU_ROMS_DF_FN = "OSU_ROMS"
+OSU_WW3_DF_FN = "Outergrid"
+NAMS_WIND_DF_FN = "WIND"
+NCEP_WW3_DF_FN  = "NCEP_WW3"
 
-# For celery
-BROKER_HOST = "127.0.0.1"
-BROKER_PORT = 5672
-BROKER_VHOST = "sharkeyes"
+# Model Definition ID's
+OSU_ROMS_SST = 1
+OSU_ROMS_SUR_SAL = 2
+OSU_ROMS_SUR_CUR = 3
+OSU_WW3_HI = 4
+NAMS_WIND = 5
+OSU_WW3_DIR = 6
+OSU_ROMS_BOT_SAL = 7
+OSU_ROMS_BOT_TEMP = 8
+OSU_ROMS_SSH = 9
 
-CELERY_RESULT_BACKEND = 'djcelery.backends.database:DatabaseBackend'
-CELERYBEAT_SCHEDULER = 'djcelery.schedulers.DatabaseScheduler'
-CELERY_IMPORTS = ('SharkEyesCore.tasks',)
-
-CELERYBEAT_SCHEDULE = {
-   'plot_pipeline': {
-       'task': 'sharkeyescore.pipeline',
-       'schedule': timedelta(hours=6),
-       'args': ()
-   },
-}
 # import local settings. PyCharm thinks it's unused, but PyCharm is silly.
 # noinspection PyUnresolvedReferences
 from .settings_local import *
+

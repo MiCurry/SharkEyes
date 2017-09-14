@@ -1,7 +1,4 @@
-import math
-from datetime import datetime, timedelta, date
 import numpy
-import os
 import scipy
 from scipy import ndimage
 from matplotlib import pyplot, colors
@@ -502,14 +499,6 @@ def currents_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio)
 def wind_function(ax, data_file, bmap, time_index, downsample_ratio):
     print "CREATING A WIND PLOT"
     print "DOWNSAMPLERATIO = ", downsample_ratio, "Time Index =", time_index
-    # We now have the 2D lat longs from the netcdf. We should not need this
-    #-------------------------------------------------------------------------
-    # tmp = numpy.loadtxt('/opt/sharkeyes/src/latlon.g218')
-    # lat = numpy.reshape(tmp[:, 2], data_file.variables['lat'])
-    # lon = numpy.reshape(tmp[:, 3], data_file.variables['lat'])
-    # for i in range(0, len(lon)):
-    #     lon[i] = -lon[i]
-
     #Get the lats and longs from the file
     #-------------------------------------------------------------------------
     lat = data_file.variables['lat']

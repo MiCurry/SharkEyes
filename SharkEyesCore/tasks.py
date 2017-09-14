@@ -23,33 +23,29 @@ def do_pipeline():
     #   pl_download/models.py.DataFileManager.get_latest_wave_watch_files() and
     #   pl_download/models.py.DataFileManager.fetch_new_files() respectively
 
-    #Sometimes even though the file downloads this process hangs and fails.
-    #The try catch is a stop-gap fix so that the pipeline doesn't stop here
-    #When it fails in that manner the file is downloaded and can be used
-    try:
+    try: # Try Catches to ensure do_pipeline completes even if a model server cant be reached
         wave_watch_files = DataFileManager.get_latest_wave_watch_files()
     except Exception:
         print '-' * 60
+        print "COULD NOT DOWNLOAD OSU WW3 FILES"
         traceback.print_exc(file=sys.stdout)
         print '-' * 60
 
-    """
-    try:
-        sst_files = DataFileManager.fetch_new_files()   # not calling as a task so it runs inline
-    except Exception:
-        print '-' * 60
-        traceback.print_exc(file=sys.stdout)
-        print '-' * 60
-    """
-
-    try:
+    try: # Try Catches to ensure do_pipeline completes even if a model server cant be reached
         sst_files = DataFileManager.download_osu_roms()
     except Exception:
         print '-' * 60
+        print "COULD NOT DOWNLOAD OSU ROMS FILES"
         traceback.print_exc(file=sys.stdout)
         print '-' * 60
 
-    wind_files = DataFileManager.get_wind_file()
+    try: # Try Catches to ensure do_pipeline completes even if a model server cant be reached
+        wind_files = DataFileManager.get_wind_file()
+    except Exception:
+        print '-' * 60
+        print "COULD NOT DOWNLOAD WIND FILE"
+        traceback.print_exc(file=sys.stdout)
+        print '-' * 60
 
     # If no new files were returned, don't plot or tile anything.
     try:
@@ -76,11 +72,10 @@ def do_pipeline():
             list_of_chains.append(chain(pt, tile_wave_watch_overlay.s()))
 
     job = group(item for item in list_of_chains)
-    print "jobs:"
+    print "do_pipeline: JOBS:"
     for each in job:
         print each
-    #and run the group.
-    result = job.apply_async()
+    result = job.apply_async() # Run the group.
     return result
 
 @shared_task(name='sharkeyescore.spacer_task')

@@ -5,19 +5,30 @@ from scipy.io import netcdf
 import numpy
 from matplotlib import pyplot
 from mpl_toolkits.basemap import Basemap
+
+from django.utils import timezone
 from django.conf import settings
 from datetime import datetime, timedelta
-from django.utils import timezone
 
-#TODO Move plot_functions to plotter
+""" The plotter file contains Plotters for models that help with plot generation
+ Instantiated with model DataFile, Plotters allow retuines to access and read the datafiles properties.
+ 
+ If you're unfamilr with the NetCDF file check out: https://www.unidata.ucar.edu/software/netcdf/. Brifly described
+ NetCDF fiels are self-describing, which allows us to access variables and meta-deta that describes their variables. So
+ for instance we can grab the 'time' variable from a datafile. We can then see what units they are in by: time.units. 
+ This is great because it allows us to see variable ranges, what units they are in etc.
+ 
+ If you have a function that isn't a plot_function, say grab the time at which a certin time slice applies or see the 
+ latitude and longitude of the datafile, the plotter is a good place to do that.
+"""
+
 class WaveWatchPlotter:
     data_file = None
 
     def __init__(self, file_name):
         self.load_file(file_name)
 
-    def load_file(self, file_name):
-        #Gives a netcdf file object with default mode of reading permissions only
+    def load_file(self, file_name): # Gives a netcdf file object with default mode of reading permissions only
         self.data_file = netcdf.netcdf_file(
             os.path.join(
                 settings.MEDIA_ROOT,
@@ -26,10 +37,6 @@ class WaveWatchPlotter:
             )
         )
 
-    # The unchopped file's index starts at noon: index = 0 and progresses throgh 85 forecasts, one per hour,
-    # for the next 85 hours.
-    # Make a plot, with the Function to use specified, the storage directory specified, and the Index (ie 0--85 forecasts)
-    # Based on the title of the file
     def make_plot(self, plot_function, forecast_index,storage_dir, generated_datetime, zoom_levels, downsample_ratio=None):
         fig = pyplot.figure()
         key_fig = pyplot.figure(facecolor=settings.OVERLAY_KEY_COLOR)
@@ -54,19 +61,6 @@ class WaveWatchPlotter:
         key_filename = "{0}_key_{1}_{2}.png".format(plot_function.__name__,generated_datetime, uuid4())
 
         # TODO: set the resolution higher for the zoomed-in overlays. The code below
-        # seems to set the resolution properly, but at the expense of performance: it takes
-        # 5 minutes to plot the biggest images, which is too long if we don't have better
-        # parallelization.
-        # if zoom_levels == '9-11' :
-        #     DPI = 1800
-        # elif zoom_levels == '12':
-        #     DPI = 2400
-        # elif zoom_levels == '6-8':
-        #     DPI = 1200 # Original
-        #
-        # else:
-        #     DPI = 800
-
         # There needs to be a case of each of these zoom-level ranges:  [('2-8', 20), ('9-10', 15),  ('11-12', 5)]
         # which comes from the pl_plot/models file
         if zoom_levels == '11-12':
@@ -200,16 +194,12 @@ class Plotter:
         # we used the dimensions provided by the file itself, but the change in provided data has changed
         # the size of the image.
 
-        #longs = self.data_file.variables['lon_rho'][0, :] # only needed to set up longs
+        # longs = self.data_file.variables['lon_rho'][0, :] # only needed to set up longs
+        # lats = self.data_file.variables['lat_rho'][:, 0] # only needed to set up lats
         longs = [-129.0, -123.726199391]
-        #lats = self.data_file.variables['lat_rho'][:, 0] # only needed to set up lats
         lats = [40.5840806224, 47.499]
 
-        '''print "Latitude Longitude plot area"
-        print "\tlats[0]: " + str(lats[0]) + " longs[0]: " + str(longs[0])
-        print "\tlats[-1]: " + str(lats[-1])+ " longs[-1]: " + str(longs[-1])'''
-
-        # window cropped by picking lat and lon corners
+        # Window cropped by picking lat and lon corners
         bmap = Basemap(projection='merc',
                        resolution='h', area_thresh=1.0,
                        llcrnrlat=lats[0], urcrnrlat=lats[-1],

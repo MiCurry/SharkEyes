@@ -11,8 +11,15 @@ from django.http import HttpResponse
 #This is where we associate the Javascript variables (overlays, defs etc) with the Django objects from the database.
 def home(request):
     #Models determines which models are displayed on the website. They will appear in the order provided by models[]. Change this order to change the order of the buttons and which buttons appear.
-    #1 = SST, 2 = Salinity, 3 = Currents, 4 = Wave Height, 5 = Winds, 6 = Wave Direction/Period, 7 = Bottom Temperature, 8 = Bottom Salinity, 9 = Sea Surface Height
-    #-------------------------------------------------------------------------
+    # 1 = SST,
+    # 2 = Salinity,
+    # 3 = Currents,
+    # 4 = Wave Height,
+    # 5 = Winds,
+    # 6 = Wave Direction/Period,
+    # 7 = Bottom Temperature,
+    # 8 = Bottom Salinity,
+    # 9 = Sea Surface Height
     models = [1,3,4,6,5,8,2,7,9]
     fields = []
     for value in models:
