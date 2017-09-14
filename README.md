@@ -9,12 +9,10 @@ overlays, with the goal of helping Oregon's coastal fisherman find fish more eas
 We have a staging server at [staging.seacast.org](http://staging.seacast.org), and we just deployed to production 
 at [seacast.org](http://seacast.org).
 
-**UPDATE THIS**
 Mobile:
 <img src="resources/ios_screenshot.png?raw=true">
 
 Desktop:
-**UPDATE THIS**
 <img src="resources/desktop_screenshot.png?raw=true">
 
 ## Table of Contents <a name="Contents"/>
