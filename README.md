@@ -19,10 +19,10 @@ Seacast supports mobile and desktop browsers.
 
 1. [Quick Start Installation](#QuickStart)
 2. [Using the System](#UsingTheSystem)
- 1. [Accessing the Shell](#ShellAccess)
- 2. [Downloading Models](#Downloading)
- 3. [Plotting Models](#Plotting)
- 4. [Iiling Models](#Tiling)
+  1. [Accessing the Shell](#ShellAccess)
+  2. [Downloading Models](#Downloading)
+  3. [Plotting Models](#Plotting)
+  4. [Tiling Models](#Tiling)
 3. [PyCharm Set-up](#PyCharmSetup)
 
 ## Quick Start Installation <a name="QuickStart"/> 
