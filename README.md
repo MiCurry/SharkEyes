@@ -1,6 +1,6 @@
 # Seacast
 
-<a name="About"/> ## About
+## About<a name="About"/>
 
 Seacast.org is a Django site created by students at Oregon State University for the College of Earth, Oceanic, and 
 Atmospheric Sciences. It takes oceanic models and uses Matplotlib, Basemap, and Celery to plot them as Google Maps 
@@ -144,3 +144,15 @@ NOTE: These instructions might be out of date.
 19.	This should be everything. You should be able to hit run, and get then go to localhost:8001 in your browser and see the project home page. If you get a page reset message, try refreshing a few times. If you want to debug, set a breakpoint and hit the bug to the right of the play button.
 
 
+
+## Using the System
+
+### Accessing the Shell
+
+
+
+### Downloading
+
+### Plotting
+
+### Tiling
