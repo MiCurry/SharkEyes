@@ -18,7 +18,12 @@ Seacast supports mobile and desktop browsers.
 ## Table of Contents <a name="Contents"/>
 
 1. [Quick Start Installation](#QuickStart)
-2. [PyCharm Set-up](#PyCharmSetup)
+2. [Using the System](#UsingTheSystem)
+ 1. [Accessing the Shell](#ShellAccess)
+ 2. [Downloading Models](#Downloading)
+ 3. [Plotting Models](#Plotting)
+ 4. [Iiling Models](#Tiling)
+3. [PyCharm Set-up](#PyCharmSetup)
 
 ## Quick Start Installation <a name="QuickStart"/> 
 
@@ -48,17 +53,17 @@ there is a list of common problems that we encountered during the setup process 
         (ie "John Doe") then place the folder within your C Drive.
     2. Create a folder named ```media``` in the ```Seacast``` folder. 
     3. Clone this repository into the ```Seacast``` folder:
-        ```>>> git clone https://github.com/Seacast/SharkEyes.git sharkeyes```
+        ```$ git clone https://github.com/Seacast/SharkEyes.git sharkeyes```
 
         * Note Due to how our fabric file works if you have a space in your windows folder name the script won't 
         complete. To avoid this clone the repository into the base C:// Drive
     4. Add the Centos Box to Vagrant and Virtural Machine
-        ```>>> vagrant box add centos65 https://github.com/2creatives/vagrant-centos/releases/download/v6.5.3/centos65-x86_64-20140116.box ```
+        ```$ vagrant box add centos65 https://github.com/2creatives/vagrant-centos/releases/download/v6.5.3/centos65-x86_64-20140116.box ```
         This will add the Centos box that Seacast Uses to run its development server on.
     5. Create the Vagrant Box
-        ```>>> vagrant init centos65```
+        ```$ vagrant init centos65```
     6. Install Fabric
-        ```>>> pip install fabric```
+        ```$ pip install fabric```
 3. Create a new settings_local.template file and add passwords for your vagrant box.
     1. Copy the *settings_local.template* file and rename it as *settings_local.py*
     2. Edit the following fields in *settings_local.py*
@@ -83,14 +88,14 @@ there is a list of common problems that we encountered during the setup process 
     Now that we've created our Vagrant Box, cloned the respoitory and installed fabric, we can now start to 
     provision the vitural machine. WARNING: This process takes time and requires baby sitting. Be ready to spend
     at least a few hours installing.
-    1. ```>>> vagrant up``` 
+    1. ```$ vagrant up```
         This will start the vagrant Machine. You should see some dialog from the vagrant machine
     2. You can now SSH into your Vagrant Machine by SSHing into 127.0.0.0:22 or by typing:
-        ```>>> vagrant ssh```
+        ```$ vagrant ssh```
     4. Install kernel-dev file.
-        ```>>> sudo yum install -y kernel-devel.rpm```
+        ```$ sudo yum install -y kernel-devel.rpm```
     4. Provision the Vagrant Machine
-        ```>>> fab vagrant provision```
+        ```$ fab vagrant provision```
     5. Set-Up MySQL
         The script will ask for your to set up the root password for MySQL. Create a password
         and write this down so that you can remember it. For the other passwords they will be the passwords you
@@ -101,15 +106,100 @@ there is a list of common problems that we encountered during the setup process 
 5. Start the development server
     Once provising has completed starting the development server is a good way to ensure that everything was
     installed correctly. To start the development server run the following command:
-    ```>>>fab vagrant runserver```
+    ```$ fab vagrant runserver```
     
     Then you can navigate to ```localhost:8001``` and you should see the development server.
     
     If you don't see the development server you may need to forward the port on your vagrant box: you can do that
     by adding the following to your Vagrant File: ```config.vm.network :forwarded_port, guest: 8000, host: 8001```
         
+
+
+## Using the System <a name="UsingTheSystem"/>
+
+### Accessing the Shell <a name="ShellAccess"/>
+
+    >>>git checkout –b <name of your new local branch>
+
+Type in the following commands :
+
+    $ git checkout <name of local branch>
+    $ vagrant up
+    $ fab vagrant startdev
+    $ vagrant ssh # Or ssh in with another SSH client (Putty etc.)
+    $ source /opt/sharkeyes/env_sharkeyes/bin/activate
+    $ cd /opt/sharkeyes/src
+    $./manage.py shell
+
+This will start the Django Development Shell. From here you can import files the SharkEyes structure and use
+the functions and classes to produce plots.
+
+### Downloading Models <a name="Downloading"/>
+
+    $ source /opt/sharkeyes/env_sharkeyes/bin/activate
+    $ cd /opt/sharkeyes/src
+    $ manage.py shell
+
+From the Python shell import the DataFileManager:
+
+    >>> from pl_download.models import DataFileManager
+
+Then call the corresponding function to download the corresponding datafile.
+See the table below:
+
+Model           | Download Function
+----------------|:-----------:
+OSU ROMS        | download_osu_roms()
+OSU WW3         | get_latest_wave_watch_files()
+NAMS Wind       | get_wind_file()
+
+All of these functions return the database ID of the downloaded Datafile. Save this ID to be used for plotting
+in the next step.
+
+    >>> from pl_download.models import DataFileManager
+    >>> osu_ww3_df_id = DataFileManager.get_latest_wave_watch_files()
+
+### Plotting Overlays <a name ="Plotting"/>
+
+To plot use the datafile you saved in either the make_plot or make_wave_watch_plot command,
+with the corresponding definition ID of the model you want to plot.
+
+    >>> from pl_plot.models import OverlayManager
+    >>> plot_id = OverlayManager.make_plot(4, 0, osu_ww3_df_id)
+
+The first argument, 4, corresponds with the definition ID we want to plot. The second argument, 0, represents
+the time slice we want for that model and the last argument, osu_ww3_df_id represents the database ID of a
+downloaded datafile (see above).
+
+Note: The model definition ID and must correspond with either make_plot and make_wave_watch_plot.
+Below is a list of the models, their definition ID's and the function that can be called to make an unchppoed plot.
+
+ID | Model      | Associated Plot       | Function to Use
+---|------------|:---------------------:|-----------------
+1  | OSU ROMS   | Surface Temperature   | make_plot()
+2  | OSU ROMS   | Surface Salnity       | make_plot()
+3  | OSU ROMS   | Surface Currents      | make_plot()
+4  | OSU WW3    | Wave Height           | make_wave_watch_plot()
+5  | NAMS Wind  | Wind                  | make_plot()
+6  | OSU WW3    | Wave Direction/Period | make_wave_watch_plot()
+7  | OSU ROMS   | Bottom Salnity        | make_plot()
+8  | OSU ROMS   | Bottom Temperature    | make_plot()
+9  | OSU ROMS   | Sea Surface Height    | make_plot()
+
+
+### Tiling Overlays to be Served on the Website <a name="Tiling"/>
+
+To run tiling, which takes the one or two overlay images generated by the plotting and breaks them up into tiles so Google Maps can knit them together:
+
+	>>> from pl_chop.tasks import tile_overlay
+	>>> tile_overlay(plot_id)
+or
+	>>> tile_wave_watch_overlay(plot_id)  #for the WaveWatch files. Ensure that you call the correct function for the type of file: don’t call tile_wave_watch_overlay() on a SST file, for example.
+
+You have to tile EACH of the overlays that you want to display. You can look at the database to see the is_tiled variable, to check.
+
 ### PyCharm Setup <a name="PyCharmSetup"/>
-    
+
 #### Community:
 
 #### Proffessional:
@@ -139,88 +229,3 @@ NOTE: These instructions might be out of date.
 17.	and set PYTHONUNBUFFERED equal to 1.
 18.	And add a path mapping where the local path is your project folder, and the remote path is /opt/sharkeyes/src.
 19.	This should be everything. You should be able to hit run, and get then go to localhost:8001 in your browser and see the project home page. If you get a page reset message, try refreshing a few times. If you want to debug, set a breakpoint and hit the bug to the right of the play button.
-
-
-## Using the System
-
-### Accessing the Shell
-
-    >>>git checkout –b <name of your new local branch>
-
-Type in the following commands :
-
-    $ git checkout <name of local branch>
-    $ vagrant up
-    $ fab vagrant startdev
-    $ vagrant ssh # Or ssh in with another SSH client (Putty etc.)
-    $ source /opt/sharkeyes/env_sharkeyes/bin/activate
-    $ cd /opt/sharkeyes/src
-    $./manage.py shell
-
-This will start the Django Development Shell. From here you can import files the SharkEyes structure and use
-the functions and classes to produce plots.
-
-### Downloading Models
-
-    $ source /opt/sharkeyes/env_sharkeyes/bin/activate
-    $ cd /opt/sharkeyes/src
-    $ manage.py shell
-
-From the Python shell import the DataFileManager:
-
-    >>>from pl_download.models import DataFileManager
-
-Then call the corresponding function to download the corresponding datafile.
-See the table below:
-
-Model           | Download Function
-----------------|:-----------:
-OSU ROMS        | download_osu_roms()
-OSU WW3         | get_latest_wave_watch_files()
-NAMS Wind       | get_wind_file()
-
-All of these functions return the database ID of the downloaded Datafile. Save this ID to be used for plotting
-in the next step.
-
-    >>>from pl_download.models import DataFileManager
-    >>>osu_ww3_df_id = DataFileManager.get_latest_wave_watch_files()
-
-### Plotting Overlays
-
-To plot use the datafile you saved in either the make_plot or make_wave_watch_plot command,
-with the corresponding definition ID of the model you want to plot.
-
-    >>>from pl_plot.models import OverlayManager
-    >>>plot_id = OverlayManager.make_plot(4, 0, osu_ww3_df_id)
-
-The first argument, 4, corresponds with the definition ID we want to plot. The second argument, 0, represents
-the time slice we want for that model and the last argument, osu_ww3_df_id represents the database ID of a
-downloaded datafile (see above).
-
-Note: The model definition ID and must correspond with either make_plot and make_wave_watch_plot.
-Below is a list of the models, their definition ID's and the function that can be called to make an unchppoed plot.
-
-ID | Model      | Associated Plot       | Function to Use
----|------------|:---------------------:|-----------------
-1  | OSU ROMS   | Surface Temperature   | make_plot()
-2  | OSU ROMS   | Surface Salnity       | make_plot()
-3  | OSU ROMS   | Surface Currents      | make_plot()
-4  | OSU WW3    | Wave Height           | make_wave_watch_plot()
-5  | NAMS Wind  | Wind                  | make_plot()
-6  | OSU WW3    | Wave Direction/Period | make_wave_watch_plot()
-7  | OSU ROMS   | Bottom Salnity        | make_plot()
-8  | OSU ROMS   | Bottom Temperature    | make_plot()
-9  | OSU ROMS   | Sea Surface Height    | make_plot()
-
-
-### Tiling Overlays to be Served on the Website
-
-To run tiling, which takes the one or two overlay images generated by the plotting and breaks them up into tiles so Google Maps can knit them together:
-
-	>>>from pl_chop.tasks import tile_overlay
-	>>>tile_overlay(plot_id)
-or
-	>>>tile_wave_watch_overlay(plot_id)  #for the WaveWatch files. Ensure that you call the correct function for the type of file: don’t call tile_wave_watch_overlay() on a SST file, for example.
-
-You have to tile EACH of the overlays that you want to display. You can look at the database to see the is_tiled variable, to check.
-
