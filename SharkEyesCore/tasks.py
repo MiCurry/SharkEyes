@@ -19,7 +19,7 @@ def do_pipeline():
     FeedbackHistory.send_feedback_forms()
     FeedbackQuestionaire.send_feedback_survey()
 
-    #Downloading the latest datafiles for our models. See the appropriate functions
+    # Downloading the latest datafiles for our models. See the appropriate functions
     #   pl_download/models.py.DataFileManager.get_latest_wave_watch_files() and
     #   pl_download/models.py.DataFileManager.fetch_new_files() respectively
 
@@ -58,17 +58,17 @@ def do_pipeline():
         traceback.print_exc(file=sys.stdout)
         print '-' * 60
 
-    # get the list of plotting tasks based on the files we just downloaded.
+    # Get the list of plotting tasks based on the files we just downloaded.
     plot_task_list = OverlayManager.get_tasks_for_base_plots_for_next_few_days()
 
     list_of_chains = []
 
     for pt in plot_task_list:
         if pt.args[0] != 4 and pt.args[0] != 6:
-            # chaining passes the result of first function to second function
+            # Chaining passes the result of first function to second function
             list_of_chains.append(chain(pt, tile_overlay.s()))
         else:
-            #Use the Wavewatch tiler for Wavewatch files
+            # Use the Wavewatch tiler for Wavewatch files
             list_of_chains.append(chain(pt, tile_wave_watch_overlay.s()))
 
     job = group(item for item in list_of_chains)

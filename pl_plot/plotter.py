@@ -1,5 +1,7 @@
 import os
+import sys
 import shutil
+import traceback
 from uuid import uuid4
 from scipy.io import netcdf
 import numpy

@@ -98,21 +98,21 @@ class OverlayManager(models.Manager):
             datafile = DataFile.objects.get(pk=fid)
 
             #Wavewatch and SST/currents files use a separate Plot function.
-            if datafile.file.name.startswith("OuterGrid"):
-                #plotter = WaveWatchPlotter(datafile.file.name)
+            if datafile.file.name.startswith(settings.OSU_WW3_DF_FN):
+                plotter = WaveWatchPlotter(datafile.file.name)
                 for t in xrange(0, 85):
                     # The unchopped file's index starts at noon: index = 0 and progresses throgh 85 forecasts, one per hour,
                     # for the next 85 hours.
                     # Only plot every 4th index to match up with the SST forecast.
                     # WaveWatch has forecasts for every hour but at this time we don't need them all.
                     if t % 4 == 0:
-                        task_list.append(cls.make_wave_watch_plot.subtask(args=(4, t, fid), immutable=True))
-                        task_list.append(cls.make_wave_watch_plot.subtask(args=(6, t, fid), immutable=True))
+                        task_list.append(cls.make_wave_watch_plot.subtask(args=(settings.OSU_WW3_HI, t, fid), immutable=True))
+                        task_list.append(cls.make_wave_watch_plot.subtask(args=(settings.OSU_WW3_DIR, t, fid), immutable=True))
             elif datafile.file.name.startswith("WIND"):
                 plotter = WindPlotter(datafile.file.name)
                 number_of_times = plotter.get_number_of_model_times()
                 for t in xrange(number_of_times):
-                    task_list.append(cls.make_plot.subtask(args=(5, t, fid), immutable=True))
+                    task_list.append(cls.make_plot.subtask(args=(settings.NAMS_WIND, t, fid), immutable=True))
             else:
                 plotter = Plotter(datafile.file.name)
                 number_of_times = plotter.get_number_of_model_times()
@@ -122,7 +122,12 @@ class OverlayManager(models.Manager):
                     #This only adds the task for every other time stamp
                     if t % 2 != 0:
                         #using EXTEND because we are adding multiple items: might also be able to use APPEND
-                        task_list.extend(cls.make_plot.subtask(args=(od_id, t, fid), immutable=True) for od_id in [1, 2, 3, 7, 8,9])
+                        task_list.extend(cls.make_plot.subtask(args=(od_id, t, fid), immutable=True) for od_id in [settings.OSU_ROMS_SUR_CUR,
+                                                                                                                   settings.OSU_ROMS_SUR_SAL,
+                                                                                                                   settings.OSU_ROMS_SUR_CUR,
+                                                                                                                   settings.OSU_ROMS_BOT_SAL,
+                                                                                                                   settings.OSU_ROMS_BOT_TEMP,
+                                                                                                                   settings.OSU_ROMS_SSH])
         return task_list
 
     @classmethod
