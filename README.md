@@ -1,28 +1,26 @@
 # Seacast
 
-## About<a name="About"/>
+[http://www.seacast.org](http://seacast.org) - Stable Release Server
+
+[http://www.staging.seacast.org](http://staging.seacast.org) - Development Server
+
+## About <a name="About"/>
 
 Seacast.org is a Django site created by students at Oregon State University for the College of Earth, Oceanic, and 
 Atmospheric Sciences. It takes oceanic models and uses Matplotlib, Basemap, and Celery to plot them as Google Maps 
 overlays, with the goal of helping Oregon's coastal fisherman find fish more easily.
 
-We have a staging server at [staging.seacast.org](http://staging.seacast.org), and we just deployed to production 
-at [seacast.org](http://seacast.org).
+<img src="resources/ios_screenshot.png" width="200"/> <img src="resources/desktop_screenshot.png" width="400"/>
 
-**UPDATE THIS**
-Mobile:
-<img src="resources/ios_screenshot.png?raw=true">
+Seacast supports mobile and desktop browsers.
 
-Desktop:
-**UPDATE THIS**
-<img src="resources/desktop_screenshot.png?raw=true">
 
-## Table of Contents
+## Table of Contents <a name="Contents"/>
 
 1. [Quick Start Installation](#QuickStart)
 2. [PyCharm Set-up](#PyCharmSetup)
 
-<a name="QuickStart"/> ## Quick Start Installation
+## Quick Start Installation <a name="QuickStart"/> 
 
 All these requirements should be cross platform. If you're on Windows, you can also use the Git Bash for these 
 over Command Prompt (lets you use Linux-based commands). Throughout these steps are mentioned the project directory, 
@@ -110,8 +108,7 @@ there is a list of common problems that we encountered during the setup process 
     If you don't see the development server you may need to forward the port on your vagrant box: you can do that
     by adding the following to your Vagrant File: ```config.vm.network :forwarded_port, guest: 8000, host: 8001```
         
-
-<a name="PyCharmSetup"/> ### PyCharm Setup
+### PyCharm Setup <a name="PyCharmSetup"/>
     
 #### Community:
 
@@ -144,12 +141,9 @@ NOTE: These instructions might be out of date.
 19.	This should be everything. You should be able to hit run, and get then go to localhost:8001 in your browser and see the project home page. If you get a page reset message, try refreshing a few times. If you want to debug, set a breakpoint and hit the bug to the right of the play button.
 
 
-
 ## Using the System
 
 ### Accessing the Shell
-
-
 
 ### Downloading
 
