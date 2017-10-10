@@ -98,7 +98,6 @@ def wave_direction_function(ax, data_file, bmap, key_ax, forecast_index, downsam
     textBox = pyplot.text(0, 0,"       Wave period average and maximum values ""\n" "Average: " + str(mean_val) + " seconds " "  -  "" Maximum: " + str(max_val) + " seconds", withdash=False, backgroundcolor='black', color='white')
     key_ax.set_axis_off()
 
-
 # Wave Model Data Information:
 # Wave Data comes in 3D arrays (number of forecasts, latitude, longitude)
 # As of right now (March 15) there are 85 forecasts in each netCDF file from 12 pm onward by the hour
@@ -178,6 +177,156 @@ def wave_height_function(ax, data_file, bmap, key_ax, forecast_index, downsample
      cbar.ax.xaxis.set_ticks(locations)
      cbar.ax.xaxis.set_ticklabels(labels)
      cbar.set_label("Wave Height (feet)")
+
+def ww3_direction(ax, data_file, bmap, key_ax, forecast_index, downsample_ratio):
+    """ NCEP WW3 Direction and Period. Period is saved to a figure in keys similar to
+    wave_direction_function above.
+
+    Create a quiver/vector plot of ncep ww3 period for the given datafile at the
+    given forecast_index. As well produce a key that contains the mean and max wave
+    period for the forecast_index.
+
+    :param data_file: Datafile of a NCEP WW3 download. See settings.py or pl_download for link
+    :param forecast_index: Time slice of desired plot
+    :return:
+    """
+    UNIT = -1 # Unit Length
+
+    """ lon comes in degrees east and because we coded the bmap latitude and longitude
+    in degrees west we need to covert to degrees west. """
+    def convert_to_degrees_west(x):
+        y = 180 - x; return -(y + 180)
+
+    direction_string = 'Primary_wave_direction_surface'
+    directions = data_file.variables[direction_string]
+    directions = directions[forecast_index]
+
+    lats = data_file.variables['lat']
+    lons = data_file.variables['lon']
+
+    lons = map(float, lons) # Lons and Lats need to be floats and not a NETCDF variable
+    lats = map(float, lats) # Lons and Lats need to be floats and not a NETCDF variable
+    lons = map(convert_to_degrees_west, lons)
+
+
+    """ Primary_wave_direction_surface comes in degrees. quiver() requires its input
+    to be in U and V vectors, so we need to generate both U and V vectors from a
+    degree:
+    
+        To do this, take the degree at unit length and find its components:
+        
+            u vector = sin(theta) * UNIT
+            v vector = cos(theta) * UNIT 
+            
+        Where UNIT == 1 or -1
+            
+    """
+    directions = numpy.deg2rad(directions) # Numpy likes rads
+    u = numpy.sin(directions) * UNIT
+    v = numpy.cos(directions) * UNIT
+
+
+    x, y = numpy.meshgrid(lons, lats)
+
+    bmap.drawcoastlines()
+    bmap.drawmapboundary(linewidth=0.0, ax=ax)
+    overlay = bmap.quiver(x, y, u, v,
+                          ax=ax,
+                          color='black',
+                          scale=9.5,
+                          scale_units='inches',
+                          )
+
+
+    """ Wave Period 
+   
+    Find the mean and max period of the whole domain and save it to a textbox
+    that will be loaded as a key and shown on the website.
+    
+    """
+    period_string = 'Primary_wave_mean_period_surface'
+    wave_period = data_file.variables[period_string][forecast_index]
+
+    period_masked = numpy.ma.masked_array(wave_period,numpy.isnan(wave_period))
+
+    mean_val = numpy.mean(period_masked)
+    mean_val = round(mean_val, 2) # Round to two decimal places and not a million
+
+    max_val = numpy.amax(period_masked)
+    max_val = round(max_val, 2)
+
+    textBox = pyplot.text(0,
+                          0,
+                          "       Wave period average and maximum values ""\n" "Average: " + str(mean_val) + " seconds " "  -  "" Maximum: " + str(max_val) + " seconds",
+                          withdash=False,
+                          backgroundcolor='black',
+                          color='white')
+    key_ax.set_axis_off()
+
+def ww3_height(ax, data_file, bmap, key_ax, forecast_index, downsample_ratio):
+    """ Produces a contourf color map for NCEP's WW3.
+
+    Put heights into contourf() function with modified latitude and longitude
+    to produce the desired color plot.
+
+    Longitude is converted into degrees west, so this function is expecting
+    longitude to be passed in as degrees east.
+
+    :param data_file: A netcdf file containing the correct fields
+    :param bmap: The Basemap containing the latitude and longitude map constraints. Where longitude
+    is passed in as degrees east.
+    :param forecast_index: the time slice to be used with the data_file
+    """
+
+    def meters_to_feet(height):
+        return height * METERS_TO_FEET
+
+    """ longitude comes in degrees east and because we coded the bmap latitude and longitude
+    in degrees west we need to covert to degrees west. """
+    def convert_to_degrees_west(x):
+        y = 180 - x; return -(y + 180)
+
+    height = "Significant_height_of_combined_wind_waves_and_swell_surface"
+    heights = data_file.variables[height][forecast_index, :, :]
+
+    lons = data_file.variables['lon']
+    lats = data_file.variables['lat']
+
+    lats = map(float, lats) # Converting the latitude into Floats and not netcdf variables
+    lons = map(float, lons) # Likewise
+    lons = map(convert_to_degrees_west, lons)
+
+    x, y = numpy.meshgrid(lons, lats)
+
+    heights = numpy.ma.masked_array(heights, numpy.isnan(heights))
+
+    min_period = MIN_WAVE_HEIGHT * METERS_TO_FEET
+    max_period = MAX_WAVE_HEIGHT * METERS_TO_FEET
+
+    contour_range = max_period - min_period
+    contour_range_inc = float(contour_range) / NUM_COLOR_LEVELS_FOR_WAVES
+
+    color_levels = []
+    for i in xrange(NUM_COLOR_LEVELS_FOR_WAVES + 1):
+        color_levels.append(min_period + 1 + i * contour_range_inc)
+
+    overlay = bmap.contourf(x, y, heights, color_levels, ax=ax, extend='both', cmap=get_modified_jet_colormap_for_waves())
+
+    cbar = pyplot.colorbar(overlay, orientation='horizontal', cax=key_ax)
+    cbar.ax.tick_params(labelsize=10)
+    cbar.ax.xaxis.label.set_color('white')
+    cbar.ax.xaxis.set_tick_params(labelcolor='white')
+
+    locations = numpy.arange(0, 1.01, 1.0 / (NUM_COLOR_LEVELS_FOR_WAVES))[::10]  # we just want every 10th label
+    float_labels = numpy.arange(min_period, max_period + 0.01, contour_range_inc)[::10]
+
+    labels = ["%.1f" % num for num in float_labels]
+    cbar.ax.xaxis.set_ticks(locations)
+    cbar.ax.xaxis.set_ticklabels(labels)
+    cbar.set_label("Wave Height (Meters)")
+
+
+
 
 def sst_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
     def celsius_to_fahrenheit(temp):
@@ -492,7 +641,6 @@ def currents_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio)
                                   color='white', labelsep=.5, coordinates='axes')
     key_ax.set_axis_off()
 
-
 # The NAM's model are produced every 3 hours instead of every 4 hours like the rest
 # of our models. Because of that we need to interpolate them as seen below.
 #-------------------------------------------------------------------------
@@ -606,6 +754,126 @@ def wind_function(ax, data_file, bmap, time_index, downsample_ratio):
                #barb_increments=dict(half=.1, full=10, flag=50))
 
     print "WIND PLOT CREATED!"
+
+def hycom_temp(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
+    verbose = 1
+    depth = 0
+    min_temp = 34
+    max_temp = 65
+
+    num_color_levels = 80
+
+    def celsius_to_fahrenheit(temp):
+        return temp * 1.8 + 32
+    vectorized_conversion = numpy.vectorize(celsius_to_fahrenheit)
+
+    temps = data_file.variables['temperature'][time_index, depth]
+    lats = data_file.variables['Latitude'][:]
+    longs = data_file.variables['Longitude'][:]
+
+
+    temps = numpy.ma.masked_where(temps > 35, temps) # mask really high values
+    temps = numpy.ma.masked_array(temps, numpy.isnan(temps))
+    temps = vectorized_conversion(temps) # convert to degrees f
+
+    if verbose > 0:
+        print "lats shape", lats.shape
+        print "longs shape", longs.shape
+        print "temps shape", temps.shape
+
+
+    x, y = bmap(longs, lats)
+
+    contour_range = ((max_temp) - (min_temp))
+    contour_range_inc = float(contour_range)/num_color_levels
+    color_levels = []
+    for i in xrange(num_color_levels+1):
+        color_levels.append(min_temp+1 + i * contour_range_inc)
+
+    bmap.drawcoastlines()
+    bmap.drawmapboundary(linewidth=0.0, ax=ax)
+    overlay = bmap.contourf(x, y, temps, color_levels, ax=ax, extend='both', cmap=get_modified_jet_colormap())
+
+    cbar = pyplot.colorbar(overlay, orientation='horizontal', cax=key_ax)
+    cbar.ax.tick_params(labelsize=10)
+    cbar.ax.xaxis.label.set_color('white')
+    cbar.ax.xaxis.set_tick_params(labelcolor='white')
+
+    locations = numpy.arange(0, 1.01, 1.0/(num_color_levels))[::10]    # we just want every 10th label
+    float_labels = numpy.arange(min_temp, max_temp + 0.01, contour_range_inc)[::10]
+    labels = ["%.1f" % num for num in float_labels]
+    cbar.ax.xaxis.set_ticks(locations)
+    cbar.ax.xaxis.set_ticklabels(labels)
+    cbar.set_label("fahrenheit")
+
+def hycom_currents(ax, data_file, bmap, key_ax, time_index, downsample_ratio=1):
+    verbose = 0
+    DEPTH = 0
+
+    u = data_file.variables['u'][time_index, DEPTH]
+    v = data_file.variables['v'][time_index, DEPTH]
+    lats = data_file.variables['Latitude'][:]
+    longs = data_file.variables['Longitude'][:]
+
+    time = data_file.variables['MT']
+
+    if verbose > 0:
+        print "Time Shape", time.shape
+        print "Lats Shape", lats.shape
+        print "Longs Shape", longs.shape
+        print "U Shape", u.shape
+        print "V Shape", v.shape
+
+    DEPTH = 0
+
+    def compute_average(array):
+        avg = numpy.average(array)
+        return numpy.nan if avg > 10**3 else avg
+
+    def mask_array(array):
+        array = numpy.ma.masked_where(array > 2, array) # Mask Really High Values
+        array = numpy.ma.masked_array(array, numpy.isnan(array))
+        return array
+
+    downsample_ratio = 1
+    print "Currents Downsample Ratio:", downsample_ratio
+
+    currents_u = data_file.variables['u'][time_index, DEPTH]
+    currents_v = data_file.variables['v'][time_index, DEPTH]
+    lats = data_file.variables['Latitude'][:]
+    longs = data_file.variables['Longitude'][:]
+
+    # zoom
+    #-------------------------------------------------------------------------
+    """
+    currents_u = crop_and_downsample(currents_u, downsample_ratio)
+    currents_v = crop_and_downsample(currents_v, downsample_ratio)
+
+    lats = crop_and_downsample(lats, downsample_ratio, False)
+    longs = crop_and_downsample(longs, downsample_ratio, False)
+    """
+
+    currents_u = mask_array(currents_u)
+    currents_v = mask_array(currents_v)
+
+
+    x, y = bmap(longs, lats)
+
+    bmap.drawmapboundary(linewidth=0.0, ax=ax)
+
+    overlay = bmap.quiver(x, y, currents_u, currents_v, ax=ax, color='black', units='inches',
+                          scale=10.0, headwidth=2, headlength=3,
+                          headaxislength=2.5, minlength=0.5, minshaft=.9)
+
+    # Multiplying .5, 1, and 2 by .5144 is converting from knots to m/s
+    #-------------------------------------------------------------------------
+    quiverkey = key_ax.quiverkey(overlay, .95, .4, 0.5*.5144, ".5 knots", labelpos='S', labelcolor='white',
+                                 color='white', labelsep=.5, coordinates='axes')
+    quiverkey1 = key_ax.quiverkey(overlay, 3.75, .4, 1*.5144, "1 knot", labelpos='S', labelcolor='white',
+                                  color='white', labelsep=.5, coordinates='axes')
+    quiverkey2 = key_ax.quiverkey(overlay, 6.5, .4, 2*.5144, "2 knots", labelpos='S', labelcolor='white',
+                                  color='white', labelsep=.5, coordinates='axes')
+    key_ax.set_axis_off()
 
 def crop_and_downsample(source_array, downsample_ratio, average=True):
     ys, xs = source_array.shape

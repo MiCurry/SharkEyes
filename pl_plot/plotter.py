@@ -26,6 +26,7 @@ from datetime import datetime, timedelta
 
 class WaveWatchPlotter:
     data_file = None
+    zoom_level = None
 
     def __init__(self, file_name):
         self.load_file(file_name)
@@ -38,6 +39,26 @@ class WaveWatchPlotter:
                 file_name
             )
         )
+
+    def get_zoom_level(self, def_id):
+        if def_id in settings.WAVE_VECTOR_FIELDS:
+            self.zoom_level = settings.ZOOM_LEVELS_FOR_WAVE_DIR
+            return self.zoom_level
+        else:
+            self.zoom_level = settings.ZOOM_LEVELS_FOR_WAVE_OTHERS
+            return self.zoom_level
+
+    def get_oceantime(self, time_index):
+        ''' Get the 'applies_at_datetime', the datetime that the forecast that is being request is for.
+
+        :param time_index: The index from the start of the models index to be found.
+        :return: Timezone aware datetime object with the plotted forecast date and time.
+        '''
+        all_day_times = self.data_file.variables['time'][:]
+        basetime = datetime(1970,1,1,0,0,0)  # Jan 1, 1970
+        forecast_zero = basetime + timedelta(all_day_times[0]/3600.0/24.0,0,0)
+        applies_at_datetime = timezone.make_aware(forecast_zero + timedelta(hours=time_index) , timezone.utc)
+        return applies_at_datetime
 
     def make_plot(self, plot_function, forecast_index,storage_dir, generated_datetime, zoom_levels, downsample_ratio=None):
         fig = pyplot.figure()
@@ -92,6 +113,8 @@ class WaveWatchPlotter:
 
 class WindPlotter:
     data_file = None
+    zoom_level = None
+    domain = None
 
     def __init__(self, file_name):
         self.load_file(file_name)
@@ -106,8 +129,13 @@ class WindPlotter:
             )
         )
 
+
     def get_number_of_model_times(self):
         return 24 #This is the number of time_indexes for the wind model after interpolating from 3 hour increments to 4
+
+    def get_zoom_level(self, def_id):
+        self.zoom_level = settings.ZOOM_LEVELS_WIND
+        return self.zoom_level
 
     def get_time_at_oceantime_index(self,index):
         time = timezone.now()+ timedelta(hours=7)-timedelta(days=1)
@@ -159,6 +187,8 @@ class WindPlotter:
 
 class Plotter:
     data_file = None
+    zoom_level = None
+    domain = None
 
     def __init__(self, file_name):
         self.load_file(file_name)
@@ -176,6 +206,14 @@ class Plotter:
             print '-' * 60
             traceback.print_exc(file=sys.stdout)
             print '-' * 60
+
+    def get_zoom_level(self, def_id):
+        if def_id == settings.OSU_ROMS_SUR_CUR:
+            self.zoom_level = settings.ZOOM_LEVELS_CURRENTS
+            return self.zoom_level
+        else:
+            self.zoom_level = settings.ZOOM_LEVELS_OTHERS
+            return self.zoom_level
 
     def get_time_at_oceantime_index(self, index):
         #Team 1 says todo add checking of times here. there's only three furthest out file
@@ -232,3 +270,166 @@ class Plotter:
         pyplot.close(key_fig)
 
         return plot_filename, key_filename
+
+class HycomPlotter:
+    data_file = None
+    zoom_level = None
+    domain = settings.SEACAST_DOMAIN
+
+    def __init__(self, file_name):
+        self.load_file(file_name)
+
+    def load_file(self, file_name):
+        self.data_file = netcdf.netcdf_file(
+            os.path.join(
+                settings.MEDIA_ROOT,
+                settings.NETCDF_STORAGE_DIR,
+                file_name
+            )
+        )
+
+    def get_zoom_level(self, def_id):
+        if def_id == settings.HYCOM_SUR_CUR:
+            self.zoom_level = settings.ZOOM_LEVELS_CURRENTS
+            return self.zoom_level
+        else:
+            self.zoom_level = settings.ZOOM_LEVELS_OTHERS
+            return self.zoom_level
+
+    def get_time_at_oceantime_index(self, index):
+        days = self.data_file.variables['MT'].data
+        epoch = datetime.strptime(self.data_file.variables['MT'].units, "days since %Y-%m-%d %H:%M:%S")
+        model_date = epoch + timedelta(days=days[0]) # Values enced as days since..
+        return model_date
+
+    def get_number_of_model_times(self):
+        return 1
+
+    def make_plot(self, plot_function, zoom_levels, time_index=0,  downsample_ratio=None):
+        fig = pyplot.figure()
+        key_fig = pyplot.figure(facecolor=settings.OVERLAY_KEY_COLOR)
+        ax = fig.add_subplot(111)  # one subplot in the figure
+        key_ax = key_fig.add_axes([0.1, 0.2, 0.6, 0.05]) # this might be bad for when we have other types of plots
+
+        longs = [-129.0, -123.726199391]
+        lats = [40.5840806224, 47.499]
+
+        # window cropped by picking lat and lon corners
+        bmap = Basemap(projection='merc',
+                       resolution='h', area_thresh=1.0,
+                       llcrnrlat=lats[0], urcrnrlat=lats[-1],
+                       llcrnrlon=longs[0], urcrnrlon=longs[-1],
+                       ax=ax, epsg=4326)
+
+        plot_function(ax=ax, data_file=self.data_file, time_index=time_index, bmap=bmap, key_ax=key_ax,
+                      downsample_ratio=downsample_ratio)
+
+        plot_filename = "{0}_{1}.png".format(plot_function.__name__, uuid4())
+        key_filename = "{0}_key_{1}.png".format(plot_function.__name__, uuid4())
+
+
+        if zoom_levels == '8-12':
+            DPI = 1800
+        else:
+            DPI = 800 # Original is 1200 dpi
+
+        fig.savefig(
+            os.path.join(settings.MEDIA_ROOT, settings.UNCHOPPED_STORAGE_DIR, plot_filename),
+            dpi=DPI, bbox_inches='tight', pad_inches=0,
+            transparent=True, frameon=False)
+        pyplot.close(fig)
+
+        key_fig.savefig(
+            os.path.join(settings.MEDIA_ROOT, settings.KEY_STORAGE_DIR, key_filename),
+            dpi=500, bbox_inches='tight', pad_inches=0,
+            transparent=True, facecolor=key_fig.get_facecolor())
+        pyplot.close(key_fig)
+
+        return plot_filename, key_filename
+
+class NcepWW3Plotter:
+    data_file = None
+    zoom_level = None
+    domain = settings.SEACAST_DOMAIN
+
+    def __init__(self, file_name):
+        self.load_file(file_name)
+
+    def load_file(self, file_name): # Gives a netcdf file object with default mode of reading permissions only
+        self.data_file = netcdf.netcdf_file(
+            os.path.join(
+                settings.MEDIA_ROOT,
+                settings.WAVE_WATCH_DIR,
+                file_name
+            )
+        )
+
+
+    def get_zoom_level(self, def_id):
+        print "Plotter.get_zoom_level - def_id: {0}".format(def_id)
+        if def_id in settings.WAVE_VECTOR_FIELDS:
+            self.zoom_level = settings.ZOOM_LEVELS_FOR_WAVE_DIR
+            return self.zoom_level
+        else:
+            self.zoom_level = settings.ZOOM_LEVELS_FOR_WAVE_OTHERS
+            return self.zoom_level
+
+    def get_oceantime(self, time_index):
+        ''' Get the 'applies_at_datetime', the datetime that the forecast that is being request is for.
+
+        :param overlay_id: The overlay definition id
+        :param time_index: The index from the start of the models index to be found.
+        :return: Timezone aware datetime object with the plotted forecast date and time.
+        '''
+        times = self.data_file.variables['time']
+        basetime = self.data_file.variables['time'].units
+        basetime = datetime.strptime(basetime, "Hour since %Y-%m-%dT00:00:00Z")
+        applies_at_datetime = timezone.make_aware(basetime + timedelta(hours=times[time_index]) , timezone.utc)
+        return applies_at_datetime
+
+    def get_number_of_model_times(self):
+        pass
+
+
+    def make_plot(self, plot_function, forecast_index,storage_dir, generated_datetime, zoom_levels, downsample_ratio=None):
+        fig = pyplot.figure()
+        key_fig = pyplot.figure(facecolor=settings.OVERLAY_KEY_COLOR)
+
+        key_ax = key_fig.add_axes([0.1, 0.2, 0.6, 0.05])
+
+        ax = fig.add_subplot(111)  # one subplot in the figure
+
+        longs = [-129.0, -123.726199391]
+        lats = [40.5840806224, 47.499]
+
+        bmap = Basemap(projection='merc',                         #A cylindrical, conformal projection.
+                       resolution='h', area_thresh=1.0,
+                       llcrnrlat=lats[0], urcrnrlat=lats[1],
+                       llcrnrlon=longs[0], urcrnrlon=longs[1],
+                       ax=ax, epsg=4326)
+
+        plot_function(ax=ax, data_file=self.data_file, forecast_index=forecast_index, bmap=bmap, key_ax=key_ax, downsample_ratio=downsample_ratio)
+        plot_filename = "{0}_{1}_{2}_{3}.png".format(plot_function.__name__,forecast_index,generated_datetime, uuid4())
+        key_filename = "{0}_key_{1}_{2}.png".format(plot_function.__name__,generated_datetime, uuid4())
+
+        if zoom_levels == '11-12':
+            DPI = 1800
+        elif zoom_levels == '9-10':
+            DPI = 1200 # Original
+        else:
+            DPI = 800
+
+        fig.savefig(
+            os.path.join(settings.MEDIA_ROOT, storage_dir, plot_filename),
+            dpi=DPI, bbox_inches='tight', pad_inches=0,
+            transparent=True, frameon=False)
+        pyplot.close(fig)
+
+        key_fig.savefig(
+            os.path.join(settings.MEDIA_ROOT, settings.KEY_STORAGE_DIR, key_filename),
+            dpi=500, bbox_inches='tight', pad_inches=0,
+            transparent=True, facecolor=key_fig.get_facecolor())
+        pyplot.close(key_fig)
+
+        return plot_filename, key_filename
+

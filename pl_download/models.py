@@ -3,13 +3,16 @@ import urllib
 import urllib2
 from ftplib import FTP
 from defusedxml import ElementTree
-from lxml import etree
+from lxml import etree, html
+import requests
 from uuid import uuid4
 from urlparse import urljoin
 from datetime import datetime, timedelta
+import datetime as dt
 from dateutil import parser
 from operator import __or__ as OR
 from scipy.io import netcdf_file
+from scipy.io import netcdf
 
 from celery import shared_task
 from django.utils import timezone
@@ -157,6 +160,102 @@ class DataFileManager(models.Manager):
                 print "Downloaded OSU ROMS File from wilson {0}".format(local_filename)
 
         return file_ids
+
+    @staticmethod
+    @shared_task(name='pl_download.hycom_download')
+    def hycom_download():
+        """ Downloads a netCDF of the current days hycom forecast
+
+        Base Link (settings.HYCOM_URL): http://nomads.ncep.noaa.gov/pub/data/nccf/com/rtofs/prod/rtofs.
+
+        Example Access Link: nomads.ncep.noaa.gov/pub/data/nccf/com/rtofs/prod/rtofs.20170821/rtofs_glo_3dz_f030_6hrly_hvr_reg2.nc
+
+        :return: id of the downloaded datafile
+        """
+
+        date = str(dt.date.today()).replace("-", "", 3)
+        index_url = settings.HYCOM_URL+date+"/"
+
+        page = requests.get(index_url)
+        tree = html.fromstring(page.content)
+
+        forecasts = tree.xpath('/html/body/pre/*/text()')
+
+        ids = []
+
+        for forecast in forecasts:
+            if "6hrly" in forecast and "reg2" in forecast:
+                filename = forecast
+
+                url = index_url + filename
+                tag = url.split('_')[3] # If we don't grab the tag we'll have a bunch of files with the same
+                                        # filename as they all have the same date!
+
+                local_filename = "{0}_{1}_{2}.nc".format(settings.HYCOM_DF_FN, date, tag)
+                destination_directory = os.path.join(settings.MEDIA_ROOT, settings.NETCDF_STORAGE_DIR)
+                destination_file = os.path.join(destination_directory, local_filename)
+
+                urllib.urlretrieve(url=url, filename=destination_file)
+
+                data_file = netcdf.netcdf_file(destination_file)
+                days = data_file.variables['MT'].data
+                epoch = datetime.strptime(data_file.variables['MT'].units, "days since %Y-%m-%d %H:%M:%S")
+                model_date = epoch + timedelta(days=days[0]) # Values enced as days since..
+
+                datafile = DataFile(
+                    type='HYCOM',
+                    download_datetime=timezone.now(),
+                    generated_datetime=timezone.now(),
+                    model_date=dt.date.today(),
+                    file=local_filename,
+                )
+                datafile.save()
+                print datafile.id
+                return datafile.id
+                ids.append(datafile.id)
+            else:
+                continue
+
+        return ids
+
+    @staticmethod
+    @shared_task(name='pl_download.ww3_download')
+    def ww3_download():
+        """ Downloads a NetCDF of the current days ww3
+
+         Access Link through:
+         http://thredds.ucar.edu/thredds/ncss/grib/NCEP/WW3/Regional_US_West_Coast/Best/dataset.html
+
+        :return: id of downloaded datafile
+        """
+        # TODO: Check to see if the download file already exists?
+        begin, end = create_nomads_time_series_from_today(days=8)
+
+        url = "http://thredds.ucar.edu/thredds/ncss/grib/NCEP/WW3/Regional_US_West_Coast/Best?" \
+              "var=Direction_of_wind_waves_surface&var=" \
+              "Mean_period_of_wind_waves_surface&var=" \
+              "Primary_wave_direction_surface&var=" \
+              "Primary_wave_mean_period_surface&var=" \
+              "Significant_height_of_combined_wind_waves_and_swell_surface&var=Significant_height_of_wind_waves_surface" \
+              "&north=50&west=-150&east=-110&south=25&horizStride=1" \
+              "&time_start="+begin+"&time_end="+end+"" \
+                                                    "&timeStride=1&vertCoord=&addLatLon=true&accept=netcdf" \
+
+        local_filename = "{0}_{1}.nc".format(settings.NCEP_WW3_DF_FN, begin)
+        destination_directory = os.path.join(settings.MEDIA_ROOT, settings.WAVE_WATCH_DIR)
+
+        urllib.urlretrieve(url=url, filename=os.path.join(destination_directory, local_filename))
+
+        datafile = DataFile(
+            type='NCEP_WW3',
+            download_datetime=timezone.now(),
+            generated_datetime=timezone.now(),
+            model_date=dt.date.today(),
+            file=local_filename,
+        )
+        datafile.save()
+
+        return datafile.id
 
     @staticmethod
     @shared_task(name='pl_download.get_latest_wave_watch_files')
@@ -328,7 +427,6 @@ class DataFileManager(models.Manager):
 
         return actual_datafile_objects
 
-
     @classmethod
     def delete_old_files(cls):
         """ Used to automatically delete files from the disk. This runs each time do_pipeline() is run, which
@@ -346,6 +444,21 @@ class DataFileManager(models.Manager):
 
         return True
 
+def create_nomads_time_series_from_today(days=4):
+    """ Creates a nomads time series in the format of: T00%3A00%3A00Z with today's date as the start
+    and to todays date + range.
+
+    :param days: number of days into the future
+    :return: begin_date, end_date
+    """
+    current_time = datetime.now().date()
+    generated_time = datetime.now().today()
+    end_time = datetime.now().date() + timedelta(days=days)
+    begin_date = str(current_time) + 'T00%3A00%3A00Z'
+    end_date = str(end_time) + 'T00%3A00%3A00Z'
+
+    return begin_date, end_date
+
 class DataFile(models.Model):
     """ The Model or "Object" that is used by our Web Management Server (Django) to describe our
     downloaded files. Objects are created and then they are stored in a table inside our database
@@ -354,7 +467,11 @@ class DataFile(models.Model):
     If this is edited you must migrate the appropriate servers.
     """
     DATA_FILE_TYPES = (
-        ('NCDF', "NetCDF"), ('WAVE', "WaveNETCDF"), ('WIND', "WindNETCDF")
+        ('NCDF', "NetCDF"),
+        ('WAVE', "WaveNETCDF"),
+        ('WIND', "WindNETCDF"),
+        ('NCEP_WW3', "NCEP_WW3"),
+        ('HYCOM', "HYCOM_ROMS")
     )
     type = models.CharField(max_length=10, choices=DATA_FILE_TYPES, default='NCDF')
     download_datetime = models.DateTimeField()
