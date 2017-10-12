@@ -173,6 +173,7 @@ class DataFileManager(models.Manager):
         :return: id of the downloaded datafile
         """
 
+
         date = str(dt.date.today()).replace("-", "", 3)
         index_url = settings.HYCOM_URL+date+"/"
 
@@ -183,13 +184,18 @@ class DataFileManager(models.Manager):
 
         ids = []
 
+        count = 0
+
         for forecast in forecasts:
             if "6hrly" in forecast and "reg2" in forecast:
+
                 filename = forecast
 
                 url = index_url + filename
                 tag = url.split('_')[3] # If we don't grab the tag we'll have a bunch of files with the same
                                         # filename as they all have the same date!
+                if 'n' in tag:
+                    continue
 
                 local_filename = "{0}_{1}_{2}.nc".format(settings.HYCOM_DF_FN, date, tag)
                 destination_directory = os.path.join(settings.MEDIA_ROOT, settings.NETCDF_STORAGE_DIR)
@@ -201,18 +207,20 @@ class DataFileManager(models.Manager):
                 days = data_file.variables['MT'].data
                 epoch = datetime.strptime(data_file.variables['MT'].units, "days since %Y-%m-%d %H:%M:%S")
                 model_date = epoch + timedelta(days=days[0]) # Values enced as days since..
+                print epoch
+                print "Days: ", days
+                print "Model Date: ", model_date
 
                 datafile = DataFile(
                     type='HYCOM',
                     download_datetime=timezone.now(),
                     generated_datetime=timezone.now(),
-                    model_date=dt.date.today(),
+                    model_date=model_date,
                     file=local_filename,
                 )
                 datafile.save()
-                print datafile.id
-                return datafile.id
                 ids.append(datafile.id)
+                count += 1
             else:
                 continue
 
@@ -405,11 +413,11 @@ class DataFileManager(models.Manager):
     def get_next_few_days_files_from_db(cls):
         """ This function gets the file ID's from the database that do not have plots.
 
-        :return: A list of
+        :return: A list of datafiles that haven't had plots generated for them yet
         """
         next_few_days_of_files = DataFile.objects.filter(
             model_date__gte=(timezone.now()-timedelta(days=PAST_DAYS_OF_FILES_TO_DISPLAY+1)).date(),
-            model_date__lte=(timezone.now()+timedelta(days=4)).date()
+            model_date__lte=(timezone.now()+timedelta(days=10)).date()
         )
 
         # Select the most recent within each model date and type (ie wave or SST)
@@ -426,6 +434,15 @@ class DataFileManager(models.Manager):
         actual_datafile_objects = DataFile.objects.filter(reduce(OR, q_objects))
 
         return actual_datafile_objects
+
+    @classmethod
+    def get_next_few_datafiles_of_hycom_file_ids(cls):
+        datafiles = DataFile.objects.filter(
+            model_date__gte=(timezone.now()-timedelta(days=0)).date(),
+            model_date__lte=(timezone.now()+timedelta(hours=192)).date()
+        )
+
+        return [datafile.id for datafile in datafiles]
 
     @classmethod
     def delete_old_files(cls):

@@ -97,23 +97,45 @@ class OverlayManager(models.Manager):
         for fid in file_ids:
             datafile = DataFile.objects.get(pk=fid)
 
-            # Wavewatch and SST/currents files use a separate Plot function.
+            # Wavewatch
             if datafile.file.name.startswith(settings.OSU_WW3_DF_FN):
+
+                # The unchopped file's index starts at noon: index = 0 and progresses throgh 85 forecasts, one per hour,
+                # for the next 85 hours.
+                # Only plot every 4th index to match up with the SST forecast.
+                # WaveWatch has forecasts for every hour but at this time we don't need them all.
                 for t in xrange(0, 85):
-                    # The unchopped file's index starts at noon: index = 0 and progresses throgh 85 forecasts, one per hour,
-                    # for the next 85 hours.
-                    # Only plot every 4th index to match up with the SST forecast.
-                    # WaveWatch has forecasts for every hour but at this time we don't need them all.
                     if t % 4 == 0:
                         task_list.append(cls.make_wave_watch_plot.subtask(args=(settings.OSU_WW3_HI, t, fid), immutable=True))
                         task_list.append(cls.make_wave_watch_plot.subtask(args=(settings.OSU_WW3_DIR, t, fid), immutable=True))
+
+            # Wind
             elif datafile.file.name.startswith(settings.NAMS_WIND_DF_FN):
+                print "WIND!"
                 plotter = WindPlotter(datafile.file.name)
                 number_of_times = plotter.get_number_of_model_times()
-                print "WIND!"
                 for t in xrange(number_of_times):
                     task_list.append(cls.make_plot.subtask(args=(settings.NAMS_WIND, t, fid), immutable=True))
+
+            # NCEP WW3
+            elif datafile.file.name.startswith(settings.NCEP_WW3_DF_FN):
+                print "NCEP"
+                plotter = NcepWW3Plotter(datafile.file.name)
+                for t in xrange(plotter.get_number_of_model_times()):
+                    task_list.append(cls.make_plot.subtask(args=(settings.NCEP_WW3_DIR, t, fid), immutable=True))
+                    task_list.append(cls.make_plot.subtask(args=(settings.NCEP_WW3_HI, t, fid), immutable=True))
+
+            # Hycom
+            elif datafile.file.name.startswith(settings.HYCOM_DF_FN):
+                print "HYCOM"
+                plotter = HycomPlotter(datafile.file.name)
+                for t in xrange(plotter.get_number_of_model_times()):
+                    task_list.append(cls.make_plot.subtask(args=(settings.HYCOM_SST, t, fid), immutable=True))
+                    task_list.append(cls.make_plot.subtask(args=(settings.HYCOM_SUR_CUR, t, fid), immutable=True))
+
+            # OSU_ROMS
             else:
+                print "OSU ROMS"
                 plotter = Plotter(datafile.file.name)
                 number_of_times = plotter.get_number_of_model_times()
 
@@ -136,6 +158,7 @@ class OverlayManager(models.Manager):
         """ Grabs the files ID's of NCDF datafiles that haven't been plotted yet. Use this function
         to generate a list of unchopped plots that haven't been plotted yet. """
         file_ids = [datafile.id for datafile in DataFileManager.get_next_few_days_files_from_db()]
+        file_ids + DataFileManager.get_next_few_datafiles_of_hycom_file_ids()
         return cls.get_tasks_for_base_plots_in_files(file_ids)
 
     @classmethod

@@ -388,8 +388,7 @@ class NcepWW3Plotter:
         return applies_at_datetime
 
     def get_number_of_model_times(self):
-        pass
-
+        return numpy.shape(self.data_file.variables['reftime'])[0]
 
     def make_plot(self, plot_function, forecast_index,storage_dir, generated_datetime, zoom_levels, downsample_ratio=None):
         fig = pyplot.figure()
