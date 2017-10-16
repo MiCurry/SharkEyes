@@ -1,20 +1,15 @@
 import os
 import datetime
 from uuid import uuid4
-
 from scipy.io import netcdf_file
-import numpy
 import shutil
-
 from django.db import models
 from django.utils import timezone
 from django.db.models.aggregates import Max
 from django.conf import settings
 from datetime import timedelta
-
 from celery import group
 from celery import shared_task
-
 from pl_download.models import DataFile, DataFileManager
 from pl_plot.plotter import Plotter, WaveWatchPlotter, WindPlotter
 from pl_plot import plot_functions
@@ -112,7 +107,13 @@ class OverlayManager(models.Manager):
                 number_of_times = plotter.get_number_of_model_times()
                 print "WIND!"
                 for t in xrange(number_of_times):
-                    task_list.append(cls.make_plot.subtask(args=(settings.NAMS_WIND, t, fid), immutable=True))
+                    if t < 47:
+                        if t % 4 == 0:
+                            task_list.append(cls.make_plot.subtask(args=(settings.NAMS_WIND, t, fid), immutable=True))
+                    elif t > 47:
+                        threehourindices = [48, 49, 51, 52, 53, 55, 56, 57, 59, 60, 61, 63, 64]
+                        if t in threehourindices:
+                            task_list.append(cls.make_plot.subtask(args=(settings.NAMS_WIND, t, fid), immutable=True))
             else:
                 plotter = Plotter(datafile.file.name)
                 number_of_times = plotter.get_number_of_model_times()
@@ -276,11 +277,11 @@ class OverlayManager(models.Manager):
         zoom_levels_for_currents = [('2-7', 8),  ('8-12', 4)]
         zoom_levels_for_others = [(None, None)]
         zoom_levels_for_winds = [('1-10', 2), ('11-12', 1)]
-        if file_id is None:
-            datafile = DataFile.objects.latest('model_date')
+        # if file_id is None:
+        #     datafile = DataFile.objects.latest('model_date')
 
         # If plotting winds grab the latest wind file
-        elif overlay_definition_id == settings.NAMS_WIND:
+        if overlay_definition_id == settings.NAMS_WIND:
             datafile = DataFile.objects.filter(type='WIND').latest('model_date')
         else:
             datafile = DataFile.objects.get(pk=file_id)
@@ -290,6 +291,7 @@ class OverlayManager(models.Manager):
             plotter = WindPlotter(datafile.file.name)
         else:
             plotter = Plotter(datafile.file.name)
+            print "time from models = ", plotter.get_time_at_oceantime_index(time_index)
 
         overlay_definition = OverlayDefinition.objects.get(pk=overlay_definition_id)
 
