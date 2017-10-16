@@ -35,6 +35,7 @@ var visible_V = false;
 //This is the page for Oregon. Astoria is found in Washington. Click on the station and you can download the station's
 //specific annual tide table from the station page
 //******************************************************************
+var right_click_menu_content = '';
 var southBeachContent = '';
 var astoriaContent = '';
 var coosContent = '';
@@ -166,6 +167,32 @@ $('#date-time').change(function(e) {
     // update overlays
     update_overlays(textdate);
 });
+
+//**********************************************************************************************************************
+//Right Click Menu Function
+//**********************************************************************************************************************
+//Makes a call to the backend to get lat lon specific information
+function makeRightClickMenu(date, lat, lng, keys){
+    var valid_date = date;
+    var right_click_data = {"display_date": date, "lat": lat, "long": lng, "keys": keys};
+    var jsonData = JSON.stringify(right_click_data);
+    var right_click_info = '<p style="font-size:20px">' + 'Lat Long Values for&nbsp;' + '<b>' + valid_date + '</b>' + '</p>';
+    jQuery.ajax({
+        type: 'POST',
+        url: '{% url "SharkEyesCore.views.right_click_menu" %}',
+        data: jsonData,
+        datatype: "JSON",
+        success: function(data){
+                right_click_info += data;
+        },
+        async: false, //Running with async true returns nothing
+        error: function(xhr, ajaxOptions, thrownError){
+            alert(xhr.status);
+            alert(thrownError);
+        }
+    });
+    return right_click_info;
+}
 
 //**********************************************************************************************************************
 //Map Marker Function
@@ -302,6 +329,24 @@ function initialize() {
     google.maps.event.addListener(map, 'mousemove', function(event) {
         LatLongUpdate(event);
     });
+    console.log("Dates")
+    console.log(datedic)
+    console.log(datetime)
+    //**********************************************************************************************************************
+    //Right Click Menu
+    //**********************************************************************************************************************
+    //This is the event handler to create the window for the data at the cursor. It uses the google maps api for info windows
+    var infowindow = new google.maps.InfoWindow;
+    google.maps.event.addListener(map, "rightclick", function(event){
+        var current_date = datetime[document.getElementById('date-time').value];
+        var lat = event.latLng.lat();
+        var long = event.latLng.lng();
+        infowindow.setPosition(event.latLng);
+        right_click_menu_content = makeRightClickMenu(current_date, lat, long, visibleKeys);
+        infowindow.setContent(right_click_menu_content);
+        infowindow.open(map);
+    });
+
     //a hack to make sure the scale is in miles... (can we do better?)
     var scaleInterval = setInterval(function() {
         var scale = $(".gm-style-cc:not(.gmnoprint):contains(' km')");

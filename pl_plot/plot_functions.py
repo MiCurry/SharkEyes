@@ -484,32 +484,42 @@ def currents_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio)
 
     # Multiplying .5, 1, and 2 by .5144 is converting from knots to m/s
     #-------------------------------------------------------------------------
-    quiverkey = key_ax.quiverkey(overlay, .95, .4, 0.5*.5144, ".5 knots", labelpos='S', labelcolor='white',
-                                 color='white', labelsep=.5, coordinates='axes')
-    quiverkey1 = key_ax.quiverkey(overlay, 3.75, .4, 1*.5144, "1 knot", labelpos='S', labelcolor='white',
-                                  color='white', labelsep=.5, coordinates='axes')
-    quiverkey2 = key_ax.quiverkey(overlay, 6.5, .4, 2*.5144, "2 knots", labelpos='S', labelcolor='white',
-                                  color='white', labelsep=.5, coordinates='axes')
+    # quiverkey = key_ax.quiverkey(overlay, .95, .4, 0.5*.5144, ".5 knots", labelpos='S', labelcolor='white',
+    #                              color='white', labelsep=.5, coordinates='axes')
+    # quiverkey1 = key_ax.quiverkey(overlay, 3.75, .4, 1*.5144, "1 knot", labelpos='S', labelcolor='white',
+    #                               color='white', labelsep=.5, coordinates='axes')
+    # quiverkey2 = key_ax.quiverkey(overlay, 6.5, .4, 2*.5144, "2 knots", labelpos='S', labelcolor='white',
+    #                               color='white', labelsep=.5, coordinates='axes')
+    textBox = pyplot.text(0, 0, "       Right Click To View Values ", withdash=False,
+                          backgroundcolor='black', color='white')
+
     key_ax.set_axis_off()
 
 
-# The NAM's model are produced every 3 hours instead of every 4 hours like the rest
-# of our models. Because of that we need to interpolate them as seen below.
-#-------------------------------------------------------------------------
+# After the 48th time index the NAMS model changes to 3 hour intervals instead of every 4 hours like the rest
+# of our models. Because of this we need to interpolate them as seen below.
+# -------------------------------------------------------------------------
 def wind_function(ax, data_file, bmap, time_index, downsample_ratio):
     print "CREATING A WIND PLOT"
     print "DOWNSAMPLERATIO = ", downsample_ratio, "Time Index =", time_index
-    #Get the lats and longs from the file
-    #-------------------------------------------------------------------------
+    # We are now using barbs instead of vectors. We should not need this anymore
+    # -------------------------------------------------------------------------
+    # tmp = numpy.loadtxt('/opt/sharkeyes/src/latlon.g218')
+    # lat = numpy.reshape(tmp[:, 2], data_file.variables['lat'])
+    # lon = numpy.reshape(tmp[:, 3], data_file.variables['lat'])
+    # for i in range(0, len(lon)):
+    #     lon[i] = -lon[i]
+
+    # Get the lats and longs from the file
+    # -------------------------------------------------------------------------
     lat = data_file.variables['lat']
     lon = data_file.variables['lon']
     x, y = bmap(lon, lat)
 
-    #Name of the variables we want to extract from Wind netcdf
-    #-------------------------------------------------------------------------
+    # Name of the variables we want to extract from Wind netcdf
+    # -------------------------------------------------------------------------
     var_u = 'u-component_of_wind_height_above_ground'
     var_v = 'v-component_of_wind_height_above_ground'
-
 
     wind_u = data_file.variables[var_u]
     wind_v = data_file.variables[var_v]
@@ -517,85 +527,71 @@ def wind_function(ax, data_file, bmap, time_index, downsample_ratio):
     wind_u = wind_u[:, 0, :, :] # All times of u
     wind_v = wind_v[:, 0, :, :] # All times of
 
-    #The wind data comes in meters per second. This converts it into knots.
-    #-------------------------------------------------------------------------
+    # The wind data comes in meters per second. This converts it into knots.
+    # -------------------------------------------------------------------------
     wind_u = numpy.multiply(wind_u, 1.943)
     wind_v = numpy.multiply(wind_v, 1.943)
 
-    #Interpolation process
-    #-------------------------------------------------------------------------
-    print "INTERPOLATING"
+    interpolate = 0
+    interpindices = [49, 51, 53, 55, 57, 59, 61, 63,]
+    if time_index in interpindices:
+        interpolate = 1
 
-    #Timestamps for interpolation purposes.
-    #-------------------------------------------------------------------------
-    times = data_file.variables['time']
-    size = times.shape[0]
+    if interpolate == 1:
+        # Interpolation process
+        # -------------------------------------------------------------------------
+        print "INTERPOLATING"
 
-    # Create two different time stamps used for interpolating
-    ts1 = numpy.arange(0, size * 3, 3) # One for every 3 hours
-    ts2 = numpy.arange(0, size * 3, 4) # One for every 4 hours
+        # Timestamps for interpolation purposes.
+        # -------------------------------------------------------------------------
+        times = data_file.variables['time1']
+        size = times.shape[0]
 
-    #Time values for Interpolation - These work well on the vagrant machine, but they don't work on the actual
-    #production and staging machines. The interpolated values are the same for both timestamp values.
-    #-------------------------------------------------------------------------
-    #start_time = datetime.now()
-    #start_time = start_time.replace(hour=0, minute=0, second=0, microsecond=0)
-    #start_time = date.toordinal(start_time)*24
+        # Create two different time stamps used for interpolating
+        ts1 = numpy.arange(0, size * 3, 3) # One for every 3 hours
+        ts2 = numpy.arange(0, size * 4, 4) # One for every 4 hours
 
-    #end_time = datetime.now()+timedelta(days=4)
-    #end_time = end_time.replace(hour=0, minute=0, second=0, microsecond=0)
-    #end_time = date.toordinal(end_time)*24
+        # Empty arrays for putting interpolated data
+        # -------------------------------------------------------------------------
+        wind_u_int = numpy.empty([ts2.shape[0], 92, 61]) # Array to be filled
+        wind_v_int = numpy.empty([ts2.shape[0], 92, 61]) # Ditto
 
-    #Timestamps from first date to second date in increments of 3 and 4
-    #The +3 value is used to make the timestamp array fit wind_u and wind_v in interp
-    #-------------------------------------------------------------------------
-    #ts1 = numpy.arange(start_time , end_time + 3, 3)
-    #ts2 = numpy.arange(start_time , end_time + 3, 4)
+        # Interpolation Process interpolates wind_u and wind_v from ts1 to ts2 - Disable to turn off interpolation
+        # -------------------------------------------------------------------------
+        for i in range(0, 92):
+            for j in range(0, 61):
+                wind_u_int[:,i,j] = numpy.interp(ts2, ts1, wind_u[:,i,j])
+                wind_v_int[:,i,j] = numpy.interp(ts2, ts1, wind_v[:,i,j])
 
-    #Empty arrays for putting interpolated data
-    #-------------------------------------------------------------------------
-    wind_u_int = numpy.empty([ts2.shape[0], 92, 61]) # Array to be filled
-    wind_v_int = numpy.empty([ts2.shape[0], 92, 61]) # Ditto
+        # Access the data at the current time index - Turn off if not interpolating
+        # -------------------------------------------------------------------------
+        wind_u = wind_u_int[time_index, :, :]
+        wind_v = wind_v_int[time_index, :, :]
 
-    #Interpolation Process interpolates wind_u and wind_v from ts1 to ts2 - Disable to turn off interpolation
-    #-------------------------------------------------------------------------
-    for i in range(0, 91):
-        for j in range(0, 60):
-            wind_u_int[:,i,j] = numpy.interp(ts2, ts1, wind_u[:,i,j])
-            wind_v_int[:,i,j] = numpy.interp(ts2, ts1, wind_v[:,i,j])
+        # Interp returns an array of float64. This turns it into float32 to reduce memory usage
+        # -------------------------------------------------------------------------
+        wind_u = wind_u.astype(numpy.float32)
+        wind_v = wind_v.astype(numpy.float32)
 
-    #Access the data at the current time index - Turn off if not interpolating
-    #-------------------------------------------------------------------------
-    wind_u = wind_u_int[time_index, :, :]
-    wind_v = wind_v_int[time_index, :, :]
+    if interpolate == 0:
+        wind_u = wind_u[time_index, :, :]
+        wind_v = wind_v[time_index, :, :]
 
-    #Enable this if you need to run winds without interpolation
-    #You will need to comment out the interpolation code
-    #-------------------------------------------------------------------------
-    #wind_u = wind_u[time_index, :, :]
-    #wind_v = wind_v[time_index, :, :]
-
-    #Remove the time values from the data
-    #-------------------------------------------------------------------------
+    # Remove the time values from the data
+    # -------------------------------------------------------------------------
     wind_u = numpy.squeeze(wind_u) # Squeeze out the time
     wind_v = numpy.squeeze(wind_v) # Squeeze out the time
 
-    #Interp returns an array of float64. This turns it into float32 to reduce memory usage
-    #-------------------------------------------------------------------------
-    wind_u = wind_u.astype(numpy.float32)
-    wind_v = wind_v.astype(numpy.float32)
-    # print 'wind u dtype ', wind_u.dtype
-    # print "Size of wind u ", wind_u.nbytes
-
-    #Modify downsample ratio to change size of barbs
-    #-------------------------------------------------------------------------
+    # Modify downsample ratio to change size of barbs
+    # -------------------------------------------------------------------------
+    length = 0
     if downsample_ratio == 1:
         length = 3
     elif downsample_ratio == 2:
         length = 4.25
 
-    #Creates the unchopped png to be tiled
-    #-------------------------------------------------------------------------
+    # Creates the unchopped png to be tiled
+    # -------------------------------------------------------------------------
     print "Making Unchopped Wind Barb Image"
     bmap.barbs(x[::downsample_ratio, ::downsample_ratio],
                y[::downsample_ratio, ::downsample_ratio],
@@ -609,7 +605,7 @@ def wind_function(ax, data_file, bmap, time_index, downsample_ratio):
 
 def crop_and_downsample(source_array, downsample_ratio, average=True):
     ys, xs = source_array.shape
-    print "shape is ", source_array.shape
+    #print "shape is ", source_array.shape
     cropped_array = source_array[:ys - (ys % int(downsample_ratio)), :xs - (xs % int(downsample_ratio))]
     if average:
         zoomed_array = scipy.nanmean(numpy.concatenate(
