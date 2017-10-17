@@ -291,7 +291,7 @@ class OverlayManager(models.Manager):
             plotter = WindPlotter(datafile.file.name)
         else:
             plotter = Plotter(datafile.file.name)
-            print "time from models = ", plotter.get_time_at_oceantime_index(time_index)
+            #print "time from models = ", plotter.get_time_at_oceantime_index(time_index)
 
         overlay_definition = OverlayDefinition.objects.get(pk=overlay_definition_id)
 

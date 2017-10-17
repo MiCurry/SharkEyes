@@ -85,8 +85,8 @@ if __name__ == "__main__":
         from pl_chop.tasks import tile_overlay, tile_wave_watch_overlay
         from pl_plot.plotter import WindPlotter, Plotter
         wave = 0
-        sst = 0
-        wind = 1
+        sst = 1
+        wind = 0
         if wave:
             #wave = DataFileManager.get_latest_wave_watch_files()
             wave = DataFile.objects.filter(type='WAVE').latest('model_date')
@@ -105,13 +105,13 @@ if __name__ == "__main__":
         if sst:
             #sst = DataFileManager.download_osu_roms()
             sst = DataFile.objects.all().filter(type="NCDF")
-            plotter = Plotter(sst[0].file.name)
-            print "Time value ", plotter.get_time_at_oceantime_index(0)
+            #plotter = Plotter(sst[0].file.name)
+            #print "Time value ", plotter.get_time_at_oceantime_index(0)
             tiles = []
             begin = time.time()
-            tiles += OverlayManager.make_plot(1, 0, sst[0].id)
+            #tiles += OverlayManager.make_plot(1, 0, sst[0].id)
             #tiles += OverlayManager.make_plot(2, 0, sst[0].id)
-            #tiles += OverlayManager.make_plot(3, 0, sst[0].id)
+            tiles += OverlayManager.make_plot(3, 0, sst[0].id)
             #tiles += OverlayManager.make_plot(7, 0, sst[0].id)
             #tiles += OverlayManager.make_plot(8, 0, sst[0].id)
             #tiles += OverlayManager.make_plot(9, 0, sst[0].id)

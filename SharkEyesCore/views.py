@@ -147,7 +147,7 @@ def getTimeIndexWind(wind_file, day, month, year, hour, meridian):
     input_time = datetime(day=day, month=month, year=year, hour=hour, minute=0, second=0, tzinfo=timezone.utc)
     wind_name = wind_file.file.name
     wind_data = netcdf.netcdf_file(os.path.join(settings.MEDIA_ROOT, settings.WIND_DIR, wind_name), 'r')
-    indices = np.shape(wind_data.variables['time1'])[0]
+    indices = np.shape(wind_data.variables['time'])[0]
     for x in xrange(0, indices, 1):
         raw_epoch_date = str(wind_file.model_date)
         epoch_date = raw_epoch_date.split('-')
@@ -161,7 +161,7 @@ def getTimeIndexWind(wind_file, day, month, year, hour, meridian):
             modifier = 1
         elif x == 51 or x == 55 or x == 59 or x == 63:
             modifier = -1
-        hours_since_epoch = timedelta(hours=(wind_data.variables['time1'][x] + dst - wind_data.variables['reftime1'][0]) + modifier)
+        hours_since_epoch = timedelta(hours=(wind_data.variables['time'][x] + dst - wind_data.variables['reftime'][0]) + modifier)
         current_date = ocean_time_epoch + hours_since_epoch
         if current_date == input_time:
             index = x
