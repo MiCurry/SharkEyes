@@ -5,6 +5,7 @@ import traceback
 from uuid import uuid4
 from scipy.io import netcdf
 import numpy
+import pytz
 from matplotlib import pyplot
 from mpl_toolkits.basemap import Basemap
 from pl_download.models import DataFile
@@ -112,6 +113,10 @@ class WindPlotter:
     def get_time_at_oceantime_index(self, index):
         # The Wind model uses a dynamic reference date for date calculation
         # This calculates that date and then uses it to calculate the dates for each index
+        dst = 0
+        isdst_now_in = lambda zonename: bool(datetime.now(pytz.timezone(zonename)).dst())
+        if isdst_now_in("America/Los_Angeles"):
+            dst = 1
         windFile = DataFile.objects.filter(type='WIND').latest('model_date')
         raw_epoch_date = str(windFile.model_date)
         epoch_date = raw_epoch_date.split('-')
@@ -126,7 +131,7 @@ class WindPlotter:
         elif index == 51 or index == 55 or index == 59 or index == 63:
             modifier = -1
         hours_since_epoch = timedelta(
-            hours=(self.data_file.variables['time'][index] - self.data_file.variables['reftime'][0]) + modifier)
+            hours=(self.data_file.variables['time'][index] + dst - self.data_file.variables['reftime'][0]) + modifier)
         return ocean_time_epoch + hours_since_epoch
 
     def key_check(self):

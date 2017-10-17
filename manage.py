@@ -109,7 +109,7 @@ if __name__ == "__main__":
             #print "Time value ", plotter.get_time_at_oceantime_index(0)
             tiles = []
             begin = time.time()
-            #tiles += OverlayManager.make_plot(1, 0, sst[0].id)
+            tiles += OverlayManager.make_plot(1, 0, sst[0].id)
             #tiles += OverlayManager.make_plot(2, 0, sst[0].id)
             tiles += OverlayManager.make_plot(3, 0, sst[0].id)
             #tiles += OverlayManager.make_plot(7, 0, sst[0].id)
@@ -122,7 +122,7 @@ if __name__ == "__main__":
             print "Time taken for SST = " + str(round(totalTime, 2)) + " minutes"
 
         if wind:
-            winds = DataFileManager.get_wind_file()
+            #winds = DataFileManager.get_wind_file()
             winds = DataFile.objects.filter(type='WIND').latest('model_date')
             plotter = WindPlotter(winds.file.name)
             print "Time value ", plotter.get_time_at_oceantime_index(0)
