@@ -94,11 +94,11 @@ def getLatLongIndex(lat, lon, dataset, model):
     print "file_lat ", file_lat
     print "file_lon ", file_lon
     file_lat = np.unravel_index(np.ravel(file_lat, file_lats.shape), file_lats.shape)
-    file_lon = np.unravel_index(np.ravel(file_lon, file_lons.shape), file_lons.shape)
+    #file_lon = np.unravel_index(np.ravel(file_lon, file_lons.shape), file_lons.shape)
     print "file_lat ", file_lat
     print "file_lon ", file_lon
     file_lat = file_lat[0][0]
-    file_lon = file_lon[1][0]
+    #file_lon = file_lon[1][0]
     print "file_lat ", file_lat
     print "file_lon ", file_lon
     print "lat ", file_lats[file_lat][file_lon]
