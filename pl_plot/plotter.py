@@ -107,7 +107,7 @@ class WindPlotter:
         )
 
     def get_number_of_model_times(self):
-        return numpy.shape(self.data_file.variables['time1'])[0]
+        return numpy.shape(self.data_file.variables['time'])[0]
 
     def get_time_at_oceantime_index(self, index):
         # The Wind model uses a dynamic reference date for date calculation
@@ -126,7 +126,7 @@ class WindPlotter:
         elif index == 51 or index == 55 or index == 59 or index == 63:
             modifier = -1
         hours_since_epoch = timedelta(
-            hours=(self.data_file.variables['time1'][index] - self.data_file.variables['reftime1'][0]) + modifier)
+            hours=(self.data_file.variables['time'][index] - self.data_file.variables['reftime'][0]) + modifier)
         return ocean_time_epoch + hours_since_epoch
 
     def key_check(self):
