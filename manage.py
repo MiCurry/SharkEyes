@@ -12,7 +12,7 @@ if __name__ == "__main__":
     if sys.argv[-1] == "download":
         from pl_download.models import DataFileManager, DataFile
         wave = 0
-        sst = 1
+        sst = 0
         wind = 0
         if wave:
             DataFileManager.get_latest_wave_watch_files()
@@ -21,74 +21,16 @@ if __name__ == "__main__":
         if wind:
             DataFileManager.get_wind_file()
 
-    elif sys.argv[-1] == "ncdfinfo":
-        from datetime import datetime, timedelta
-        from django.utils import timezone
-        import numpy
-        import pytz
-        from scipy.io import netcdf
-        from django.conf import settings
-        from pl_download.models import DataFile
-        sst = DataFile.objects.all().filter(type="NCDF")
-        sst_name = sst[0].file.name
-        sst_data = netcdf.netcdf_file(os.path.join(settings.MEDIA_ROOT, settings.NETCDF_STORAGE_DIR, sst_name), 'r')
-        dst = 0
-        isdst_now_in = lambda zonename: bool(datetime.now(pytz.timezone(zonename)).dst())
-        if isdst_now_in("America/Los_Angeles"):
-            dst = -1
-        dst_hours = timedelta(hours=dst)
-        ocean_time_epoch = datetime(day=1, month=1, year=2005, hour=0, minute=0, second=0, tzinfo=timezone.utc)
-        for x in range(0, numpy.shape(sst_data.variables['ocean_time'])[0], 1):
-            seconds_since_epoch = timedelta(seconds=sst_data.variables['ocean_time'][x])
-            check_date = ocean_time_epoch + seconds_since_epoch + dst_hours
-            print "check date ", check_date
-
-    elif sys.argv[-1] == "windinfo": #use this to view what the timestamps are for each index of the wind model
-        from datetime import datetime, timedelta
-        from django.utils import timezone
-        import numpy
-        import pytz
-        from scipy.io import netcdf
-        from django.conf import settings
-        from pl_download.models import DataFile
-        # The Wind model uses a dynamic reference date for date calculation
-        # This calculates that date and then uses it to calculate the dates for each index
-        dst = 0
-        isdst_now_in = lambda zonename: bool(datetime.now(pytz.timezone(zonename)).dst())
-        if isdst_now_in("America/Los_Angeles"):
-            dst = 1
-        windFile = DataFile.objects.filter(type='WIND').latest('model_date')
-        windName = windFile.file.name
-        windData = netcdf.netcdf_file(os.path.join(settings.MEDIA_ROOT, settings.WIND_DIR, windName), 'r')
-        #indices = numpy.shape(windData.variables['time'])[0]
-        times = [48,49,51,52,53,55,56,57,59,60,61,63,64]
-        for x in times:
-            raw_epoch_date = str(windFile.model_date)
-            epoch_date = raw_epoch_date.split('-')
-            epoch_year = int(epoch_date[0])
-            epoch_month = int(epoch_date[1])
-            epoch_day = int(epoch_date[2])
-            ocean_time_epoch = datetime(day=epoch_day, month=epoch_month, year=epoch_year, hour=7, minute=0, second=0,
-                                        tzinfo=timezone.utc)
-            modifier = 0
-            if x == 49 or x == 53 or x == 57 or x == 61:
-                modifier = 1
-            elif x == 51 or x == 55 or x == 59 or x == 63:
-                modifier = -1
-            hours_since_epoch = timedelta(
-                hours=(windData.variables['time'][x] + dst - windData.variables['reftime'][0]) + modifier)
-            print "Time Index ", x, " Time", ocean_time_epoch + hours_since_epoch
-
     elif sys.argv[-1] == "plot":
         from pl_download.models import DataFileManager, DataFile
         from pl_plot.models import OverlayManager
         from pl_chop.tasks import tile_overlay, tile_wave_watch_overlay
         from pl_plot.plotter import WindPlotter, Plotter
-        wave = 0
-        sst = 1
+        wave = 1
+        sst = 0
         wind = 0
         if wave:
-            #wave = DataFileManager.get_latest_wave_watch_files()
+            DataFileManager.get_latest_wave_watch_files()
             wave = DataFile.objects.filter(type='WAVE').latest('model_date')
             tiles = []
             begin = time.time()
@@ -140,8 +82,8 @@ if __name__ == "__main__":
         from pl_plot.models import OverlayManager as om
         from pl_chop.tasks import tile_overlay, tile_wave_watch_overlay
         from pl_plot.plotter import WindPlotter, Plotter
-        wave = 0
-        sst = 1
+        wave = 1
+        sst = 0
         wind = 0
 
         if wave:
@@ -149,7 +91,7 @@ if __name__ == "__main__":
             print "\n--- Plotting WW3 - Height and Direction ---"
             wave = DataFile.objects.filter(type='WAVE').latest('model_date')
             id = wave.id
-            for t in xrange(0, 85, 4):
+            for t in xrange(20, 85, 4):
                 try:
                     print "Plotting WW3 - File ID:", id, "Time Index:", t
                     tile_wave_watch_overlay(om.make_wave_watch_plot(4, t, id))
@@ -210,6 +152,91 @@ if __name__ == "__main__":
             end = time.time()
             total = (end - start)/ 60
             print "Total time taken for plotting and tiling = " + str(round(total, 2)) + " minutes"
+
+    elif sys.argv[-1] == "wavedates":
+        print "Wave Watch Times"
+        from datetime import datetime, timedelta
+        from django.utils import timezone
+        import numpy
+        import pytz
+        from scipy.io import netcdf
+        from django.conf import settings
+        from pl_download.models import DataFile
+        wave = DataFile.objects.filter(type='WAVE').latest('model_date')
+        wave_name = wave.file.name
+        wave_data = netcdf.netcdf_file(os.path.join(settings.MEDIA_ROOT, settings.WAVE_WATCH_DIR, wave_name), 'r')
+        all_day_times = wave_data.variables['time'][:]
+        basetime = datetime(1970, 1, 1, 0, 0, 0)  # Jan 1, 1970
+        # This is the first forecast: right now it is Noon (UTC) [~5 AM PST] on the day before the file was downloaded
+        forecast_zero = basetime + timedelta(all_day_times[0] / 3600.0 / 24.0, 0, 0)
+        for x in range(0, 84, 1):
+            model_time = timezone.make_aware(forecast_zero + timedelta(hours=x), timezone.utc)
+            print "Model date =", model_time, "at index", x
+
+    elif sys.argv[-1] == "alexdates":
+        print "Times for Alexander's Model"
+        from datetime import datetime, timedelta
+        from django.utils import timezone
+        import numpy
+        import pytz
+        from scipy.io import netcdf
+        from django.conf import settings
+        from pl_download.models import DataFile
+        sst = DataFile.objects.all().filter(type="NCDF")
+        sst_name = sst[0].file.name
+        sst_data = netcdf.netcdf_file(os.path.join(settings.MEDIA_ROOT, settings.NETCDF_STORAGE_DIR, sst_name), 'r')
+        dst = 0
+        isdst_now_in = lambda zonename: bool(datetime.now(pytz.timezone(zonename)).dst())
+        if isdst_now_in("America/Los_Angeles"):
+            dst = -1
+        dst_hours = timedelta(hours=dst)
+        ocean_time_epoch = datetime(day=1, month=1, year=2005, hour=0, minute=0, second=0, tzinfo=timezone.utc)
+        for x in range(0, numpy.shape(sst_data.variables['ocean_time'])[0], 1):
+            seconds_since_epoch = timedelta(seconds=sst_data.variables['ocean_time'][x])
+            check_date = ocean_time_epoch + seconds_since_epoch
+            print "Date = ", check_date, " at index ", x
+
+    elif sys.argv[-1] == "winddates": #use this to view what the timestamps are for each index of the wind model
+        print "Times for the wind model is local time"
+        from datetime import datetime, timedelta
+        from django.utils import timezone
+        import numpy
+        import pytz
+        from scipy.io import netcdf
+        from django.conf import settings
+        from pl_download.models import DataFile
+        # The Wind model uses a dynamic reference date for date calculation
+        # This calculates that date and then uses it to calculate the dates for each index
+        dst = 0
+        isdst_now_in = lambda zonename: bool(datetime.now(pytz.timezone(zonename)).dst())
+        if isdst_now_in("America/Los_Angeles"):
+            dst = 1
+        windFile = DataFile.objects.filter(type='WIND').latest('model_date')
+        windName = windFile.file.name
+        windData = netcdf.netcdf_file(os.path.join(settings.MEDIA_ROOT, settings.WIND_DIR, windName), 'r')
+        indices = numpy.shape(windData.variables['time1'])[0]
+        times = [48,52,55,56,57,59,60,61,63,64] # 49, 51, 53,  these are setup for when the model swaps to three hour increments use this to view just those dates
+        raw_epoch_date = str(windFile.model_date)
+        epoch_date = raw_epoch_date.split('-')
+        epoch_year = int(epoch_date[0])
+        epoch_month = int(epoch_date[1])
+        epoch_day = int(epoch_date[2])
+        ocean_time_epoch = datetime(day=epoch_day, month=epoch_month, year=epoch_year, hour=0, minute=0, second=0,
+                                    tzinfo=timezone.utc)
+        for x in range(0, indices, 1):
+            modifier = 0
+            if x < 48 and x % 4 == 0:
+                hours_since_epoch = timedelta(
+                    hours=(windData.variables['time1'][x] + dst - windData.variables['reftime1'][0]) + modifier)
+                print "Time Index ", x, " Time", ocean_time_epoch + hours_since_epoch
+            elif x in times:
+                if x == 57 or x == 61:
+                    modifier = 1
+                elif x == 55 or x == 59 or x == 63:
+                    modifier = -1
+                hours_since_epoch = timedelta(
+                    hours=(windData.variables['time1'][x] + dst - windData.variables['reftime1'][0]) + modifier)
+                print "Time Index ", x, " Time", ocean_time_epoch + hours_since_epoch
 
     else:
         from django.core.management import execute_from_command_line
