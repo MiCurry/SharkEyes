@@ -17,7 +17,7 @@ from django.http import HttpResponse
 # Helper Functions for right_click_menu
 # Organizes the date into a usable list of values
 # ------------------------------------------------------------------
-def prepDate(date):
+def prep_date(date):
     clean_date = []
     date = date.split(',')
     date = [str(date[x]) for x in range(len(date))]
@@ -67,9 +67,8 @@ def prepDate(date):
 
 # Finds the correct lat and lon indices for the model
 # --------------------------------------------------------------------
-def getLatLongIndex(lat, lon, dataset, model):
+def get_lat_long_index(lat, lon, dataset, model):
     indices = []
-    flatSize = 0
     lat_name = ''
     lon_name = ''
     if model == 'wind':
@@ -77,16 +76,12 @@ def getLatLongIndex(lat, lon, dataset, model):
         lat_name = 'lat'
         lon_name = 'lon'
     elif model == 'ncdf':
-        flatSize = 161820
         lat_name = 'lat_rho'
         lon_name = 'lon_rho'
     elif model == 'wave':
-        flatSize = 284257
         lat_name = 'latitude'
         lon_name = 'longitude'
         lon = lon%360 #The wave watch longitude values are saved in degrees east. This converts them to degrees west which is what we get from the front-end
-    #lat = np.round(lat, 7)
-    #lon = np.round(lon, 7)
     file_lats = dataset.variables[lat_name][:]
     file_lons = dataset.variables[lon_name][:]
     file_lat = np.abs(file_lats - lat).argmin()
@@ -109,10 +104,11 @@ def getLatLongIndex(lat, lon, dataset, model):
 
 # Calculates the necessary time index for Alex's Model
 # --------------------------------------------------------------------
-def getTimeIndexNCDF(ncdf_data, day, month, year, hour, meridian):
+def get_time_index_ncdf(ncdf_data, day, month, year, hour, meridian):
     if hour == 12 and meridian == "a.m.":
         hour = 0
     input_time = datetime(day=day, month=month, year=year, hour=hour, minute=0, second=0, tzinfo=timezone.utc)
+    print "time ", input_time
     dst = 0
     isdst_now_in = lambda zonename: bool(datetime.now(pytz.timezone(zonename)).dst())
     if isdst_now_in("America/Los_Angeles"):
@@ -134,7 +130,7 @@ def getTimeIndexNCDF(ncdf_data, day, month, year, hour, meridian):
 # This function is a bit more complex than the others because
 # the wind time indices are not consistent. They swap from every hour to every three hours.
 # -----------------------------------------------------------------------
-def getTimeIndexWind(wind_file, day, month, year, hour, meridian):
+def get_time_index_wind(wind_file, day, month, year, hour, meridian):
     index = 0
     if hour == 12 and meridian == "a.m.":
         hour = 0
@@ -148,14 +144,14 @@ def getTimeIndexWind(wind_file, day, month, year, hour, meridian):
     wind_name = wind_file.file.name
     wind_data = netcdf.netcdf_file(os.path.join(settings.MEDIA_ROOT, settings.WIND_DIR, wind_name), 'r')
     indices = np.shape(wind_data.variables['time'])[0]
+    raw_epoch_date = str(wind_file.model_date)
+    epoch_date = raw_epoch_date.split('-')
+    epoch_year = int(epoch_date[0])
+    epoch_month = int(epoch_date[1])
+    epoch_day = int(epoch_date[2])
+    ocean_time_epoch = datetime(day=epoch_day, month=epoch_month, year=epoch_year, hour=7, minute=0, second=0,
+                                tzinfo=timezone.utc)
     for x in xrange(0, indices, 1):
-        raw_epoch_date = str(wind_file.model_date)
-        epoch_date = raw_epoch_date.split('-')
-        epoch_year = int(epoch_date[0])
-        epoch_month = int(epoch_date[1])
-        epoch_day = int(epoch_date[2])
-        ocean_time_epoch = datetime(day=epoch_day, month=epoch_month, year=epoch_year, hour=7, minute=0, second=0,
-                                    tzinfo=timezone.utc)
         modifier = 0
         if x == 49 or x == 53 or x == 57 or x == 61:
             modifier = 1
@@ -170,38 +166,27 @@ def getTimeIndexWind(wind_file, day, month, year, hour, meridian):
 
 # Calculates the time index for Tuba's WW3 file
 # -----------------------------------------------------------------------------
-def getTimeIndexWave(hour, day, meridian):
-    index = 0
-    modifier = 0
-    if day == 1: #One file covers 3.5 days. This checks how many days ahead the request is and adds a modifier the the time index.
-        modifier = 24
-    if day == 2:
-        modifier = 48
-    if day == 3:
-        modifier = 72
-    if hour%2 == 1:
-        new_time = hour - 1
-    else:
-        new_time = hour
-    if meridian == 'p.m.':
-        if new_time == 12: #Noon
-            index = 0
-        elif new_time == 4:
-            index = 4
-        elif new_time == 8:
-            index = 8
-    if meridian == 'a.m.':
-        if new_time == 12: #Midnight
-            index = 12
-        elif new_time == 4:
-            index = 16
-        elif new_time == 8:
-            index = 20
-    return index + modifier
+def get_time_index_wave (wave_data, day, month, year, hour, meridian):
+    if hour == 12 and meridian == "a.m.":
+        hour = 0
+    if meridian == "p.m.":
+        hour = hour + 12
+    time_zone_correction = timedelta(hours=7)
+    input_time = datetime(day=day, month=month, year=year, hour=hour, minute=0, second=0, tzinfo=timezone.utc)
+    input_time = input_time + time_zone_correction
+    all_day_times = wave_data.variables['time'][:]
+    basetime = datetime(1970, 1, 1, 0, 0, 0)  # Jan 1, 1970
+    # This is the first forecast: right now it is Noon (UTC) [~5 AM PST] on the day before the file was downloaded
+    forecast_zero = basetime + timedelta(all_day_times[0] / 3600.0 / 24.0, 0, 0)
+    for x in range(0, 84, 1):
+        model_time = timezone.make_aware(forecast_zero + timedelta(hours=x), timezone.utc)
+        if input_time == model_time:
+            print "index ", x
+            return x
 
 # Returns which model types are being displayed
 # ------------------------------------------------------------------------------
-def getModels(keys):
+def get_models(keys):
     models = []
     wave = 0
     ncdf = 0
@@ -266,7 +251,7 @@ def right_click_menu(request):
 
     #Get the currently displayed date from the front-end request and process it for usability
     query_date = json.loads(request.body)["display_date"]
-    clean_date = prepDate(query_date)
+    clean_date = prep_date(query_date)
     hour = clean_date[0]
     meridian = clean_date[1]
     month = clean_date[2]
@@ -278,7 +263,7 @@ def right_click_menu(request):
 
     #Find out which models are being viewed
     keys = json.loads(request.body)["keys"]
-    models = getModels(keys) #The key names are messy. This function parses them and determines what is being viewed
+    models = get_models(keys) #The key names are messy. This function parses them and determines what is being viewed
     #This determines which models to display at the cursor
     wave = 0
     ncdf = 0
@@ -301,19 +286,18 @@ def right_click_menu(request):
         wave_data = netcdf.netcdf_file(os.path.join(settings.MEDIA_ROOT,settings.WAVE_WATCH_DIR,wave_name), 'r')
 
         #Get Wave Watch 3 lat lon indices
-        wave_index = getLatLongIndex(lat, lon, wave_data, 'wave')
+        wave_index = get_lat_long_index(lat, lon, wave_data, 'wave')
         wave_lat = wave_index[0]
         wave_lon = wave_index[1]
 
         #Get the wave watch 3 time index
-        wave_date = str(wave_file.model_date)
-        wave_date = wave_date.split('-')
-        wave_day = int(day) - int(wave_date[2])#Needed because one wind file covers 3 days. This finds out how many days out the request is
-        wave_time_index = getTimeIndexWave(int(hour), wave_day, meridian)
+        wave_time_index = get_time_index_wave(wave_data, int(day), int(month), int(current_year), int(hour), meridian)
 
         #Get the wave watch 3 wave height value
         wave_height = wave_data.variables['HTSGW_surface'][wave_time_index, wave_lat, wave_lon]
         wave_height = np.round(wave_height * 3.28, 3) #Convert from meters to feet and round to 3 decimal places.
+        if np.isnan(wave_height):
+            wave_height = "unavailable"
 
     if ncdf == 1:
         #Alex's model(sst, currents, ssh, salinity, etc...) file access
@@ -325,12 +309,12 @@ def right_click_menu(request):
         ncdf_data = netcdf.netcdf_file(os.path.join(settings.MEDIA_ROOT,settings.NETCDF_STORAGE_DIR,ncdf_name), 'r')
 
         #Get Alex's model lat lon indices
-        ncdf_index = getLatLongIndex(lat, lon, ncdf_data, 'ncdf')
+        ncdf_index = get_lat_long_index(lat, lon, ncdf_data, 'ncdf')
         ncdf_lat = ncdf_index[0]
         ncdf_lon = ncdf_index[1]
 
         #Get the time index for Alex's model
-        ncdf_time_index = getTimeIndexNCDF(ncdf_data, int(day), int(month), int(current_year), int(hour), meridian)
+        ncdf_time_index = get_time_index_ncdf(ncdf_data, int(day), int(month), int(current_year), int(hour), meridian)
 
         #Get the values from Alex's model
         ssh = ncdf_data.variables['zeta'][ncdf_time_index,ncdf_lat:ncdf_lat+1,ncdf_lon:ncdf_lon+1]
@@ -354,13 +338,12 @@ def right_click_menu(request):
         wind_data = netcdf.netcdf_file(os.path.join(settings.MEDIA_ROOT,settings.WIND_DIR,wind_name), 'r')
 
         #Get wind file lat lon indices
-        wind_index = getLatLongIndex(lat, lon, wind_data, 'wind')
+        wind_index = get_lat_long_index(lat, lon, wind_data, 'wind')
         x = wind_index[1]
         y = wind_index[0]
 
         #Get the time index for the wind model
-        wind_time_index = getTimeIndexWind(wind_file, int(day), int(month), int(current_year), int(hour), meridian)  # Gets the wind time index
-        print "got here"
+        wind_time_index = get_time_index_wind(wind_file, int(day), int(month), int(current_year), int(hour), meridian)  # Gets the wind time index
 
         #Get the wind model values
         wind_u = wind_data.variables['u-component_of_wind_height_above_ground'][wind_time_index,0,y,x]

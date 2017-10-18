@@ -94,42 +94,39 @@ class OverlayManager(models.Manager):
 
             # Wavewatch and SST/currents files use a separate Plot function.
             if datafile.file.name.startswith(settings.OSU_WW3_DF_FN):
-                for t in xrange(0, 85):
+                for t in range(20, 85, 4):
                     # The unchopped file's index starts at noon: index = 0 and progresses throgh 85 forecasts, one per hour,
                     # for the next 85 hours.
                     # Only plot every 4th index to match up with the SST forecast.
                     # WaveWatch has forecasts for every hour but at this time we don't need them all.
-                    if t % 4 == 0:
-                        task_list.append(cls.make_wave_watch_plot.subtask(args=(settings.OSU_WW3_HI, t, fid), immutable=True))
-                        task_list.append(cls.make_wave_watch_plot.subtask(args=(settings.OSU_WW3_DIR, t, fid), immutable=True))
+                    task_list.append(cls.make_wave_watch_plot.subtask(args=(settings.OSU_WW3_HI, t, fid), immutable=True))
+                    task_list.append(cls.make_wave_watch_plot.subtask(args=(settings.OSU_WW3_DIR, t, fid), immutable=True))
             elif datafile.file.name.startswith(settings.NAMS_WIND_DF_FN):
                 plotter = WindPlotter(datafile.file.name)
                 number_of_times = plotter.get_number_of_model_times()
-                print "WIND!"
-                for t in xrange(number_of_times):
+                for t in range(0, number_of_times, 1):
                     if t < 47:
                         if t % 4 == 0:
                             task_list.append(cls.make_plot.subtask(args=(settings.NAMS_WIND, t, fid), immutable=True))
                     elif t > 47:
-                        threehourindices = [48, 49, 51, 52, 53, 55, 56, 57, 59, 60, 61, 63, 64]
+                        threehourindices = [48,52,55,56,57,59,60,61,63,64]
                         if t in threehourindices:
                             task_list.append(cls.make_plot.subtask(args=(settings.NAMS_WIND, t, fid), immutable=True))
             else:
                 plotter = Plotter(datafile.file.name)
                 number_of_times = plotter.get_number_of_model_times()
 
-                for t in xrange(number_of_times):
+                for t in range(0, number_of_times, 2):
                     #SST Now has values every 2 hours, but we only want every 4
                     #This only adds the task for every other time stamp
-                    if t % 2 != 0:
-                        #using EXTEND because we are adding multiple items: might also be able to use APPEND
-                        task_list.extend(cls.make_plot.subtask(args=(od_id, t, fid),
-                                                               immutable=True) for od_id in [settings.OSU_ROMS_SST,
-                                                                                             settings.OSU_ROMS_SUR_SAL,
-                                                                                             settings.OSU_ROMS_SUR_CUR,
-                                                                                             settings.OSU_ROMS_BOT_SAL,
-                                                                                             settings.OSU_ROMS_BOT_TEMP,
-                                                                                             settings.OSU_ROMS_SSH])
+                    #using EXTEND because we are adding multiple items: might also be able to use APPEND
+                    task_list.extend(cls.make_plot.subtask(args=(od_id, t, fid),
+                                                           immutable=True) for od_id in [settings.OSU_ROMS_SST,
+                                                                                         settings.OSU_ROMS_SUR_SAL,
+                                                                                         settings.OSU_ROMS_SUR_CUR,
+                                                                                         settings.OSU_ROMS_BOT_SAL,
+                                                                                         settings.OSU_ROMS_BOT_TEMP,
+                                                                                         settings.OSU_ROMS_SSH])
         return task_list
 
     @classmethod
