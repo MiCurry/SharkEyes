@@ -12,7 +12,7 @@ if __name__ == "__main__":
     if sys.argv[-1] == "download":
         from pl_download.models import DataFileManager, DataFile
         wave = 0
-        sst = 0
+        sst = 1
         wind = 0
         if wave:
             DataFileManager.get_latest_wave_watch_files()
@@ -82,8 +82,8 @@ if __name__ == "__main__":
         from pl_plot.models import OverlayManager as om
         from pl_chop.tasks import tile_overlay, tile_wave_watch_overlay
         from pl_plot.plotter import WindPlotter, Plotter
-        wave = 1
-        sst = 0
+        wave = 0
+        sst = 1
         wind = 0
 
         if wave:
@@ -103,7 +103,7 @@ if __name__ == "__main__":
                     print '-' * 60
                 print
         if sst:
-            #DataFileManager.download_osu_roms()
+            DataFileManager.download_osu_roms()
             print "\n--- Plotting ROMS Fields - SST, Salinity, SSH ---"
             sst_files = DataFile.objects.all().filter(type = "NCDF")
             for file in sst_files:
@@ -136,7 +136,7 @@ if __name__ == "__main__":
             plotter = WindPlotter(winds.file.name)
             number_of_times = plotter.get_number_of_model_times()
             for t in xrange(number_of_times):
-                indices = [48, 49, 51, 52, 53, 55, 56, 57, 59, 60, 61, 63, 64]
+                indices = [48,52,55,56,57,59,60,61,63,64]
                 if t < 47 and t % 4 == 0:
                     print "t = ", t
                     print "Plotting and Tiling NAMS - Time_Index:", t
