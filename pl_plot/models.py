@@ -116,17 +116,18 @@ class OverlayManager(models.Manager):
                 plotter = Plotter(datafile.file.name)
                 number_of_times = plotter.get_number_of_model_times()
 
-                for t in range(0, number_of_times, 2):
-                    #SST Now has values every 2 hours, but we only want every 4
-                    #This only adds the task for every other time stamp
-                    #using EXTEND because we are adding multiple items: might also be able to use APPEND
-                    task_list.extend(cls.make_plot.subtask(args=(od_id, t, fid),
-                                                           immutable=True) for od_id in [settings.OSU_ROMS_SST,
-                                                                                         settings.OSU_ROMS_SUR_SAL,
-                                                                                         settings.OSU_ROMS_SUR_CUR,
-                                                                                         settings.OSU_ROMS_BOT_SAL,
-                                                                                         settings.OSU_ROMS_BOT_TEMP,
-                                                                                         settings.OSU_ROMS_SSH])
+                for t in range(0, number_of_times, 1):
+                    if t % 2 != 0:
+                        #SST Now has values every 2 hours, but we only want every 4
+                        #This only adds the task for every other time stamp
+                        #using EXTEND because we are adding multiple items: might also be able to use APPEND
+                        task_list.extend(cls.make_plot.subtask(args=(od_id, t, fid),
+                                                               immutable=True) for od_id in [settings.OSU_ROMS_SST,
+                                                                                             settings.OSU_ROMS_SUR_SAL,
+                                                                                             settings.OSU_ROMS_SUR_CUR,
+                                                                                             settings.OSU_ROMS_BOT_SAL,
+                                                                                             settings.OSU_ROMS_BOT_TEMP,
+                                                                                             settings.OSU_ROMS_SSH])
         return task_list
 
     @classmethod
