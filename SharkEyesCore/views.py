@@ -105,9 +105,11 @@ def get_lat_long_index(lat, lon, dataset, model):
 # Calculates the necessary time index for Alex's Model
 # --------------------------------------------------------------------
 def get_time_index_ncdf(ncdf_data, day, month, year, hour, meridian):
+    text_file = open("index.txt", "w")
     if hour == 12 and meridian == "a.m.":
         hour = 0
     input_time = datetime(day=day, month=month, year=year, hour=hour, minute=0, second=0, tzinfo=timezone.utc)
+    text_file.write("We are now in time indexing\n")
     print "time ", input_time
     dst = 0
     isdst_now_in = lambda zonename: bool(datetime.now(pytz.timezone(zonename)).dst())
@@ -116,13 +118,18 @@ def get_time_index_ncdf(ncdf_data, day, month, year, hour, meridian):
     dst_hours = timedelta(hours=dst)
     time_zone_correction = timedelta(hours=6)
     input_time = input_time + dst_hours - time_zone_correction
+    text_file.write(str(input_time)+"\n")
     ocean_time_epoch = datetime(day=1, month=1, year=2005, hour=0, minute=0, second=0, tzinfo=timezone.utc)
     for x in range(0, np.shape(ncdf_data.variables['ocean_time'])[0], 1 ):
         seconds_since_epoch = timedelta(seconds=ncdf_data.variables['ocean_time'][x])
         check_date = ocean_time_epoch + seconds_since_epoch
+        text_file.write(str(input_time)+"\n")
+        text_file.write(str(check_date)+"\n")
         # print "check date ", check_date
         # print "input time ", input_time
         if check_date == input_time:
+            text_file.write(str(x)+"\n")
+            text_file.close()
             print "index ", x
             return x
 
@@ -235,6 +242,7 @@ def about(request):
 @csrf_exempt
 def right_click_menu(request):
     #Get the latitude and longitude values from the front-end request and round them to 3 decimal places
+    text_file = open("output.txt", "w")
     lat = json.loads(request.body)["lat"]
     lon = json.loads(request.body)["long"]
     print "Lat ", lat
@@ -259,6 +267,7 @@ def right_click_menu(request):
     current_date = datetime.now()
     current_year = str(current_date.year)
     current_day = str(current_date.day)
+    text_file.write(current_day+"\n")
     print "day ", current_day
 
     #Find out which models are being viewed
@@ -301,11 +310,14 @@ def right_click_menu(request):
 
     if ncdf == 1:
         #Alex's model(sst, currents, ssh, salinity, etc...) file access
-        # if int(day) < int(current_day):
-        #     day = current_day
+        if int(day) < int(current_day):
+            day = current_day
         ncdf_file_date = "OSU_ROMS_" + current_year + "-" + month + "-" + day #This is used to create a string for use in the DB lookup
+        text_file.write(ncdf_file_date+"\n")
         ncdf_file = DataFile.objects.filter(type='NCDF').filter(file__startswith=str(ncdf_file_date))
         ncdf_name = ncdf_file[0].file.name
+        text_file.write(ncdf_name+"\n")
+        text_file.close()
         ncdf_data = netcdf.netcdf_file(os.path.join(settings.MEDIA_ROOT,settings.NETCDF_STORAGE_DIR,ncdf_name), 'r')
 
         #Get Alex's model lat lon indices
