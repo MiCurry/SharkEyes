@@ -89,11 +89,11 @@ def get_lat_long_index(lat, lon, dataset, model):
     print "file_lat ", file_lat
     print "file_lon ", file_lon
     file_lat = np.unravel_index(np.ravel(file_lat, file_lats.shape), file_lats.shape)
-    #file_lon = np.unravel_index(np.ravel(file_lon, file_lons.shape), file_lons.shape)
+    file_lon = np.unravel_index(np.ravel(file_lon, file_lons.shape), file_lons.shape)
     print "file_lat ", file_lat
     print "file_lon ", file_lon
     file_lat = file_lat[0][0]
-    #file_lon = file_lon[1][0]
+    file_lon = file_lon[1][0]
     print "file_lat ", file_lat
     print "file_lon ", file_lon
     print "lat ", file_lats[file_lat][file_lon]
@@ -301,8 +301,8 @@ def right_click_menu(request):
 
     if ncdf == 1:
         #Alex's model(sst, currents, ssh, salinity, etc...) file access
-        if int(day) < int(current_day):
-            day = current_day
+        # if int(day) < int(current_day):
+        #     day = current_day
         ncdf_file_date = "OSU_ROMS_" + current_year + "-" + month + "-" + day #This is used to create a string for use in the DB lookup
         ncdf_file = DataFile.objects.filter(type='NCDF').filter(file__startswith=str(ncdf_file_date))
         ncdf_name = ncdf_file[0].file.name
