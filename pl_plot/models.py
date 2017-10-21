@@ -61,7 +61,7 @@ class OverlayManager(models.Manager):
         display = Overlay.objects.none()
         # know what dates to look for
         dates = Overlay.objects.filter(applies_at_datetime__gte=timezone.now()-timedelta(days=PAST_DAYS_OF_FILES_TO_DISPLAY),
-                                       applies_at_datetime__lte=timezone.now()+timedelta(days=4),
+                                       applies_at_datetime__lte=timezone.now()+timedelta(days=11),
                                        is_tiled=True
                                        ).values_list('applies_at_datetime', flat=True).distinct()
 

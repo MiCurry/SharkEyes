@@ -7,6 +7,7 @@ from django.db import IntegrityError, transaction
 from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
 from django.http import HttpResponse
+from django.conf import settings
 
 #This is where we associate the Javascript variables (overlays, defs etc) with the Django objects from the database.
 def home(request):
@@ -20,13 +21,33 @@ def home(request):
     # 7 = Bottom Temperature,
     # 8 = Bottom Salinity,
     # 9 = Sea Surface Height
-    models = [1,3,4,6,5,8,2,7,9]
+    models = [settings.OSU_ROMS_SST,
+              settings.OSU_ROMS_SUR_SAL,
+              settings.OSU_ROMS_SUR_CUR,
+              settings.OSU_WW3_HI,
+              settings.NAMS_WIND,
+              settings.OSU_WW3_DIR,
+              settings.OSU_ROMS_BOT_SAL,
+              settings.OSU_ROMS_BOT_TEMP,
+              settings.OSU_ROMS_SSH,
+              settings.NCEP_WW3_HI,
+              settings.NCEP_WW3_DIR,
+              settings.HYCOM_SST,
+              settings.HYCOM_SUR_CUR]
     fields = []
+
     for value in models:
         fields.append(OverlayDefinition.objects.get(pk=value))
     overlays_view_data = OverlayManager.get_next_few_days_of_tiled_overlays(models)
     datetimes = overlays_view_data.values_list('applies_at_datetime', flat=True).distinct().order_by('applies_at_datetime')
     context = {'overlays': overlays_view_data, 'defs': fields, 'times':datetimes }
+    """
+    overlays - overlays_view_data: Django Overlay Objects
+    def - fields : Definition of forecasts to be used on the website
+    times - datetimes : 
+    
+    """
+
     return render(request, 'index.html', context)
 
 def oops(request):

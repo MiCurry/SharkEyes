@@ -172,8 +172,6 @@ class DataFileManager(models.Manager):
 
         :return: id of the downloaded datafile
         """
-
-
         date = str(dt.date.today()).replace("-", "", 3)
         index_url = settings.HYCOM_URL+date+"/"
 
