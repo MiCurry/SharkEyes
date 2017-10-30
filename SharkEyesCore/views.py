@@ -8,11 +8,14 @@ import os
 from datetime import datetime, timedelta
 import pytz
 import json
+import logging
 from django.db import connection
 from django.db import IntegrityError
 from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
 from django.http import HttpResponse
+
+logging.basicConfig(filename='/opt/sharkeyes/src/debugging.txt', level=logging.INFO)
 
 # Helper Functions for right_click_menu
 # Organizes the date into a usable list of values
