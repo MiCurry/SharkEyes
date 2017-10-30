@@ -8,11 +8,14 @@ import os
 from datetime import datetime, timedelta
 import pytz
 import json
+import logging
 from django.db import connection
 from django.db import IntegrityError
 from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
 from django.http import HttpResponse
+
+logging.basicConfig(filename='/opt/sharkeyes/src/debugging.txt', level=logging.INFO)
 
 # Helper Functions for right_click_menu
 # Organizes the date into a usable list of values
@@ -86,18 +89,18 @@ def get_lat_long_index(lat, lon, dataset, model):
     file_lons = dataset.variables[lon_name][:]
     file_lat = np.abs(file_lats - lat).argmin()
     file_lon = np.abs(file_lons - lon).argmin()
-    print "file_lat ", file_lat
-    print "file_lon ", file_lon
+    # print "file_lat ", file_lat
+    # print "file_lon ", file_lon
     file_lat = np.unravel_index(np.ravel(file_lat, file_lats.shape), file_lats.shape)
-    file_lon = np.unravel_index(np.ravel(file_lon, file_lons.shape), file_lons.shape)
-    print "file_lat ", file_lat
-    print "file_lon ", file_lon
+    # file_lon = np.unravel_index(np.ravel(file_lon, file_lons.shape), file_lons.shape)
+    # print "file_lat ", file_lat
+    # print "file_lon ", file_lon
     file_lat = file_lat[0][0]
-    file_lon = file_lon[1][0]
-    print "file_lat ", file_lat
-    print "file_lon ", file_lon
-    print "lat ", file_lats[file_lat][file_lon]
-    print "lon ", file_lons[file_lat][file_lon]
+    # file_lon = file_lon[1][0]
+    # print "file_lat ", file_lat
+    # print "file_lon ", file_lon
+    # print "lat ", file_lats[file_lat][file_lon]
+    # print "lon ", file_lons[file_lat][file_lon]
     indices.append(file_lat)
     indices.append(file_lon)
     return indices
@@ -108,7 +111,8 @@ def get_time_index_ncdf(ncdf_data, day, month, year, hour, meridian):
     if hour == 12 and meridian == "a.m.":
         hour = 0
     input_time = datetime(day=day, month=month, year=year, hour=hour, minute=0, second=0, tzinfo=timezone.utc)
-    print "time ", input_time
+    logging.info('Input Time %s',input_time )
+    # print "time ", input_time
     dst = 0
     isdst_now_in = lambda zonename: bool(datetime.now(pytz.timezone(zonename)).dst())
     if isdst_now_in("America/Los_Angeles"):
@@ -120,10 +124,13 @@ def get_time_index_ncdf(ncdf_data, day, month, year, hour, meridian):
     for x in range(0, np.shape(ncdf_data.variables['ocean_time'])[0], 1 ):
         seconds_since_epoch = timedelta(seconds=ncdf_data.variables['ocean_time'][x])
         check_date = ocean_time_epoch + seconds_since_epoch
+        logging.info('Desired Time %s', input_time )
+        logging.info('Checked Time %s', check_date )
         # print "check date ", check_date
         # print "input time ", input_time
         if check_date == input_time:
-            print "index ", x
+            logging.info('Found Index %s',x )
+            # print "index ", x
             return x
 
 # Calculates the time index for the wind model
@@ -181,7 +188,7 @@ def get_time_index_wave (wave_data, day, month, year, hour, meridian):
     for x in range(0, 84, 1):
         model_time = timezone.make_aware(forecast_zero + timedelta(hours=x), timezone.utc)
         if input_time == model_time:
-            print "index ", x
+            # print "index ", x
             return x
 
 # Returns which model types are being displayed
@@ -237,8 +244,10 @@ def right_click_menu(request):
     #Get the latitude and longitude values from the front-end request and round them to 3 decimal places
     lat = json.loads(request.body)["lat"]
     lon = json.loads(request.body)["long"]
-    print "Lat ", lat
-    print "Lon ", lon
+    logging.info('Lat %s', lat)
+    logging.info('Lon %s', lon)
+    # print "Lat ", lat
+    # print "Lon ", lon
 
     #Check the lat longs to make sure they are within range of the model
     datums = HttpResponse()
@@ -251,14 +260,18 @@ def right_click_menu(request):
 
     #Get the currently displayed date from the front-end request and process it for usability
     query_date = json.loads(request.body)["display_date"]
+    logging.info('Query Date %s', query_date )
     clean_date = prep_date(query_date)
+    logging.info('Clean Date %s', clean_date )
     hour = clean_date[0]
     meridian = clean_date[1]
     month = clean_date[2]
     day = clean_date[3]
+    logging.info('Hour= %s Day= %s Month= %s Meridian= %s',hour, day, month, meridian )
     current_date = datetime.now()
     current_year = str(current_date.year)
     current_day = str(current_date.day)
+    logging.info('Current Day= %s Current Year= %s',current_day, current_year )
     print "day ", current_day
 
     #Find out which models are being viewed
@@ -303,9 +316,12 @@ def right_click_menu(request):
         #Alex's model(sst, currents, ssh, salinity, etc...) file access
         if int(day) < int(current_day):
             day = current_day
+        logging.info('Day %s', day )
         ncdf_file_date = "OSU_ROMS_" + current_year + "-" + month + "-" + day #This is used to create a string for use in the DB lookup
+        logging.info('File Name to Lookup %s', ncdf_file_date )
         ncdf_file = DataFile.objects.filter(type='NCDF').filter(file__startswith=str(ncdf_file_date))
         ncdf_name = ncdf_file[0].file.name
+        logging.info('Found File %s', str(ncdf_name) )
         ncdf_data = netcdf.netcdf_file(os.path.join(settings.MEDIA_ROOT,settings.NETCDF_STORAGE_DIR,ncdf_name), 'r')
 
         #Get Alex's model lat lon indices
