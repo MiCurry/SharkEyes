@@ -12,8 +12,8 @@ if __name__ == "__main__":
     if sys.argv[-1] == "download":
         from pl_download.models import DataFileManager, DataFile
         wave = 0
-        sst = 1
-        wind = 0
+        sst = 0
+        wind = 1
         if wave:
             DataFileManager.get_latest_wave_watch_files()
         if sst:
@@ -26,19 +26,19 @@ if __name__ == "__main__":
         from pl_plot.models import OverlayManager
         from pl_chop.tasks import tile_overlay, tile_wave_watch_overlay
         from pl_plot.plotter import WindPlotter, Plotter
-        wave = 1
-        sst = 0
+        wave = 0
+        sst = 1
         wind = 0
         if wave:
-            DataFileManager.get_latest_wave_watch_files()
+            #DataFileManager.get_latest_wave_watch_files()
             wave = DataFile.objects.filter(type='WAVE').latest('model_date')
             tiles = []
             begin = time.time()
             #first entry is day-1 at 12pm
             #need to offset 16 to match with sst plot
             #NOTE it increments in 1 hour changes
-            tiles += OverlayManager.make_wave_watch_plot(4, 16, wave.id)
-            tiles += OverlayManager.make_wave_watch_plot(6, 16, wave.id)
+            tiles += OverlayManager.make_wave_watch_plot(4, 72, wave.id)
+            tiles += OverlayManager.make_wave_watch_plot(6, 72, wave.id)
             for t in tiles:
                 tile_wave_watch_overlay(t)
             finish = time.time()
@@ -51,12 +51,12 @@ if __name__ == "__main__":
             #print "Time value ", plotter.get_time_at_oceantime_index(0)
             tiles = []
             begin = time.time()
-            tiles += OverlayManager.make_plot(1, 0, sst[0].id)
-            #tiles += OverlayManager.make_plot(2, 0, sst[0].id)
-            tiles += OverlayManager.make_plot(3, 0, sst[0].id)
-            #tiles += OverlayManager.make_plot(7, 0, sst[0].id)
-            #tiles += OverlayManager.make_plot(8, 0, sst[0].id)
-            #tiles += OverlayManager.make_plot(9, 0, sst[0].id)
+            #tiles += OverlayManager.make_plot(1, 3, sst[0].id)
+            #tiles += OverlayManager.make_plot(2, 5, sst[1].id)
+            tiles += OverlayManager.make_plot(3, 5, sst[1].id)
+            tiles += OverlayManager.make_plot(7, 5, sst[1].id)
+            tiles += OverlayManager.make_plot(8, 5, sst[1].id)
+            tiles += OverlayManager.make_plot(9, 5, sst[1].id)
             for t in tiles:
                 tile_overlay(t)
             finish = time.time()
@@ -70,7 +70,7 @@ if __name__ == "__main__":
             print "Time value ", plotter.get_time_at_oceantime_index(0)
             tiles = []
             begin = time.time()
-            tiles += OverlayManager.make_plot(5, 0, winds.id)
+            tiles += OverlayManager.make_plot(5, 8, winds.id)
             for t in tiles:
                 tile_overlay(t)
             finish = time.time()
@@ -115,11 +115,11 @@ if __name__ == "__main__":
                         try:
                             print "Plotting ROMS - File ID:", id, "Time Index:", t
                             tile_overlay(om.make_plot(1, t, id))
-                            tile_overlay(om.make_plot(2, t, id))
-                            tile_overlay(om.make_plot(3, t, id))
-                            tile_overlay(om.make_plot(7, t, id))
-                            tile_overlay(om.make_plot(8, t, id))
-                            tile_overlay(om.make_plot(9, t, id))
+                            # tile_overlay(om.make_plot(2, t, id))
+                            # tile_overlay(om.make_plot(3, t, id))
+                            # tile_overlay(om.make_plot(7, t, id))
+                            # tile_overlay(om.make_plot(8, t, id))
+                            # tile_overlay(om.make_plot(9, t, id))
                             print "plot/tile success"
                         except Exception:
                             print '-' * 60
@@ -183,18 +183,20 @@ if __name__ == "__main__":
         from django.conf import settings
         from pl_download.models import DataFile
         sst = DataFile.objects.all().filter(type="NCDF")
-        sst_name = sst[0].file.name
-        sst_data = netcdf.netcdf_file(os.path.join(settings.MEDIA_ROOT, settings.NETCDF_STORAGE_DIR, sst_name), 'r')
-        dst = 0
-        isdst_now_in = lambda zonename: bool(datetime.now(pytz.timezone(zonename)).dst())
-        if isdst_now_in("America/Los_Angeles"):
-            dst = -1
-        dst_hours = timedelta(hours=dst)
-        ocean_time_epoch = datetime(day=1, month=1, year=2005, hour=0, minute=0, second=0, tzinfo=timezone.utc)
-        for x in range(0, numpy.shape(sst_data.variables['ocean_time'])[0], 1):
-            seconds_since_epoch = timedelta(seconds=sst_data.variables['ocean_time'][x])
-            check_date = ocean_time_epoch + seconds_since_epoch
-            print "Date = ", check_date, " at index ", x
+        for x in sst:
+            sst_name = x.file.name
+            print "File Name ", sst_name
+            sst_data = netcdf.netcdf_file(os.path.join(settings.MEDIA_ROOT, settings.NETCDF_STORAGE_DIR, sst_name), 'r')
+            # dst = 0
+            # isdst_now_in = lambda zonename: bool(datetime.now(pytz.timezone(zonename)).dst())
+            # if isdst_now_in("America/Los_Angeles"):
+            #     dst = -1
+            # dst_hours = timedelta(hours=dst)
+            ocean_time_epoch = datetime(day=1, month=1, year=2005, hour=0, minute=0, second=0, tzinfo=timezone.utc)
+            for x in range(0, numpy.shape(sst_data.variables['ocean_time'])[0], 1):
+                seconds_since_epoch = timedelta(seconds=sst_data.variables['ocean_time'][x])
+                check_date = ocean_time_epoch + seconds_since_epoch
+                print "Date = ", check_date, " at index ", x
 
     elif sys.argv[-1] == "winddates": #use this to view what the timestamps are for each index of the wind model
         print "Times for the wind model is local time"
@@ -208,13 +210,13 @@ if __name__ == "__main__":
         # The Wind model uses a dynamic reference date for date calculation
         # This calculates that date and then uses it to calculate the dates for each index
         dst = 0
-        isdst_now_in = lambda zonename: bool(datetime.now(pytz.timezone(zonename)).dst())
-        if isdst_now_in("America/Los_Angeles"):
-            dst = 1
+        # isdst_now_in = lambda zonename: bool(datetime.now(pytz.timezone(zonename)).dst())
+        # if isdst_now_in("America/Los_Angeles"):
+        #     dst = 1
         windFile = DataFile.objects.filter(type='WIND').latest('model_date')
         windName = windFile.file.name
         windData = netcdf.netcdf_file(os.path.join(settings.MEDIA_ROOT, settings.WIND_DIR, windName), 'r')
-        indices = numpy.shape(windData.variables['time1'])[0]
+        indices = numpy.shape(windData.variables['time'])[0]
         times = [48,52,55,56,57,59,60,61,63,64] # 49, 51, 53,  these are setup for when the model swaps to three hour increments use this to view just those dates
         raw_epoch_date = str(windFile.model_date)
         epoch_date = raw_epoch_date.split('-')
@@ -225,18 +227,18 @@ if __name__ == "__main__":
                                     tzinfo=timezone.utc)
         for x in range(0, indices, 1):
             modifier = 0
-            if x < 48 and x % 4 == 0:
-                hours_since_epoch = timedelta(
-                    hours=(windData.variables['time1'][x] + dst - windData.variables['reftime1'][0]) + modifier)
-                print "Time Index ", x, " Time", ocean_time_epoch + hours_since_epoch
-            elif x in times:
-                if x == 57 or x == 61:
-                    modifier = 1
-                elif x == 55 or x == 59 or x == 63:
-                    modifier = -1
-                hours_since_epoch = timedelta(
-                    hours=(windData.variables['time1'][x] + dst - windData.variables['reftime1'][0]) + modifier)
-                print "Time Index ", x, " Time", ocean_time_epoch + hours_since_epoch
+            # if x < 48 and x % 4 == 0:
+            hours_since_epoch = timedelta(
+                hours=(windData.variables['time'][x] + dst - windData.variables['reftime'][0]) + modifier)
+            print "Time", ocean_time_epoch + hours_since_epoch, " at index ", x
+            # elif x in times:
+            #     if x == 57 or x == 61:
+            #         modifier = 1
+            #     elif x == 55 or x == 59 or x == 63:
+            #         modifier = -1
+            #     hours_since_epoch = timedelta(
+            #         hours=(windData.variables['time'][x] + dst - windData.variables['reftime'][0]) + modifier)
+            #     print "Time", ocean_time_epoch + hours_since_epoch, " at index ", x
 
     else:
         from django.core.management import execute_from_command_line
