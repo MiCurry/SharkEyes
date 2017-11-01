@@ -14,10 +14,39 @@ from django.db import IntegrityError
 from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
 from django.http import HttpResponse
+from django.template import Library
+from django.template.defaultfilters import stringfilter
+from django.utils.html import conditional_escape
+from django.utils.safestring import mark_safe
+import re
 
+# Django likes to remove whitespace from HTML strings. Use spacify("string with space") to preserve whitespace
+register = Library()
+@stringfilter
+def spacify(value, autoescape=None):
+    if autoescape:
+        esc = conditional_escape
+    else:
+        esc = lambda x: x
+    return mark_safe(re.sub('\s', '&'+'nbsp;', esc(value)))
+spacify.needs_autoescape = True
+register.filter(spacify)
+
+# We have a debugging file to easily get pring output from the Seacat servers.
 logging.basicConfig(filename='/opt/sharkeyes/src/debugging.txt', level=logging.INFO)
 
 # Helper Functions for right_click_menu
+# Converts decimal lat longs into degree minutes and seconds
+def dd_to_deg(dd):
+    results = []
+    degrees = int(dd)
+    minutes = int((dd - degrees)*60)
+    seconds = np.round((dd - degrees - minutes/60) * 3600, 1)
+    results.append(str(degrees))
+    results.append(str(abs(minutes)))
+    results.append(str(abs(seconds)))
+    return results
+
 # Organizes the date into a usable list of values
 # ------------------------------------------------------------------
 def prep_date(date):
@@ -75,10 +104,10 @@ def get_lat_long_index(lat, lon, dataset, model):
     lat_name = ''
     lon_name = ''
     if model == 'wind':
-        flatSize = 5612
+        #flatSize = 5612
         lat_name = 'lat'
         lon_name = 'lon'
-    elif model == 'ncdf':
+    elif model == 'seas':
         lat_name = 'lat_rho'
         lon_name = 'lon_rho'
     elif model == 'wave':
@@ -89,16 +118,10 @@ def get_lat_long_index(lat, lon, dataset, model):
     file_lons = dataset.variables[lon_name][:]
     file_lat = np.abs(file_lats - lat).argmin()
     file_lon = np.abs(file_lons - lon).argmin()
-    # print "file_lat ", file_lat
-    # print "file_lon ", file_lon
     file_lat = np.unravel_index(np.ravel(file_lat, file_lats.shape), file_lats.shape)
     # file_lon = np.unravel_index(np.ravel(file_lon, file_lons.shape), file_lons.shape)
-    # print "file_lat ", file_lat
-    # print "file_lon ", file_lon
     file_lat = file_lat[0][0]
     # file_lon = file_lon[1][0]
-    # print "file_lat ", file_lat
-    # print "file_lon ", file_lon
     # print "lat ", file_lats[file_lat][file_lon]
     # print "lon ", file_lons[file_lat][file_lon]
     indices.append(file_lat)
@@ -107,30 +130,19 @@ def get_lat_long_index(lat, lon, dataset, model):
 
 # Calculates the necessary time index for Alex's Model
 # --------------------------------------------------------------------
-def get_time_index_ncdf(ncdf_data, day, month, year, hour, meridian):
+def get_time_index_seas(ncdf_data, day, month, year, hour, meridian):
     if hour == 12 and meridian == "a.m.":
         hour = 0
+    if meridian == "p.m." and hour != 12:
+        hour = hour + 12
     input_time = datetime(day=day, month=month, year=year, hour=hour, minute=0, second=0, tzinfo=timezone.utc)
-    logging.info('Input Time %s',input_time )
-    # print "time ", input_time
-    dst = 0
-    isdst_now_in = lambda zonename: bool(datetime.now(pytz.timezone(zonename)).dst())
-    if isdst_now_in("America/Los_Angeles"):
-        dst = 1
-    dst_hours = timedelta(hours=dst)
-    time_zone_correction = timedelta(hours=6)
-    input_time = input_time + dst_hours - time_zone_correction
+    time_zone_correction = timedelta(hours=7)
+    input_time = input_time + time_zone_correction
     ocean_time_epoch = datetime(day=1, month=1, year=2005, hour=0, minute=0, second=0, tzinfo=timezone.utc)
     for x in range(0, np.shape(ncdf_data.variables['ocean_time'])[0], 1 ):
         seconds_since_epoch = timedelta(seconds=ncdf_data.variables['ocean_time'][x])
         check_date = ocean_time_epoch + seconds_since_epoch
-        logging.info('Desired Time %s', input_time )
-        logging.info('Checked Time %s', check_date )
-        # print "check date ", check_date
-        # print "input time ", input_time
         if check_date == input_time:
-            logging.info('Found Index %s',x )
-            # print "index ", x
             return x
 
 # Calculates the time index for the wind model
@@ -168,7 +180,6 @@ def get_time_index_wind(wind_file, day, month, year, hour, meridian):
         current_date = ocean_time_epoch + hours_since_epoch
         if current_date == input_time:
             index = x
-    #print "Index ", index
     return index
 
 # Calculates the time index for Tuba's WW3 file
@@ -188,26 +199,43 @@ def get_time_index_wave (wave_data, day, month, year, hour, meridian):
     for x in range(0, 84, 1):
         model_time = timezone.make_aware(forecast_zero + timedelta(hours=x), timezone.utc)
         if input_time == model_time:
-            # print "index ", x
             return x
 
-# Returns which model types are being displayed
+# Returns which model types are being displayed and determines the html styling for the popup. Active fields are larger font and bold
 # ------------------------------------------------------------------------------
 def get_models(keys):
-    models = []
-    wave = 0
-    ncdf = 0
-    wind = 0
+    selected_color = 'font-size:20px;color:black'
+    unselected_color = 'font-size:17px;color:purple'
+    models = {'wave':0, 'seas':0, 'wind':0, 'sst':unselected_color, 'currents':unselected_color, 'height':unselected_color, 'period':unselected_color, 'nams':unselected_color,
+              'btemp':unselected_color, 'ssalt':unselected_color, 'bsalt':unselected_color, 'ssh':unselected_color }
     for x in keys:
-        if x.find('wave') != -1 and wave == 0:
-            models.append('wave')
-            wave = 1
-        elif x.find('sst') != -1 or x.find('currents') != -1 or x.find('bottom') != -1 or x.find('salt') != -1 or x.find('ssh') != -1 and ncdf == 0:
-            models.append('ncdf')
-            ncdf = 1
-        elif x.find('barb') != -1 and wind == 0:
-            models.append('wind')
-            wind = 1
+        if x.find('sst') != -1:
+            models['seas'] = 1
+            models['sst'] = selected_color
+        elif x.find('currents') != -1:
+            models['seas'] = 1
+            models['currents'] = selected_color
+        elif x.find('wave_h') != -1:
+            models['wave'] = 1
+            models['height'] = selected_color
+        elif x.find('wave_d')!= -1:
+            models['wave'] = 1
+            models['period'] = selected_color
+        elif x.find('barb') != -1:
+            models['wind'] = 1
+            models['nams'] = selected_color
+        elif x.find('bottom_t') != -1:
+            models['seas'] = 1
+            models['btemp'] = selected_color
+        elif x.find('bottom_s') != -1:
+            models['seas'] = 1
+            models['bsalt'] = selected_color
+        elif x.find('salt') != -1:
+            models['seas'] = 1
+            models['ssalt'] = selected_color
+        elif x.find('ssh') != -1:
+            models['seas'] = 1
+            models['ssh'] = selected_color
     return models
 
 #This is where we associate the Javascript variables (overlays, defs etc) with the Django objects from the database.
@@ -244,10 +272,6 @@ def right_click_menu(request):
     #Get the latitude and longitude values from the front-end request and round them to 3 decimal places
     lat = json.loads(request.body)["lat"]
     lon = json.loads(request.body)["long"]
-    logging.info('Lat %s', lat)
-    logging.info('Lon %s', lon)
-    # print "Lat ", lat
-    # print "Lon ", lon
 
     #Check the lat longs to make sure they are within range of the model
     datums = HttpResponse()
@@ -260,39 +284,26 @@ def right_click_menu(request):
 
     #Get the currently displayed date from the front-end request and process it for usability
     query_date = json.loads(request.body)["display_date"]
-    logging.info('Query Date %s', query_date )
     clean_date = prep_date(query_date)
-    logging.info('Clean Date %s', clean_date )
     hour = clean_date[0]
     meridian = clean_date[1]
     month = clean_date[2]
     day = clean_date[3]
-    logging.info('Hour= %s Day= %s Month= %s Meridian= %s',hour, day, month, meridian )
     current_date = datetime.now()
     current_year = str(current_date.year)
-    current_day = str(current_date.day)
-    logging.info('Current Day= %s Current Year= %s',current_day, current_year )
-    print "day ", current_day
+    # logging.info('Hour= %s Day= %s Month= %s Meridian= %s',hour, day, month, meridian )
+    # logging.info('Current Day= %s Current Year= %s',current_day, current_year )
 
     #Find out which models are being viewed
     keys = json.loads(request.body)["keys"]
     models = get_models(keys) #The key names are messy. This function parses them and determines what is being viewed
-    #This determines which models to display at the cursor
-    wave = 0
-    ncdf = 0
-    wind = 0
-    for x in models:
-        if x == 'wave':
-            wave = 1
-        elif x == 'ncdf':
-            ncdf = 1
-        elif x == 'wind':
-            wind = 1
-    #To disable any of the models just set its variable to 1 after this check
-    wind = 0
 
-    #Access the relevant netcdf files. Wave is Tuba's WW3 file, ncdf is Alex's model, wind is the wind model
-    if wave == 1 and wave_lat_lon_check == 0:
+    # Winds currently do not work, so they are disabled. To disable the other models set seas to 0 and wave to 0
+    models['wind'] = 0
+
+    #Access the relevant netcdf files. Wave is Tuba's WW3 file, seas is Alex's model, wind is the wind model
+    #Access Tuba's wave watch model
+    if models['wave'] == 1 and wave_lat_lon_check == 0:
     #Wave Watch 3 file access
         wave_file = DataFile.objects.filter(type='WAVE').latest('model_date')
         wave_name = wave_file.file.name
@@ -306,48 +317,66 @@ def right_click_menu(request):
         #Get the wave watch 3 time index
         wave_time_index = get_time_index_wave(wave_data, int(day), int(month), int(current_year), int(hour), meridian)
 
-        #Get the wave watch 3 wave height value
+        #Get the wave watch 3 wave height value and period
         wave_height = wave_data.variables['HTSGW_surface'][wave_time_index, wave_lat, wave_lon]
-        wave_height = np.round(wave_height * 3.28, 3) #Convert from meters to feet and round to 3 decimal places.
+        wave_period = wave_data.variables['PERPW_surface'][wave_time_index, wave_lat, wave_lon]
+        wave_height = np.round(wave_height * 3.28, 1) #Convert from meters to feet and round to 3 decimal places.
+        wave_period = np.round(wave_period, 1)
         if np.isnan(wave_height):
             wave_height = "unavailable"
 
-    if ncdf == 1:
-        #Alex's model(sst, currents, ssh, salinity, etc...) file access
-        if int(day) < int(current_day):
-            day = current_day
-        logging.info('Day %s', day )
-        ncdf_file_date = "OSU_ROMS_" + current_year + "-" + month + "-" + day #This is used to create a string for use in the DB lookup
-        logging.info('File Name to Lookup %s', ncdf_file_date )
-        ncdf_file = DataFile.objects.filter(type='NCDF').filter(file__startswith=str(ncdf_file_date))
-        ncdf_name = ncdf_file[0].file.name
-        logging.info('Found File %s', str(ncdf_name) )
-        ncdf_data = netcdf.netcdf_file(os.path.join(settings.MEDIA_ROOT,settings.NETCDF_STORAGE_DIR,ncdf_name), 'r')
+    # Access Alex's model(sst, currents, ssh, salinity, etc...)
+    if models['seas'] == 1:
+        # Short months are months with 30 days
+        short_months = [4,6,9,11]
+        day_check = int(day)
+        month_check = int(month)
+        # Alex's model is spread out across four files. It also uses GMT which is 7 hours ahead. We need to check for month a day changes
+        if meridian == "p.m." and int(hour) > 5:
+            if day_check == 31:
+                day_check = 1
+                month_check = month_check +1
+            elif day_check == 30 and month_check in short_months:
+                day_check = 1
+                month_check = month_check +1
+            elif day_check == 28 and month_check == 2: # This does not account for the next leap year in 2020
+                day_check = 1
+                month_check = month_check +1
+            else:
+                day_check = day_check + 1
+        if day_check < 10:
+            day_check = '0'+ str(day_check)
+        seas_file_date = "OSU_ROMS_" + current_year + "-" + str(month_check) + "-" + str(day_check) #This is used to create a string for use in the DB lookup
+        seas_file = DataFile.objects.filter(type='NCDF').filter(file__startswith=str(seas_file_date))
+        seas_name = seas_file[0].file.name
+        seas_data = netcdf.netcdf_file(os.path.join(settings.MEDIA_ROOT, settings.NETCDF_STORAGE_DIR, seas_name), 'r')
+        # logging.info('File Name to Lookup %s', seas_file_date )
+        # logging.info('Found File %s', str(seas_name) )
 
         #Get Alex's model lat lon indices
-        ncdf_index = get_lat_long_index(lat, lon, ncdf_data, 'ncdf')
-        ncdf_lat = ncdf_index[0]
-        ncdf_lon = ncdf_index[1]
+        seas_index = get_lat_long_index(lat, lon, seas_data, 'seas')
+        seas_lat = seas_index[0]
+        seas_lon = seas_index[1]
 
         #Get the time index for Alex's model
-        ncdf_time_index = get_time_index_ncdf(ncdf_data, int(day), int(month), int(current_year), int(hour), meridian)
+        seas_time_index = get_time_index_seas(seas_data, int(day), int(month), int(current_year), int(hour), meridian)
 
         #Get the values from Alex's model
-        ssh = ncdf_data.variables['zeta'][ncdf_time_index,ncdf_lat:ncdf_lat+1,ncdf_lon:ncdf_lon+1]
-        ssh = np.round(ssh[0][0] * 3.28, 3) #convert from meters to feet
-        surface_temp = ncdf_data.variables['temp'][ncdf_time_index,39,ncdf_lat:ncdf_lat+1,ncdf_lon:ncdf_lon+1]
-        surface_temp = np.round(surface_temp[0][0] * 1.8 + 32, 3) #convert from celsius to fahrenheit
-        bottom_temp = ncdf_data.variables['temp'][ncdf_time_index,0,ncdf_lat:ncdf_lat+1,ncdf_lon:ncdf_lon+1]
-        bottom_temp = np.round(bottom_temp[0][0] * 1.8 + 32, 3) #convert from celsius to fahrenheit
-        surface_salt = ncdf_data.variables['salt'][ncdf_time_index,39,ncdf_lat:ncdf_lat+1,ncdf_lon:ncdf_lon+1]
-        surface_salt = np.round(surface_salt[0][0], 3)
-        bottom_salt = ncdf_data.variables['salt'][ncdf_time_index,0,ncdf_lat:ncdf_lat+1,ncdf_lon:ncdf_lon+1]
-        bottom_salt = np.round(bottom_salt[0][0], 3)
-        ncdf_u = ncdf_data.variables['u'][ncdf_time_index,39,ncdf_lat:ncdf_lat+1,ncdf_lon:ncdf_lon+1]
-        ncdf_v = ncdf_data.variables['v'][ncdf_time_index,39,ncdf_lat:ncdf_lat+1,ncdf_lon:ncdf_lon+1]
-        current_speed = np.round(np.sqrt(ncdf_u[0][0]**2 + ncdf_v[0][0]**2) * 1.944, 3)#convert from m/s to knots
+        ssh = seas_data.variables['zeta'][seas_time_index, seas_lat:seas_lat + 1, seas_lon:seas_lon + 1]
+        ssh = np.round(ssh[0][0] * 3.28, 1) #convert from meters to feet
+        surface_temp = seas_data.variables['temp'][seas_time_index, 39, seas_lat:seas_lat + 1, seas_lon:seas_lon + 1]
+        surface_temp = np.round(surface_temp[0][0] * 1.8 + 32, 1) #convert from celsius to fahrenheit
+        bottom_temp = seas_data.variables['temp'][seas_time_index, 0, seas_lat:seas_lat + 1, seas_lon:seas_lon + 1]
+        bottom_temp = np.round(bottom_temp[0][0] * 1.8 + 32, 1) #convert from celsius to fahrenheit
+        surface_salt = seas_data.variables['salt'][seas_time_index, 39, seas_lat:seas_lat + 1, seas_lon:seas_lon + 1]
+        surface_salt = np.round(surface_salt[0][0], 1)
+        bottom_salt = seas_data.variables['salt'][seas_time_index, 0, seas_lat:seas_lat + 1, seas_lon:seas_lon + 1]
+        bottom_salt = np.round(bottom_salt[0][0], 1)
+        seas_u = seas_data.variables['u'][seas_time_index, 39, seas_lat:seas_lat + 1, seas_lon:seas_lon + 1]
+        seas_v = seas_data.variables['v'][seas_time_index, 39, seas_lat:seas_lat + 1, seas_lon:seas_lon + 1]
+        current_speed = np.round(np.sqrt(seas_u[0][0] ** 2 + seas_v[0][0] ** 2) * 1.944, 1)#convert from m/s to knots
 
-    if wind == 1:
+    if models['wind'] == 1:
         #Wind file access
         wind_file = DataFile.objects.filter(type='WIND').latest('model_date')
         wind_name = wind_file.file.name
@@ -364,28 +393,37 @@ def right_click_menu(request):
         #Get the wind model values
         wind_u = wind_data.variables['u-component_of_wind_height_above_ground'][wind_time_index,0,y,x]
         wind_v = wind_data.variables['v-component_of_wind_height_above_ground'][wind_time_index,0,y,x]
-        wind_speed = np.round(np.sqrt(wind_u**2 + wind_v**2) * 1.944, 3)#converts from m/s to knots and rounds to 3 decimals
+        wind_speed = np.round(np.sqrt(wind_u**2 + wind_v**2) * 1.944, 1)#converts from m/s to knots and rounds to 3 decimals
 
     #Build the html strings to send back to the front-end
     d = u"\u00b0" #unicode degree symbol
-    if ncdf == 0 and wave == 0 and wind == 0:
-        datums.write('<p style="font-size:20px">' + '<b>' 'Select a field to view lat long specific information' '</b>')
-        return datums
-    datums.write('<p style="font-size:20px">' + '<b>' + "Location: " + " Lat " + '</b>' + str(np.round(lat,3)) + '<b>' + " Lon " + '</b>' + str(np.round(lon,3)) + '<br>')
-    if ncdf == 1:
-        datums.write('<p style="font-size:20px">' + '<b>' + "Sea Surface Temperature: " + '</b>' + str(surface_temp) + ' ' + d + 'F' + '<br>')
-        datums.write('<p style="font-size:20px">' + '<b>' + "Surface Currents: " + '</b>' + str(current_speed) + ' Knots' + '<br>')
-    if wave == 1 and wave_lat_lon_check == 0:
-        datums.write('<p style="font-size:20px">' + '<b>' + "Wave Height: " + '</b>' + str(wave_height) + ' Feet' + '<br>')
-    if wave ==1 and wave_lat_lon_check == 1:
-        datums.write('<p style="font-size:20px">' + '<b>' 'There is no wave height data for this location' '</b>')
-    if wind == 1:
-        datums.write('<p style="font-size:20px">' + '<b>' + "Winds: " + '</b>' + str(wind_speed) + ' Knots' + '<br>')
-    if ncdf == 1:
-        datums.write('<p style="font-size:20px">' + '<b>' + "Bottom Temperature: " + '</b>' + str(bottom_temp) + ' ' + d + 'F' + '<br>')
-        datums.write('<p style="font-size:20px">' + '<b>' + "Surface Salinity: " + '</b>' + str(surface_salt) + '<br>')
-        datums.write('<p style="font-size:20px">' + '<b>' + "Bottom Salinity: " + '</b>' + str(bottom_salt) + '<br>')
-        datums.write('<p style="font-size:20px">' + '<b>' + "Sea Surface Height: " + '</b>' + str(ssh) + ' Feet' + '<br>')
+    # We want to display the lat longs in degrees minutes seconds. This converts them to that. 
+    degree_lat = dd_to_deg(np.round(lat,5))
+    degree_lon = dd_to_deg(np.round(lon,5))
+    display_lat = degree_lat[0] + d + degree_lat[1] + '\'' + degree_lat[2]
+    display_lon = degree_lon[0] + d + degree_lon[1] + '\'' + degree_lon[2]
+
+    if models['seas'] == 0 and models['wave'] == 0 and models['wind'] == 0:
+            datums.write('<p style="font-size:20px">' + '<b>' 'Select a field to view lat long specific information' '</b>')
+            return datums
+    datums.write('<p style="font-size:20px">' + '<b>' + " Lat " + '</b>' + display_lat + '<b>' + " Lon " + '</b>' + display_lon + '<br>')
+    # datums.write('<p style="font-size:20px">' + '<b>' + " Lat " + '</b>' + str(np.round(lat,3)) + '<b>' + " Lon " + '</b>' + str(np.round(lon,3)) + '<br>')
+    if models['seas'] == 1:
+        datums.write('<p style="'+str(models['sst'])+'">' + '<b>' + spacify("SST:                ") + '</b>' + str(surface_temp) + ' ' + d + 'F' + '<br>')
+        datums.write('<p style="font-size:16px;'+str(models['currents'])+'">' + '<b>' + spacify("SS Currents:  ") + '</b>' + str(current_speed) + ' Knots' + '<br>')
+    if models['wave'] == 1 and wave_lat_lon_check == 0:
+        datums.write('<p style="'+str(models['height'])+'">' + '<b>' + spacify("Wave Height: ") + '</b>' + str(wave_height) + ' Feet' + '<br>')
+    if models['wave'] == 1 and wave_lat_lon_check == 0:
+        datums.write('<p style="'+str(models['period'])+'">' + '<b>' + spacify("Wave Period:  ") + '</b>' + str(wave_period) + ' Seconds' + '<br>')
+    if models['wave'] ==1 and wave_lat_lon_check == 1:
+        datums.write('<p style="font-size:16px;">' + '<b>' 'There is no wave height data for this location' '</b>')
+    if models['wind'] == 1:
+        datums.write('<p style="'+str(models['nams'])+'">' + '<b>' + "Winds: " + '</b>' + str(wind_speed) + ' Knots' + '<br>')
+    if models['seas'] == 1:
+        datums.write('<p style="'+str(models['btemp'])+'">' + '<b>' + spacify("Bot Temp:      ") + '</b>' + str(bottom_temp) + ' ' + d + 'F' + '<br>')
+        datums.write('<p style="'+str(models['ssalt'])+'">' + '<b>' + spacify("SS Salinity:    ") + '</b>' + str(surface_salt) + '<br>')
+        datums.write('<p style="'+str(models['bsalt'])+'">' + '<b>' + spacify("Bot Salt:         ") + '</b>' + str(bottom_salt) + '<br>')
+        datums.write('<p style="'+str(models['ssh'])+'">' + '<b>' + spacify("SSH:               ") + '</b>' + str(ssh) + ' Feet' + '<br>')
     return datums
 
 @csrf_exempt
@@ -396,7 +434,6 @@ def tides(request):
     station_id = json.loads(request.body)["station_id"]
     display_date = json.loads(request.body)["display_date"]
     address = '/opt/sharkeyes/src/static_files/tides/' + station_id + '.txt'
-    tideData = []
     fopen = open(address, 'r')
     response = HttpResponse()
     response.write('<table style="font-size:20px"><tr><th>Time</th><th></th><th>Feet</th><th>Cm</th><th>High/Low</th> ')

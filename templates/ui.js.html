@@ -176,7 +176,7 @@ function makeRightClickMenu(date, lat, lng, keys){
     var valid_date = date;
     var right_click_data = {"display_date": date, "lat": lat, "long": lng, "keys": keys};
     var jsonData = JSON.stringify(right_click_data);
-    var right_click_info = '<p style="font-size:20px">' + 'Lat Long Values for&nbsp;' + '<b>' + valid_date + '</b>' + '</p>';
+    var right_click_info = '<p style="font-size:20px">' + '<b>' + valid_date + '</b>' + '</p>';
     jQuery.ajax({
         type: 'POST',
         url: '{% url "SharkEyesCore.views.right_click_menu" %}',
@@ -312,7 +312,7 @@ function initialize() {
             style: google.maps.ZoomControlStyle.LARGE,
             position: google.maps.ControlPosition.TOP_RIGHT
         },
-        center: new google.maps.LatLng(44.032222, -128.2),
+        center: new google.maps.LatLng(44.150363, -133.537875),
         zoom: 7,
         mapTypeControl: false,
         scaleControl: true,
@@ -329,15 +329,30 @@ function initialize() {
     google.maps.event.addListener(map, 'mousemove', function(event) {
         LatLongUpdate(event);
     });
-    console.log("Dates")
-    console.log(datedic)
-    console.log(datetime)
+    console.log("Dates");
+    console.log(datedic);
+    console.log(datetime);
+
     //**********************************************************************************************************************
     //Right Click Menu
     //**********************************************************************************************************************
     //This is the event handler to create the window for the data at the cursor. It uses the google maps api for info windows
+    // I wanted to do this with a function and just have two listeners but I currently cannot get it to work correctly
+{#    google.maps.event.addListener(map, "rightclick", data_at_cursor);#}
+{#    google.maps.event.addListener(map, "dblclick", data_at_cursor);#}
     var infowindow = new google.maps.InfoWindow;
     google.maps.event.addListener(map, "rightclick", function(event){
+        var current_date = datetime[document.getElementById('date-time').value];
+        var lat = event.latLng.lat();
+        var long = event.latLng.lng();
+        infowindow.setPosition(event.latLng);
+        right_click_menu_content = makeRightClickMenu(current_date, lat, long, visibleKeys);
+        infowindow.setContent(right_click_menu_content);
+        infowindow.open(map);
+    });
+
+    // The double click check is for mobile devices and touch screens. Google Maps API does not have a taphold event. Has nice side-effect of slightly zooming in on the location for desktop browsers.
+    google.maps.event.addListener(map, "dblclick", function(event){
         var current_date = datetime[document.getElementById('date-time').value];
         var lat = event.latLng.lat();
         var long = event.latLng.lng();
