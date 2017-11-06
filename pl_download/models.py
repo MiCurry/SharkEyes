@@ -26,6 +26,22 @@ HOW_LONG_TO_KEEP_FILES = settings.HOW_LONG_TO_KEEP_FILES
 # This is how many days' worth of older forecasts to grab from the database
 PAST_DAYS_OF_FILES_TO_DISPLAY = settings.PAST_DAYS_OF_FILES_TO_DISPLAY
 
+
+def extract_modified_datetime_from_xml(elem):
+    modified_datetime_string = elem.find(XML_NAMESPACE + 'date').text
+    naive_datetime = parser.parse(
+        modified_datetime_string)  # the date in the xml file follows iso standards, so we're gold.
+    modified_datetime = timezone.make_aware(naive_datetime, timezone.utc)
+    return modified_datetime
+
+
+def get_ingria_xml_tree():
+    # todo: need to handle if the xml file isn't available
+    xml_url = urljoin(settings.BASE_NETCDF_URL, CATALOG_XML_NAME)
+    catalog_xml = urllib2.urlopen(xml_url)
+    tree = ElementTree.parse(catalog_xml)
+    return tree
+
 class DataFileManager(models.Manager):
     @staticmethod
     @shared_task(name='pl_download.fetch_new_files')
@@ -35,19 +51,6 @@ class DataFileManager(models.Manager):
 
         :return: ids of downloaded files
         """
-        def extract_modified_datetime_from_xml(elem):
-            modified_datetime_string = elem.find(XML_NAMESPACE + 'date').text
-            naive_datetime = parser.parse(modified_datetime_string)  # the date in the xml file follows iso standards, so we're gold.
-            modified_datetime = timezone.make_aware(naive_datetime, timezone.utc)
-            return modified_datetime
-
-        def get_ingria_xml_tree():
-            # todo: need to handle if the xml file isn't available
-            xml_url = urljoin(settings.BASE_NETCDF_URL, CATALOG_XML_NAME)
-            catalog_xml = urllib2.urlopen(xml_url)
-            tree = ElementTree.parse(catalog_xml)
-            return tree
-
         if not DataFileManager.is_new_file_to_download():
             print "No New SST Files Available."
             return []
@@ -335,11 +338,9 @@ class DataFileManager(models.Manager):
         is every 6 hours
         """
         how_old_to_keep = timezone.datetime.now()-timedelta(days=HOW_LONG_TO_KEEP_FILES)
-
         # NETCDF files
         # delete files whose model date is earlier than how old we want to keep.
         old_netcdf_files = DataFile.objects.filter(model_date__lte=how_old_to_keep)
-
         # Delete the file items from the database, and the actual image files.
         for filename in old_netcdf_files:
             DataFile.delete(filename) # Custom delete method for DataFiles: this deletes the actual files from disk too

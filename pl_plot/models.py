@@ -152,14 +152,6 @@ class OverlayManager(models.Manager):
 
         return True
 
-        datafile = DataFile.objects.get(pk=file_id)
-        data_file = netcdf_file(os.path.join(settings.MEDIA_ROOT, settings.NETCDF_STORAGE_DIR, datafile.file.name))
-        currents_u = data_file.variables['u'][forecast_index][39]
-        currents_v = data_file.variables['v'][forecast_index][39]
-
-        print "currents u:", 10.0*currents_u
-        print "\n\n\ncurrents v:", 10.0*currents_v
-
     @staticmethod
     @shared_task(name='pl_plot.make_wave_watch_plot')
     def make_wave_watch_plot(overlay_definition_id, time_index=0, file_id =None):
