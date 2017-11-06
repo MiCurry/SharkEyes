@@ -27,8 +27,8 @@ if __name__ == "__main__":
         from pl_chop.tasks import tile_overlay, tile_wave_watch_overlay
         from pl_plot.plotter import WindPlotter, Plotter
         wave = 0
-        sst = 1
-        wind = 0
+        sst = 0
+        wind = 1
         if wave:
             #DataFileManager.get_latest_wave_watch_files()
             wave = DataFile.objects.filter(type='WAVE').latest('model_date')
@@ -37,8 +37,8 @@ if __name__ == "__main__":
             #first entry is day-1 at 12pm
             #need to offset 16 to match with sst plot
             #NOTE it increments in 1 hour changes
-            tiles += OverlayManager.make_wave_watch_plot(4, 72, wave.id)
-            tiles += OverlayManager.make_wave_watch_plot(6, 72, wave.id)
+            tiles += OverlayManager.make_wave_watch_plot(4, 20, wave.id)
+            tiles += OverlayManager.make_wave_watch_plot(6, 20, wave.id)
             for t in tiles:
                 tile_wave_watch_overlay(t)
             finish = time.time()
@@ -52,11 +52,11 @@ if __name__ == "__main__":
             tiles = []
             begin = time.time()
             #tiles += OverlayManager.make_plot(1, 3, sst[0].id)
-            #tiles += OverlayManager.make_plot(2, 5, sst[1].id)
-            tiles += OverlayManager.make_plot(3, 5, sst[1].id)
-            tiles += OverlayManager.make_plot(7, 5, sst[1].id)
-            tiles += OverlayManager.make_plot(8, 5, sst[1].id)
-            tiles += OverlayManager.make_plot(9, 5, sst[1].id)
+            #tiles += OverlayManager.make_plot(2, 3, sst[1].id)
+            tiles += OverlayManager.make_plot(3, 3, sst[1].id)
+            tiles += OverlayManager.make_plot(7, 3, sst[1].id)
+            tiles += OverlayManager.make_plot(8, 3, sst[1].id)
+            tiles += OverlayManager.make_plot(9, 3, sst[1].id)
             for t in tiles:
                 tile_overlay(t)
             finish = time.time()
@@ -64,7 +64,7 @@ if __name__ == "__main__":
             print "Time taken for SST = " + str(round(totalTime, 2)) + " minutes"
 
         if wind:
-            #winds = DataFileManager.get_wind_file()
+            winds = DataFileManager.get_wind_file()
             winds = DataFile.objects.filter(type='WIND').latest('model_date')
             plotter = WindPlotter(winds.file.name)
             print "Time value ", plotter.get_time_at_oceantime_index(0)
@@ -103,7 +103,7 @@ if __name__ == "__main__":
                     print '-' * 60
                 print
         if sst:
-            DataFileManager.download_osu_roms()
+            DataFileManager.fetch_new_files()
             print "\n--- Plotting ROMS Fields - SST, Salinity, SSH ---"
             sst_files = DataFile.objects.all().filter(type = "NCDF")
             for file in sst_files:
