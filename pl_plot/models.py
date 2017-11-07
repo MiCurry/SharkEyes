@@ -105,11 +105,11 @@ class OverlayManager(models.Manager):
                 plotter = WindPlotter(datafile.file.name)
                 number_of_times = plotter.get_number_of_model_times()
                 for t in range(0, number_of_times, 1):
-                    if t < 47:
+                    if t < 56:
                         if t % 4 == 0:
                             task_list.append(cls.make_plot.subtask(args=(settings.NAMS_WIND, t, fid), immutable=True))
-                    elif t > 47:
-                        threehourindices = [48,52,55,56,57,59,60,61,63,64]
+                    elif t > 56:
+                        threehourindices = [57, 59,60,61,63,64]
                         if t in threehourindices:
                             task_list.append(cls.make_plot.subtask(args=(settings.NAMS_WIND, t, fid), immutable=True))
             else:
