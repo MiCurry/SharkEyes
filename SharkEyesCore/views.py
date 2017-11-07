@@ -136,6 +136,7 @@ def get_time_index_seas(ncdf_data, day, month, year, hour, meridian):
     if meridian == "p.m." and hour != 12:
         hour = hour + 12
     # Check whether or not daylight savings is active
+    print "Calculated Hour ", hour
     dst = 0
     isdst_now_in = lambda zonename: bool(datetime.now(pytz.timezone(zonename)).dst())
     if isdst_now_in("America/Los_Angeles"):
@@ -143,13 +144,14 @@ def get_time_index_seas(ncdf_data, day, month, year, hour, meridian):
     dst_correction = timedelta(hours=dst)
     input_time = datetime(day=day, month=month, year=year, hour=hour, minute=0, second=0, tzinfo=timezone.utc)
     time_zone_correction = timedelta(hours=8)
-    input_time = input_time + time_zone_correction
+    input_time = input_time + time_zone_correction + dst_correction
+    print "Corrected Input Time ", input_time
     ocean_time_epoch = datetime(day=1, month=1, year=2005, hour=0, minute=0, second=0, tzinfo=timezone.utc)
     for x in range(0, np.shape(ncdf_data.variables['ocean_time'])[0], 1 ):
         seconds_since_epoch = timedelta(seconds=ncdf_data.variables['ocean_time'][x])
-        check_date = ocean_time_epoch + seconds_since_epoch + dst_correction
+        check_date = ocean_time_epoch + seconds_since_epoch
         print "Checked Date ", check_date
-        print "Input Date ", input_time
+        print "Input Date   ", input_time
         if check_date == input_time:
             print "Index ", x
             return x
@@ -310,6 +312,7 @@ def right_click_menu(request):
     current_year = str(current_date.year)
     # logging.info('Hour= %s Day= %s Month= %s Meridian= %s',hour, day, month, meridian )
     # logging.info('Current Day= %s Current Year= %s',current_day, current_year )
+    print "Requested Date Information ", hour, meridian, day, month, current_year
 
     #Find out which models are being viewed
     keys = json.loads(request.body)["keys"]
@@ -349,7 +352,7 @@ def right_click_menu(request):
         day_check = int(day)
         month_check = int(month)
         # Alex's model is spread out across four files. It also uses GMT which is 7 hours ahead. We need to check for month a day changes
-        if meridian == "p.m." and int(hour) > 5:
+        if meridian == "p.m." and int(hour) != 12 and int(hour) > 5:
             if day_check == 31:
                 day_check = 1
                 month_check = month_check +1
@@ -364,8 +367,10 @@ def right_click_menu(request):
         if day_check < 10:
             day_check = '0'+ str(day_check)
         seas_file_date = "OSU_ROMS_" + current_year + "-" + str(month_check) + "-" + str(day_check) #This is used to create a string for use in the DB lookup
+        print "file to find ", seas_file_date
         seas_file = DataFile.objects.filter(type='NCDF').filter(file__startswith=str(seas_file_date))
         seas_name = seas_file[0].file.name
+        print "file found ", seas_name
         seas_data = netcdf.netcdf_file(os.path.join(settings.MEDIA_ROOT, settings.NETCDF_STORAGE_DIR, seas_name), 'r')
         # logging.info('File Name to Lookup %s', seas_file_date )
         # logging.info('Found File %s', str(seas_name) )
