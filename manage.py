@@ -11,9 +11,9 @@ if __name__ == "__main__":
 
     if sys.argv[-1] == "download":
         from pl_download.models import DataFileManager, DataFile
-        wave = 1
+        wave = 0
         sst = 0
-        wind = 0
+        wind = 1
         if wave:
             DataFileManager.get_latest_wave_watch_files()
         if sst:
@@ -136,12 +136,12 @@ if __name__ == "__main__":
             plotter = WindPlotter(winds.file.name)
             number_of_times = plotter.get_number_of_model_times()
             for t in xrange(number_of_times):
-                indices = [48,52,55,56,57,59,60,61,63,64]
-                if t < 47 and t % 4 == 0:
+                indices = [57,59,60,61,63,64]
+                if t < 56 and t % 4 == 0:
                     print "t = ", t
                     print "Plotting and Tiling NAMS - Time_Index:", t
                     tile_overlay(om.make_plot(5, t, id))
-                elif t > 47 and t in indices:
+                elif t > 56 and t in indices:
                     print "t = ", t
                     print "Plotting and Tiling NAMS - Time_Index:", t
                     tile_overlay(om.make_plot(5, t, id))
@@ -209,14 +209,10 @@ if __name__ == "__main__":
         from pl_download.models import DataFile
         # The Wind model uses a dynamic reference date for date calculation
         # This calculates that date and then uses it to calculate the dates for each index
-        dst = 0
-        # isdst_now_in = lambda zonename: bool(datetime.now(pytz.timezone(zonename)).dst())
-        # if isdst_now_in("America/Los_Angeles"):
-        #     dst = 1
         windFile = DataFile.objects.filter(type='WIND').latest('model_date')
         windName = windFile.file.name
         windData = netcdf.netcdf_file(os.path.join(settings.MEDIA_ROOT, settings.WIND_DIR, windName), 'r')
-        indices = numpy.shape(windData.variables['time'])[0]
+        indices = numpy.shape(windData.variables['time1'])[0]
         times = [48,52,55,56,57,59,60,61,63,64] # 49, 51, 53,  these are setup for when the model swaps to three hour increments use this to view just those dates
         raw_epoch_date = str(windFile.model_date)
         epoch_date = raw_epoch_date.split('-')
@@ -229,7 +225,7 @@ if __name__ == "__main__":
             modifier = 0
             # if x < 48 and x % 4 == 0:
             hours_since_epoch = timedelta(
-                hours=(windData.variables['time'][x] + dst - windData.variables['reftime'][0]) + modifier)
+                hours=(windData.variables['time1'][x] - windData.variables['reftime1'][0]) + modifier)
             print "Time", ocean_time_epoch + hours_since_epoch, " at index ", x
             # elif x in times:
             #     if x == 57 or x == 61:
