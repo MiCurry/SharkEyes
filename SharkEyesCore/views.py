@@ -210,7 +210,6 @@ def get_time_index_wave (wave_data, day, month, year, hour, meridian):
     for x in range(0, 84, 1):
         model_time = timezone.make_aware(forecast_zero + timedelta(hours=x), timezone.utc)
         if input_time == model_time:
-            print "Index ", x
             return x
 
 # Returns which model types are being displayed and determines the html styling for the popup. Active fields are larger font and bold
@@ -305,7 +304,6 @@ def right_click_menu(request):
     current_year = str(current_date.year)
     # logging.info('Hour= %s Day= %s Month= %s Meridian= %s',hour, day, month, meridian )
     # logging.info('Current Day= %s Current Year= %s',current_day, current_year )
-    print "Requested Date Information ", hour, meridian, day, month, current_year
 
     #Find out which models are being viewed
     keys = json.loads(request.body)["keys"]
@@ -360,10 +358,8 @@ def right_click_menu(request):
         if day_check < 10:
             day_check = '0'+ str(day_check)
         seas_file_date = "OSU_ROMS_" + current_year + "-" + str(month_check) + "-" + str(day_check) #This is used to create a string for use in the DB lookup
-        print "file to find ", seas_file_date
         seas_file = DataFile.objects.filter(type='NCDF').filter(file__startswith=str(seas_file_date))
         seas_name = seas_file[0].file.name
-        print "file found ", seas_name
         seas_data = netcdf.netcdf_file(os.path.join(settings.MEDIA_ROOT, settings.NETCDF_STORAGE_DIR, seas_name), 'r')
         # logging.info('File Name to Lookup %s', seas_file_date )
         # logging.info('Found File %s', str(seas_name) )
@@ -431,7 +427,8 @@ def right_click_menu(request):
     if models['wave'] == 1 and wave_lat_lon_check == 0:
         datums.write('<p style="'+str(models['period'])+'">' + '<b>' + spacify("Wave Period:  ") + '</b>' + str(wave_period) + ' Seconds' + '<br>')
     if models['wave'] ==1 and wave_lat_lon_check == 1:
-        datums.write('<p style="font-size:16px;">' + '<b>' 'There is no wave height data for this location' '</b>')
+        datums.write('<p style="' + str(models['height']) + '">' + '<b>' + spacify("Wave Height: ") + '</b>' + 'Outside Model'  + '<br>')
+        datums.write('<p style="' + str(models['period']) + '">' + '<b>' + spacify("Wave Period:  ") + '</b>' + 'Outside Model' + '<br>')
     if models['wind'] == 1:
         datums.write('<p style="'+str(models['nams'])+'">' + '<b>' + "Winds: " + '</b>' + str(wind_speed) + ' Knots' + '<br>')
     if models['seas'] == 1:
