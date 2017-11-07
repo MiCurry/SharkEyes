@@ -143,19 +143,15 @@ def get_time_index_seas(ncdf_data, day, month, year, hour, meridian):
     dst_correction = timedelta(hours=dst)
     input_time = datetime(day=day, month=month, year=year, hour=hour, minute=0, second=0, tzinfo=timezone.utc)
     time_zone_correction = timedelta(hours=8)
-    input_time = input_time + time_zone_correction
+    input_time = input_time + time_zone_correction + dst_correction
     ocean_time_epoch = datetime(day=1, month=1, year=2005, hour=0, minute=0, second=0, tzinfo=timezone.utc)
     for x in range(0, np.shape(ncdf_data.variables['ocean_time'])[0], 1 ):
         seconds_since_epoch = timedelta(seconds=ncdf_data.variables['ocean_time'][x])
-        check_date = ocean_time_epoch + seconds_since_epoch + dst_correction
-        print "Checked Date ", check_date
-        print "Input Date ", input_time
+        check_date = ocean_time_epoch + seconds_since_epoch
         if check_date == input_time:
-            print "Index ", x
             return x
 
 # Calculates the time index for the wind model
-
 # This function is a bit more complex than the others because
 # the wind time indices are not consistent. They swap from every hour to every three hours.
 # -----------------------------------------------------------------------
@@ -197,8 +193,8 @@ def get_time_index_wind(wind_file, day, month, year, hour, meridian):
 def get_time_index_wave (wave_data, day, month, year, hour, meridian):
     if hour == 12 and meridian == "a.m.":
         hour = 0
-    if meridian == "p.m.":
-        hour = hour + 12
+    if hour != 12 and meridian == "p.m.":
+        hour += 12
     dst = 0
     isdst_now_in = lambda zonename: bool(datetime.now(pytz.timezone(zonename)).dst())
     if isdst_now_in("America/Los_Angeles"):
@@ -213,9 +209,8 @@ def get_time_index_wave (wave_data, day, month, year, hour, meridian):
     forecast_zero = basetime + timedelta(all_day_times[0] / 3600.0 / 24.0, 0, 0)
     for x in range(0, 84, 1):
         model_time = timezone.make_aware(forecast_zero + timedelta(hours=x), timezone.utc)
-        print "Checked Date ", model_time
-        print "Input Date ", input_time
         if input_time == model_time:
+            print "Index ", x
             return x
 
 # Returns which model types are being displayed and determines the html styling for the popup. Active fields are larger font and bold
@@ -310,6 +305,7 @@ def right_click_menu(request):
     current_year = str(current_date.year)
     # logging.info('Hour= %s Day= %s Month= %s Meridian= %s',hour, day, month, meridian )
     # logging.info('Current Day= %s Current Year= %s',current_day, current_year )
+    print "Requested Date Information ", hour, meridian, day, month, current_year
 
     #Find out which models are being viewed
     keys = json.loads(request.body)["keys"]
@@ -349,7 +345,7 @@ def right_click_menu(request):
         day_check = int(day)
         month_check = int(month)
         # Alex's model is spread out across four files. It also uses GMT which is 7 hours ahead. We need to check for month a day changes
-        if meridian == "p.m." and int(hour) > 5:
+        if meridian == "p.m." and int(hour) != 12 and int(hour) > 5:
             if day_check == 31:
                 day_check = 1
                 month_check = month_check +1
@@ -364,8 +360,10 @@ def right_click_menu(request):
         if day_check < 10:
             day_check = '0'+ str(day_check)
         seas_file_date = "OSU_ROMS_" + current_year + "-" + str(month_check) + "-" + str(day_check) #This is used to create a string for use in the DB lookup
+        print "file to find ", seas_file_date
         seas_file = DataFile.objects.filter(type='NCDF').filter(file__startswith=str(seas_file_date))
         seas_name = seas_file[0].file.name
+        print "file found ", seas_name
         seas_data = netcdf.netcdf_file(os.path.join(settings.MEDIA_ROOT, settings.NETCDF_STORAGE_DIR, seas_name), 'r')
         # logging.info('File Name to Lookup %s', seas_file_date )
         # logging.info('Found File %s', str(seas_name) )

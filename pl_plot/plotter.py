@@ -116,14 +116,14 @@ class WindPlotter:
         dst = 0
         isdst_now_in = lambda zonename: bool(datetime.now(pytz.timezone(zonename)).dst())
         if isdst_now_in("America/Los_Angeles"):
-            dst = 1
+            dst = -1
         wind_file = DataFile.objects.filter(type='WIND').latest('model_date')
         raw_epoch_date = str(wind_file.model_date)
         epoch_date = raw_epoch_date.split('-')
         epoch_year = int(epoch_date[0])
         epoch_month = int(epoch_date[1])
         epoch_day = int(epoch_date[2])
-        ocean_time_epoch = datetime(day=epoch_day, month=epoch_month, year=epoch_year, hour=7, minute=0, second=0,
+        ocean_time_epoch = datetime(day=epoch_day, month=epoch_month, year=epoch_year, hour=8, minute=0, second=0,
                                     tzinfo=timezone.utc)
         modifier = 0
         if index == 57 or index == 61:
