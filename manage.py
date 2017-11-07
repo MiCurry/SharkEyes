@@ -26,11 +26,11 @@ if __name__ == "__main__":
         from pl_plot.models import OverlayManager
         from pl_chop.tasks import tile_overlay, tile_wave_watch_overlay
         from pl_plot.plotter import WindPlotter, Plotter
-        wave = 0
-        sst = 0
-        wind = 1
+        wave = 1
+        sst = 1
+        wind = 0
         if wave:
-            #DataFileManager.get_latest_wave_watch_files()
+            DataFileManager.get_latest_wave_watch_files()
             wave = DataFile.objects.filter(type='WAVE').latest('model_date')
             tiles = []
             begin = time.time()
@@ -45,18 +45,18 @@ if __name__ == "__main__":
             totalTime = (finish - begin)/ 60
             print "Time taken for Waves = " + str(round(totalTime, 2)) + " minutes"
         if sst:
-            #sst = DataFileManager.download_osu_roms()
+            sst = DataFileManager.download_osu_roms()
             sst = DataFile.objects.all().filter(type="NCDF")
             #plotter = Plotter(sst[0].file.name)
             #print "Time value ", plotter.get_time_at_oceantime_index(0)
             tiles = []
             begin = time.time()
-            #tiles += OverlayManager.make_plot(1, 3, sst[0].id)
-            #tiles += OverlayManager.make_plot(2, 3, sst[1].id)
-            tiles += OverlayManager.make_plot(3, 3, sst[1].id)
-            tiles += OverlayManager.make_plot(7, 3, sst[1].id)
-            tiles += OverlayManager.make_plot(8, 3, sst[1].id)
-            tiles += OverlayManager.make_plot(9, 3, sst[1].id)
+            tiles += OverlayManager.make_plot(1, 3, sst[2].id)
+            tiles += OverlayManager.make_plot(2, 3, sst[2].id)
+            tiles += OverlayManager.make_plot(3, 3, sst[2].id)
+            tiles += OverlayManager.make_plot(7, 3, sst[2].id)
+            tiles += OverlayManager.make_plot(8, 3, sst[2].id)
+            tiles += OverlayManager.make_plot(9, 3, sst[2].id)
             for t in tiles:
                 tile_overlay(t)
             finish = time.time()
