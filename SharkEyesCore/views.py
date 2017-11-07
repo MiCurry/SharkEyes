@@ -135,17 +135,27 @@ def get_time_index_seas(ncdf_data, day, month, year, hour, meridian):
         hour = 0
     if meridian == "p.m." and hour != 12:
         hour = hour + 12
+    # Check whether or not daylight savings is active
+    dst = 0
+    isdst_now_in = lambda zonename: bool(datetime.now(pytz.timezone(zonename)).dst())
+    if isdst_now_in("America/Los_Angeles"):
+        dst = -1
+    dst_correction = timedelta(hours=dst)
     input_time = datetime(day=day, month=month, year=year, hour=hour, minute=0, second=0, tzinfo=timezone.utc)
-    time_zone_correction = timedelta(hours=7)
+    time_zone_correction = timedelta(hours=8)
     input_time = input_time + time_zone_correction
     ocean_time_epoch = datetime(day=1, month=1, year=2005, hour=0, minute=0, second=0, tzinfo=timezone.utc)
     for x in range(0, np.shape(ncdf_data.variables['ocean_time'])[0], 1 ):
         seconds_since_epoch = timedelta(seconds=ncdf_data.variables['ocean_time'][x])
-        check_date = ocean_time_epoch + seconds_since_epoch
+        check_date = ocean_time_epoch + seconds_since_epoch + dst_correction
+        print "Checked Date ", check_date
+        print "Input Date ", input_time
         if check_date == input_time:
+            print "Index ", x
             return x
 
 # Calculates the time index for the wind model
+
 # This function is a bit more complex than the others because
 # the wind time indices are not consistent. They swap from every hour to every three hours.
 # -----------------------------------------------------------------------
@@ -189,15 +199,22 @@ def get_time_index_wave (wave_data, day, month, year, hour, meridian):
         hour = 0
     if meridian == "p.m.":
         hour = hour + 12
-    time_zone_correction = timedelta(hours=7)
+    dst = 0
+    isdst_now_in = lambda zonename: bool(datetime.now(pytz.timezone(zonename)).dst())
+    if isdst_now_in("America/Los_Angeles"):
+        dst = -1
+    dst_correction = timedelta(hours=dst)
+    time_zone_correction = timedelta(hours=8)
     input_time = datetime(day=day, month=month, year=year, hour=hour, minute=0, second=0, tzinfo=timezone.utc)
-    input_time = input_time + time_zone_correction
+    input_time = input_time + time_zone_correction + dst_correction
     all_day_times = wave_data.variables['time'][:]
     basetime = datetime(1970, 1, 1, 0, 0, 0)  # Jan 1, 1970
     # This is the first forecast: right now it is Noon (UTC) [~5 AM PST] on the day before the file was downloaded
     forecast_zero = basetime + timedelta(all_day_times[0] / 3600.0 / 24.0, 0, 0)
     for x in range(0, 84, 1):
         model_time = timezone.make_aware(forecast_zero + timedelta(hours=x), timezone.utc)
+        print "Checked Date ", model_time
+        print "Input Date ", input_time
         if input_time == model_time:
             return x
 
