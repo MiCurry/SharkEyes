@@ -373,19 +373,30 @@ def right_click_menu(request):
         seas_time_index = get_time_index_seas(seas_data, int(day), int(month), int(current_year), int(hour), meridian)
 
         #Get the values from Alex's model
-        ssh = seas_data.variables['zeta'][seas_time_index, seas_lat:seas_lat + 1, seas_lon:seas_lon + 1]
-        ssh = np.round(ssh[0][0] * 3.28, 1) #convert from meters to feet
-        surface_temp = seas_data.variables['temp'][seas_time_index, 39, seas_lat:seas_lat + 1, seas_lon:seas_lon + 1]
-        surface_temp = np.round(surface_temp[0][0] * 1.8 + 32, 1) #convert from celsius to fahrenheit
-        bottom_temp = seas_data.variables['temp'][seas_time_index, 0, seas_lat:seas_lat + 1, seas_lon:seas_lon + 1]
-        bottom_temp = np.round(bottom_temp[0][0] * 1.8 + 32, 1) #convert from celsius to fahrenheit
-        surface_salt = seas_data.variables['salt'][seas_time_index, 39, seas_lat:seas_lat + 1, seas_lon:seas_lon + 1]
-        surface_salt = np.round(surface_salt[0][0], 1)
-        bottom_salt = seas_data.variables['salt'][seas_time_index, 0, seas_lat:seas_lat + 1, seas_lon:seas_lon + 1]
-        bottom_salt = np.round(bottom_salt[0][0], 1)
-        seas_u = seas_data.variables['u'][seas_time_index, 39, seas_lat:seas_lat + 1, seas_lon:seas_lon + 1]
-        seas_v = seas_data.variables['v'][seas_time_index, 39, seas_lat:seas_lat + 1, seas_lon:seas_lon + 1]
-        current_speed = np.round(np.sqrt(seas_u[0][0] ** 2 + seas_v[0][0] ** 2) * 1.944, 1)#convert from m/s to knots
+        ssh = seas_data.variables['zeta'][seas_time_index, seas_lat , seas_lon ]
+        print "ssh ", seas_data.variables['zeta'][seas_time_index, seas_lat, seas_lon] * 3.28
+        zeta = seas_data.variables['zeta'][:].copy()
+        no_columbia_slice = zeta[seas_time_index, :, :]
+        no_columbia_slice = no_columbia_slice[75:354, :]
+        no_columbia_slice[:, 196:309] = np.nan
+        no_columbia_slice = np.reshape(no_columbia_slice, 86490)
+        for x in range(len(no_columbia_slice)):
+            if no_columbia_slice[x] > 10:
+                no_columbia_slice[x] = np.nan
+        mean_val = np.nanmean(no_columbia_slice)
+        print "mean val ", mean_val * 3.28
+        ssh = np.round(((ssh - mean_val)  * 3.28 ), 1) - 1 #convert from meters to feet
+        surface_temp = seas_data.variables['temp'][seas_time_index, 39, seas_lat, seas_lon]
+        surface_temp = np.round(surface_temp * 1.8 + 32, 1) #convert from celsius to fahrenheit
+        bottom_temp = seas_data.variables['temp'][seas_time_index, 0, seas_lat, seas_lon]
+        bottom_temp = np.round(bottom_temp * 1.8 + 32, 1) #convert from celsius to fahrenheit
+        surface_salt = seas_data.variables['salt'][seas_time_index, 39, seas_lat, seas_lon]
+        surface_salt = np.round(surface_salt, 1)
+        bottom_salt = seas_data.variables['salt'][seas_time_index, 0, seas_lat, seas_lon]
+        bottom_salt = np.round(bottom_salt, 1)
+        seas_u = seas_data.variables['u'][seas_time_index, 39, seas_lat, seas_lon]
+        seas_v = seas_data.variables['v'][seas_time_index, 39, seas_lat, seas_lon]
+        current_speed = np.round(np.sqrt(seas_u ** 2 + seas_v ** 2) * 1.944, 1)#convert from m/s to knots
 
     if models['wind'] == 1:
         #Wind file access
@@ -421,7 +432,7 @@ def right_click_menu(request):
     datums.write('<p style="font-size:20px">' + '<b>' + " Long " + '</b>' + display_lon + '<br>')
     # datums.write('<p style="font-size:20px">' + '<b>' + " Lat " + '</b>' + str(np.round(lat,3)) + '<b>' + " Lon " + '</b>' + str(np.round(lon,3)) + '<br>')
     if models['seas'] == 1:
-        datums.write('<p style="'+str(models['sst'])+'">' + '<b>' + spacify("SST:                ") + '</b>' + str(surface_temp) + ' ' + d + 'F' + '<br>')
+        datums.write('<p style="'+str(models['sst'])+'">' + '<b>' + spacify("SST:                   ") + '</b>' + str(surface_temp) + ' ' + d + 'F' + '<br>')
         datums.write('<p style="font-size:16px;'+str(models['currents'])+'">' + '<b>' + spacify("SS Currents:     ") + '</b>' + str(current_speed) + ' Knots' + '<br>')
     if models['wave'] == 1 and wave_lat_lon_check == 0:
         datums.write('<p style="'+str(models['height'])+'">' + '<b>' + spacify("Wave Height:  ") + '</b>' + str(wave_height) + ' Feet' + '<br>')

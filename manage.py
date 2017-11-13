@@ -26,8 +26,8 @@ if __name__ == "__main__":
         from pl_plot.models import OverlayManager
         from pl_chop.tasks import tile_overlay, tile_wave_watch_overlay
         from pl_plot.plotter import WindPlotter, Plotter
-        wave = 1
-        sst = 0
+        wave = 0
+        sst = 1
         wind = 0
         if wave:
             DataFileManager.get_latest_wave_watch_files()
@@ -51,12 +51,12 @@ if __name__ == "__main__":
             #print "Time value ", plotter.get_time_at_oceantime_index(0)
             tiles = []
             begin = time.time()
-            tiles += OverlayManager.make_plot(1, 3, sst[2].id)
+            #tiles += OverlayManager.make_plot(1, 3, sst[2].id)
             #tiles += OverlayManager.make_plot(2, 3, sst[1].id)
             #tiles += OverlayManager.make_plot(3, 3, sst[2].id)
             #tiles += OverlayManager.make_plot(7, 3, sst[2].id)
             #tiles += OverlayManager.make_plot(8, 3, sst[2].id)
-            #tiles += OverlayManager.make_plot(9, 3, sst[2].id)
+            tiles += OverlayManager.make_plot(9, 3, sst[2].id)
             for t in tiles:
                 tile_overlay(t)
             finish = time.time()
