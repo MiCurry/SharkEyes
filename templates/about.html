@@ -50,7 +50,7 @@
 
 <h3>What Seacast Does</h3>
     <p>
-        Seacast displays forecasts for currents, sea surface temperature, wave height and wave direction. These conditions are <i>predictions</i>, much like weather forecasts, based on scientists' models. They do not represent actual, real-time readings of ocean conditions, although the models do incorporate actual readings to create the predictions.
+        Seacast displays forecasts for currents, sea surface and bottom temperature, wave height, wave direction, wave period, winds, sea bottom temperature, surface and bottom salinity, and sea surface height. These conditions are <i>predictions</i>, much like weather forecasts, based on scientists' models. They do not represent actual, real-time readings of ocean conditions, although the models do incorporate actual readings to create the predictions.
         The Seacast website produces a visual display of these conditions, as image overlays on top of a Google Maps background.
         The models used by the site, like all models, have limitations. The Seacast team would like to receive your feedback about both the layout of the website, and the accuracy of the data displayed on the website. This will allow us to improve Seacast, and give feedback to the model creators about their model.
 
@@ -58,18 +58,16 @@
 
     <h3>How To Use Seacast</h3>
     <p>
-    Sea Surface temperature is displayed as a colormap, and currents are displayed as vectors (arrows). The arrows point in the direction of the current, and their relative length indicates the speed of the current. Note that the key for current speed, at the bottom of the page, is estimated.
-        The WaveWatch III model, for wave height, is also displayed as a color map. The wave direction model is displayed as vectors. A longer vector represents a wave with larger height.
-        The wave period model is a color map, where the color represents the forecasted peak period of the waves, in seconds.
+    Sea Surface and bottom temperature, wave height, sea surface and bottom salinity, and sea surface height are displayed as colormaps. Currents and wave direction are displayed as vectors (arrows). The arrows point in the direction of the field, and their relative length indicates their magnitude. Winds are displayed as barbs. Values for a specific latitude and longitude can be viewed with a right click on desktops and a double tap on mobile devices.
+        The wave period model is displayed as a numerical value on the wave direction key. This value is the average wave period over the entire region for that day. The wave period for a specific location and time can be viewed by right clicking or double tapping the desired location.
         Turn the overlays on or off by clicking the toggle buttons in the menu bar. Right now color maps and vectors can be 'stacked' on top of each other. If two color maps are turned on at the same time, only the last one will be displayed.
 </p>
     <h4>Note on Vector Keys</h4>
-    <p> Both Currents and Wave Direction are represented as vectors, where the length of the arrow represents the strength of the current, or the height of the wave. Please note that the keys for these vectors are estimated, and may not be valid at all zoom levels.
-        When using Wave Direction, it is best to use the Wave Height colormap as a guide to determine the most accurate wave height, rather than relying on the length of the arrows. This is a feature in-progress. </p>
+    <p> Both Currents and Wave Direction are represented as vectors, where the length of the arrow represents the strength of the current, or the height of the wave. Specific values of an arrow can be viewed by right clicking or double tapping the arrow.
+        When using Wave Direction, it is best to use the Wave Height colormap as a guide to determine the most accurate wave height, rather than relying on the length of the arrows. </p>
 <p>
-        The model produces predictions for 4-hour intervals for 2 days into the future, and 1 week in the past. Prediction dates/times can be selected by clicking the drop-down menu in the top left corner of the menu, then clicking on the desired date and time. The page will automatically refresh with the conditions for the chosen time.
+        The model produces predictions for 4-hour intervals projecting out 2 - 3 days into the future depending on the model. Prediction dates/times can be selected by clicking the drop-down menu in the top left corner of the menu, then clicking on the desired date and time. The page will automatically refresh with the conditions for the chosen time.
         New model dates can also be selected using the Next and Previous buttons.
-        The "hind-casts" for past days do not represent actual readings. Instead, they represent what the model predicted for those days. They may be helpful to compare with your own readings for those past days.
 
         Navigate the map, including zoom and pan, by clicking and dragging or using other navigation techniques used on Google Maps. Pinch-to-zoom on mobile devices should zoom in on the map.
         The menu can be hidden by clicking the "Hide" button in the top left.
@@ -92,18 +90,19 @@
 <p>
     The models for Seacast have been provided by CEOAS. The following are of note:
 
-    <h4>Sea Surface Temperature Model</h4>
+    <h4>Sea Surface and Bottom Temperature, Currents, Sea Surface and Bottom Salinity, and Sea Surface Height Model</h4>
     <ul>
         <li>Thank you to Dr. Alexander Kurapov</li>
     </ul>
 
-    <h4>Current Model</h4>
-    <ul>
-        <li>Thank you to Dr. Alexander Kurapov</li>
-    </ul>
     <h4>Wave Model</h4>
     <ul>
         <li> Thank you to Dr. Tuba Özkan-Haller, and thank you to Gabriel Garcìa-Medina for his help with the model. </li>
+    </ul>
+
+    <h4>Wind Model</h4>
+    <ul>
+        <li> Created by NOAA, NWS, and NCEP. Published by UCAR and UNIDATA </li>
     </ul>
 
 </p>
@@ -121,8 +120,8 @@
     <p>Seacast started in 2013 as an EECS Capstone project. Austin Valeske continued to work on the project throughout 2014 to prepare it for the new development team.</p>
 
     <p>Austin Valeske</p>
-      <p>Ryan Phillips</p>
-      <p>Kevin Rich</p>
+    <p>Ryan Phillips</p>
+    <p>Kevin Rich</p>
 
 
     <h4>2014: Version 2 Development Team</h4>
@@ -132,6 +131,17 @@
     <p>Reed Hamilton</p>
     <p>Bethany Carlson</p>
 
+    <h4>2015: Version 3 Development Team</h4>
+    <p>The Year 3 team added the ability to view tide predictions, improved website stability, and added new development tools. </p>
+
+    <p>Miles Curry</p>
+    <p>Will Olsen</p>
+    <p>Anthony Dunaway</p>
+
+    <h4>Continued Development and Support</h4>
+    <p>Seacast is still supported with new features and updates being added.</p>
+    <p>Anthony Dunaway</p>
+    <p>Miles Curry</p>
 
 
     <button id="back" class="btn" onclick="location.href='http://seacast.org';"/>Back to Seacast</button>
