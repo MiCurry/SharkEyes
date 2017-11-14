@@ -220,6 +220,10 @@ function dataAtCursorCSSUpdate() {
     for(var i=0; i < visibleKeys.length; i++){
         var key_splitter = visibleKeys[i].split('/');
         var key_checker = key_splitter[3].split('_');
+        var active_color = "blue";
+        var inactive_color = "black";
+        var active_font = 20;
+        var inactive_font = 17;
         if(key_checker[0] === 'sst'){
             current_keys.sst = true;
         }
@@ -247,75 +251,75 @@ function dataAtCursorCSSUpdate() {
     }
     //Check SST
     if(current_keys.sst === true){
-        document.documentElement.style.setProperty('--sst-color', 'black');
-        document.documentElement.style.setProperty('--sst-font', 20 + 'px');
+        document.documentElement.style.setProperty('--sst-color', active_color);
+        document.documentElement.style.setProperty('--sst-font', active_font + 'px');
     }
     else{
-        document.documentElement.style.setProperty('--sst-color', 'blue');
-        document.documentElement.style.setProperty('--sst-font', 17 + 'px');
+        document.documentElement.style.setProperty('--sst-color', inactive_color);
+        document.documentElement.style.setProperty('--sst-font', inactive_font + 'px');
     }
     //Check Currents
     if(current_keys.currents === true){
-        document.documentElement.style.setProperty('--currents-color', 'black');
-        document.documentElement.style.setProperty('--currents-font', 20 + 'px');
+        document.documentElement.style.setProperty('--currents-color', active_color);
+        document.documentElement.style.setProperty('--currents-font', active_font + 'px');
     }
     else{
-            document.documentElement.style.setProperty('--currents-color', 'blue');
-            document.documentElement.style.setProperty('--currents-font', 17 + 'px');
+            document.documentElement.style.setProperty('--currents-color', inactive_color);
+            document.documentElement.style.setProperty('--currents-font', inactive_font + 'px');
         }
     //Check Wave Height
     if(current_keys.wheight === true){
-        document.documentElement.style.setProperty('--wheight-color', 'black');
-        document.documentElement.style.setProperty('--wheight-font', 20 + 'px');
+        document.documentElement.style.setProperty('--wheight-color', active_color);
+        document.documentElement.style.setProperty('--wheight-font', active_font + 'px');
     }
     else{
-            document.documentElement.style.setProperty('--wheight-color', 'blue');
-            document.documentElement.style.setProperty('--wheight-font', 17 + 'px');
+            document.documentElement.style.setProperty('--wheight-color', inactive_color);
+            document.documentElement.style.setProperty('--wheight-font', inactive_font + 'px');
         }
     //Check Wave Direction and Period
     if(current_keys.wdir === true){
-        document.documentElement.style.setProperty('--wdir-color', 'black');
-        document.documentElement.style.setProperty('--wdir-font', 20 + 'px');
+        document.documentElement.style.setProperty('--wdir-color', active_color);
+        document.documentElement.style.setProperty('--wdir-font', active_font + 'px');
     }
     else{
-            document.documentElement.style.setProperty('--wdir-color', 'blue');
-            document.documentElement.style.setProperty('--wdir-font', 17 + 'px');
+            document.documentElement.style.setProperty('--wdir-color', inactive_color);
+            document.documentElement.style.setProperty('--wdir-font', inactive_font + 'px');
         }
     //Checks Bottom Temp
     if(current_keys.btemp === true){
-        document.documentElement.style.setProperty('--btemp-color', 'black');
-        document.documentElement.style.setProperty('--btemp-font', 20 + 'px');
+        document.documentElement.style.setProperty('--btemp-color', active_color);
+        document.documentElement.style.setProperty('--btemp-font', active_font + 'px');
     }
     else{
-            document.documentElement.style.setProperty('--btemp-color', 'blue');
-            document.documentElement.style.setProperty('--btemp-font', 17 + 'px');
+            document.documentElement.style.setProperty('--btemp-color', inactive_color);
+            document.documentElement.style.setProperty('--btemp-font', inactive_font + 'px');
         }
     //Checks Surface Temp
     if(current_keys.ssalt === true){
-        document.documentElement.style.setProperty('--ssalt-color', 'black');
-        document.documentElement.style.setProperty('--ssalt-font', 20 + 'px');
+        document.documentElement.style.setProperty('--ssalt-color', active_color);
+        document.documentElement.style.setProperty('--ssalt-font', active_font + 'px');
     }
     else{
-            document.documentElement.style.setProperty('--ssalt-color', 'blue');
-            document.documentElement.style.setProperty('--ssalt-font', 17 + 'px');
+            document.documentElement.style.setProperty('--ssalt-color', inactive_color);
+            document.documentElement.style.setProperty('--ssalt-font', inactive_font + 'px');
         }
     //Checks Bottom Salt
     if(current_keys.bsalt === true){
-        document.documentElement.style.setProperty('--bsalt-color', 'black');
-        document.documentElement.style.setProperty('--bsalt-font', 20 + 'px');
+        document.documentElement.style.setProperty('--bsalt-color', active_color);
+        document.documentElement.style.setProperty('--bsalt-font', active_font + 'px');
     }
     else{
-            document.documentElement.style.setProperty('--bsalt-color', 'blue');
-            document.documentElement.style.setProperty('--bsalt-font', 17 + 'px');
+            document.documentElement.style.setProperty('--bsalt-color', inactive_color);
+            document.documentElement.style.setProperty('--bsalt-font', inactive_font + 'px');
         }
     //Checks SSh
     if(current_keys.ssh === true){
-        document.documentElement.style.setProperty('--ssh-color', 'black');
-        document.documentElement.style.setProperty('--ssh-font', 20 + 'px');
+        document.documentElement.style.setProperty('--ssh-color', active_color);
+        document.documentElement.style.setProperty('--ssh-font', active_font + 'px');
     }
     else{
-            document.documentElement.style.setProperty('--ssh-color', 'blue');
-            document.documentElement.style.setProperty('--ssh-font', 17 + 'px');
+            document.documentElement.style.setProperty('--ssh-color', inactive_color);
+            document.documentElement.style.setProperty('--ssh-font', inactive_font + 'px');
         }
 }
 

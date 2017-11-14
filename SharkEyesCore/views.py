@@ -420,11 +420,11 @@ def right_click_menu(request):
         datums.write('<p class="sst">' + '<b>' + spacify("SST:                   ") + '</b>' + str(surface_temp) + ' ' + d + 'F' + '<br>')
         datums.write('<p class="currents">' + '<b>' + spacify("SS Currents:     ") + '</b>' + str(current_speed) + ' Knots' + '<br>')
     if models['wave'] == 1 and wave_lat_lon_check == 0:
-        datums.write('<p class="wheight">' + '<b>' + spacify("Wave Height:  ") + '</b>' + str(wave_height) + ' Feet' + '<br>')
+        datums.write('<p class="wheight">' + '<b>' + spacify("Wave Height:    ") + '</b>' + str(wave_height) + ' Feet' + '<br>')
     if models['wave'] == 1 and wave_lat_lon_check == 0:
-        datums.write('<p class="wdir">' + '<b>' + spacify("Wave Period:  ") + '</b>' + str(wave_period) + ' Seconds' + '<br>')
+        datums.write('<p class="wdir">' + '<b>' + spacify("Wave Period:    ") + '</b>' + str(wave_period) + ' Seconds' + '<br>')
     if models['wave'] ==1 and wave_lat_lon_check == 1:
-        datums.write('<p class="wheight">' + '<b>' + spacify("Wave Height: ") + '</b>' + 'Outside Model'  + '<br>')
+        datums.write('<p class="wheight">' + '<b>' + spacify("Wave Height:  ") + '</b>' + 'Outside Model'  + '<br>')
         datums.write('<p class="wdir">' + '<b>' + spacify("Wave Period:  ") + '</b>' + 'Outside Model' + '<br>')
     if models['wind'] == 1:
         datums.write('<p style="'+str(models['nams'])+'">' + '<b>' + "Winds: " + '</b>' + str(wind_speed) + ' Knots' + '<br>')

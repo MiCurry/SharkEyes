@@ -4,21 +4,21 @@ body, html {
 
 :root{
     --sst-color: black;
-    --sst-font: 17px;
+    --sst-font: 20px;
     --currents-color: black;
-    --currents-font: 17px;
+    --currents-font: 20px;
     --wheight-color: black;
-    --wheight-font: 17px;
+    --wheight-font: 20px;
     --wdir-color: black;
-    --wdir-font: 17px;
+    --wdir-font: 20px;
     --btemp-color: black;
-    --btemp-font: 17px;
+    --btemp-font: 20px;
     --ssalt-color: black;
-    --ssalt-font: 17px;
+    --ssalt-font: 20px;
     --bsalt-color: black;
-    --bsalt-font: 17px;
+    --bsalt-font: 20px;
     --ssh-color: black;
-    --ssh-font: 17px;
+    --ssh-font: 20px;
 }
 
 .sst{
