@@ -374,7 +374,6 @@ def right_click_menu(request):
 
         #Get the values from Alex's model
         ssh = seas_data.variables['zeta'][seas_time_index, seas_lat , seas_lon ]
-        print "ssh ", seas_data.variables['zeta'][seas_time_index, seas_lat, seas_lon] * 3.28
         zeta = seas_data.variables['zeta'][:].copy()
         no_columbia_slice = zeta[seas_time_index, :, :]
         no_columbia_slice = no_columbia_slice[75:354, :]
@@ -384,7 +383,6 @@ def right_click_menu(request):
             if no_columbia_slice[x] > 10:
                 no_columbia_slice[x] = np.nan
         mean_val = np.nanmean(no_columbia_slice)
-        print "mean val ", mean_val * 3.28
         ssh = np.round(((ssh - mean_val)  * 3.28 ), 1) - 1 #convert from meters to feet
         surface_temp = seas_data.variables['temp'][seas_time_index, 39, seas_lat, seas_lon]
         surface_temp = np.round(surface_temp * 1.8 + 32, 1) #convert from celsius to fahrenheit
@@ -419,18 +417,17 @@ def right_click_menu(request):
 
     #Build the html strings to send back to the front-end
     d = u"\u00b0" #unicode degree symbol
-    # We want to display the lat longs in degrees minutes seconds. This converts them to that. 
-    degree_lat = dd_to_deg(np.round(lat,5))
-    degree_lon = dd_to_deg(np.round(lon,5))
-    display_lat = degree_lat[0] + d + degree_lat[1] + '\'' + degree_lat[2]
-    display_lon = degree_lon[0] + d + degree_lon[1] + '\'' + degree_lon[2]
+    # We want to display the lat longs in degrees minutes seconds. This converts them to that. Currently we are doing lat long display on the front-end
+    # degree_lat = dd_to_deg(np.round(lat,5))
+    # degree_lon = dd_to_deg(np.round(lon,5))
+    # display_lat = degree_lat[0] + d + degree_lat[1] + '\'' + degree_lat[2]
+    # display_lon = degree_lon[0] + d + degree_lon[1] + '\'' + degree_lon[2]
 
     if models['seas'] == 0 and models['wave'] == 0 and models['wind'] == 0:
             datums.write('<p style="font-size:20px">' + '<b>' 'Select a field to view lat long specific information' '</b>')
             return datums
-    datums.write('<p style="font-size:20px">' + '<b>' + " Lat " + '</b>' + display_lat + '<br>')
-    datums.write('<p style="font-size:20px">' + '<b>' + " Long " + '</b>' + display_lon + '<br>')
-    # datums.write('<p style="font-size:20px">' + '<b>' + " Lat " + '</b>' + str(np.round(lat,3)) + '<b>' + " Lon " + '</b>' + str(np.round(lon,3)) + '<br>')
+    #datums.write('<p style="font-size:20px">' + '<b>' + " Lat " + '</b>' + display_lat + '<br>')
+    #datums.write('<p style="font-size:20px">' + '<b>' + " Long " + '</b>' + display_lon + '<br>')
     if models['seas'] == 1:
         datums.write('<p style="'+str(models['sst'])+'">' + '<b>' + spacify("SST:                   ") + '</b>' + str(surface_temp) + ' ' + d + 'F' + '<br>')
         datums.write('<p style="font-size:16px;'+str(models['currents'])+'">' + '<b>' + spacify("SS Currents:     ") + '</b>' + str(current_speed) + ' Knots' + '<br>')

@@ -30,7 +30,7 @@ if __name__ == "__main__":
         sst = 1
         wind = 0
         if wave:
-            DataFileManager.get_latest_wave_watch_files()
+            #DataFileManager.get_latest_wave_watch_files()
             wave = DataFile.objects.filter(type='WAVE').latest('model_date')
             tiles = []
             begin = time.time()
@@ -38,7 +38,7 @@ if __name__ == "__main__":
             #need to offset 16 to match with sst plot
             #NOTE it increments in 1 hour changes
             tiles += OverlayManager.make_wave_watch_plot(4, 20, wave.id)
-            tiles += OverlayManager.make_wave_watch_plot(6, 32, wave.id)
+            tiles += OverlayManager.make_wave_watch_plot(6, 20, wave.id)
             for t in tiles:
                 tile_wave_watch_overlay(t)
             finish = time.time()
@@ -51,12 +51,12 @@ if __name__ == "__main__":
             #print "Time value ", plotter.get_time_at_oceantime_index(0)
             tiles = []
             begin = time.time()
-            #tiles += OverlayManager.make_plot(1, 3, sst[2].id)
-            #tiles += OverlayManager.make_plot(2, 3, sst[1].id)
-            #tiles += OverlayManager.make_plot(3, 3, sst[2].id)
-            #tiles += OverlayManager.make_plot(7, 3, sst[2].id)
-            #tiles += OverlayManager.make_plot(8, 3, sst[2].id)
-            tiles += OverlayManager.make_plot(9, 3, sst[2].id)
+            tiles += OverlayManager.make_plot(1, 5, sst[2].id)
+            # tiles += OverlayManager.make_plot(2, 3, sst[2].id)
+            # tiles += OverlayManager.make_plot(3, 3, sst[2].id)
+            # tiles += OverlayManager.make_plot(7, 3, sst[2].id)
+            # tiles += OverlayManager.make_plot(8, 3, sst[2].id)
+            # tiles += OverlayManager.make_plot(9, 3, sst[2].id)
             for t in tiles:
                 tile_overlay(t)
             finish = time.time()

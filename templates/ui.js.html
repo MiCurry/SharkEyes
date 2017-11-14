@@ -29,13 +29,23 @@ var visibleKeys = [];
 var visible_FC = false;
 // is there an active vector (V) being displayed
 var visible_V = false;
+//These are variables for the data at the cursor.
+//******************************************************************
+// infoWindow is the window that is displayed also used to determine if a window is open
+// lat, long, and position are used to save the last location queried so it can be updated when the date changes
+// right_click_menu_content holds the html that will be in the window
+//******************************************************************
+var infowindow = new google.maps.InfoWindow;
+var lat = 0;
+var lng = 0;
+var position = 0;
+var right_click_menu_content = '';
 //These are variables for the tide stations.
 //******************************************************************
 //New tide tables can be found at http://tidesandcurrents.noaa.gov/tide_predictions.html?gid=1409
 //This is the page for Oregon. Astoria is found in Washington. Click on the station and you can download the station's
 //specific annual tide table from the station page
 //******************************************************************
-var right_click_menu_content = '';
 var southBeachContent = '';
 var astoriaContent = '';
 var coosContent = '';
@@ -153,6 +163,10 @@ $('#date-time').change(function(e) {
     // get date so can update overlays
     var textdate = datetime[document.getElementById('date-time').value];
     //This updates the tide windows with the correct data when the dates are changed.
+{#    console.log(infowindow.getMap());#}
+    if(infowindow.getMap()){
+        google.maps.event.trigger(map, 'rightclick');
+    }
     southBeachContent = '';
     astoriaContent = '';
     coosContent = '';
@@ -169,14 +183,16 @@ $('#date-time').change(function(e) {
 });
 
 //**********************************************************************************************************************
-//Right Click Menu Function
+//Data at the Cursor Function
 //**********************************************************************************************************************
 //Makes a call to the backend to get lat lon specific information
-function makeRightClickMenu(date, lat, lng, keys){
+function makeRightClickMenu(date, lat, lng, keys, dLat, dLng){
     var valid_date = date;
     var right_click_data = {"display_date": date, "lat": lat, "long": lng, "keys": keys};
     var jsonData = JSON.stringify(right_click_data);
     var right_click_info = '<p style="font-size:20px">' + '<b>' + valid_date + '</b>' + '</p>';
+    right_click_info += '<p style="font-size:20px">' + '<b>' + " Lat " + '</b>' + dLat + '<br>';
+    right_click_info += '<p style="font-size:20px">' + '<b>' + " Lng " + '</b>' + dLng + '<br>';
     jQuery.ajax({
         type: 'POST',
         url: '{% url "SharkEyesCore.views.right_click_menu" %}',
@@ -329,9 +345,6 @@ function initialize() {
     google.maps.event.addListener(map, 'mousemove', function(event) {
         LatLongUpdate(event);
     });
-    console.log("Dates");
-    console.log(datedic);
-    console.log(datetime);
 
     //**********************************************************************************************************************
     //Right Click Menu
@@ -340,13 +353,20 @@ function initialize() {
     // I wanted to do this with a function and just have two listeners but I currently cannot get it to work correctly
 {#    google.maps.event.addListener(map, "rightclick", data_at_cursor);#}
 {#    google.maps.event.addListener(map, "dblclick", data_at_cursor);#}
-    var infowindow = new google.maps.InfoWindow;
     google.maps.event.addListener(map, "rightclick", function(event){
+        console.log(visibleKeys);
         var current_date = datetime[document.getElementById('date-time').value];
-        var lat = event.latLng.lat();
-        var long = event.latLng.lng();
-        infowindow.setPosition(event.latLng);
-        right_click_menu_content = makeRightClickMenu(current_date, lat, long, visibleKeys);
+{#        console.log(event.latLng);#}
+        if (typeof event !== "undefined") {
+            lat = event.latLng.lat();
+            lng = event.latLng.lng();
+            position = event.latLng;
+        }
+        var location = dataAtCursorLatLong(lat, lng);
+        var displayLat = location.lat;
+        var displayLon = location.long;
+        infowindow.setPosition(position);
+        right_click_menu_content = makeRightClickMenu(current_date, lat, lng, visibleKeys, displayLat, displayLon);
         infowindow.setContent(right_click_menu_content);
         infowindow.open(map);
     });
@@ -356,8 +376,11 @@ function initialize() {
         var current_date = datetime[document.getElementById('date-time').value];
         var lat = event.latLng.lat();
         var long = event.latLng.lng();
+        var location = dataAtCursorLatLong(lat, long);
+        var displayLat = location.lat;
+        var displayLon = location.long;
         infowindow.setPosition(event.latLng);
-        right_click_menu_content = makeRightClickMenu(current_date, lat, long, visibleKeys);
+        right_click_menu_content = makeRightClickMenu(current_date, lat, long, visibleKeys, displayLat, displayLon);
         infowindow.setContent(right_click_menu_content);
         infowindow.open(map);
     });
@@ -386,7 +409,7 @@ function initialize() {
     });
 
     southBeachMarker.addListener('click', function(){
-        if(southBeachFlag == 0) {
+        if(southBeachFlag === 0) {
             southBeachContent += makeTideMarker(datetime[0], southBeachId, 'South Beach');
             southBeachFlag = 1;
         }
@@ -406,7 +429,7 @@ function initialize() {
     });
 
     astoriaMarker.addListener('click', function(){
-        if(astoriaFlag == 0) {
+        if(astoriaFlag === 0) {
             astoriaContent += makeTideMarker(datetime[0], astoriaId, 'Astoria');
             astoriaFlag = 1;
         }
@@ -426,7 +449,7 @@ function initialize() {
     });
 
     coosMarker.addListener('click', function(){
-        if(coosFlag == 0) {
+        if(coosFlag === 0) {
             coosContent += makeTideMarker(datetime[0], coosId, 'Coos Bay');
             coosFlag = 1;
         }
@@ -446,7 +469,7 @@ function initialize() {
     });
 
     orfordMarker.addListener('click', function(){
-        if(orfordFlag == 0) {
+        if(orfordFlag === 0) {
             orfordContent += makeTideMarker(datetime[0], orfordId, 'Port Orford');
             orfordFlag = 1;
         }
@@ -486,6 +509,31 @@ function LatLongUpdate(event) {
     // set lat long in sidebar
     $("#coords-lat").html(ret.lat);
     $("#coords-long").html(ret.long);
+}
+
+// This mimics the sidebar lat long updater to make the data at cursor menu lat long match the sidebar lat long
+function dataAtCursorLatLong(lat, long) {
+    // tempary variable to hold stuffs
+    var location = {lat:"", long:""};
+    var temp;
+    // hours
+    lat = lat.toString().split(".");
+    long = long.toString().split(".");
+    location.lat += lat[0];
+    location.long += long[0];
+    // minutes
+    temp = ("0." + lat[1]) * 60;
+    lat = temp.toString().split(".");
+    location.lat += "°" + lat[0];
+    temp = ("0." + long[1]) * 60;
+    long = temp.toString().split(".");
+    location.long += "°" + long[0];
+    // seconds
+    temp = ("0." + lat[1]) * 60;
+    location.lat += "'" + Math.round(temp) + '"';
+    temp = ("0." + long[1]) * 60;
+    location.long += "'" + Math.round(temp) + '"';
+    return location;
 }
 
 // *********************************************************************************************************************
