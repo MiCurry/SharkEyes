@@ -139,15 +139,15 @@ $(".overlay-toggle").click(function(e) {
     // get id of the toggle
     var type = toggle.attr('id');
     // insert/remove overlay
-    if (prevState == false) {
+    if (prevState === false) {
         // fix conflicting toggle states
         for (name in definitions) {
-            if (name != type && definitions[name][0] == definitions[type][0]){
+            if (name !== type && definitions[name][0] === definitions[type][0]){
                 $("#" + name + ".toggle-checkbox").prop('checked', false);
                 remove_overlay(type);
             }
         }
-        if(insert_overlay(textdate, type) != true) {
+        if(insert_overlay(textdate, type) !== true) {
             toggle.prop('checked', false);
             warning_message(textdate, type);
         }
@@ -155,6 +155,7 @@ $(".overlay-toggle").click(function(e) {
     else {
         remove_overlay(type);
     }
+    dataAtCursorCSSUpdate();
 });
 // run update_overlays to enable disable as needed
 update_overlays(datetime[document.getElementById('date-time').value]);
@@ -208,6 +209,114 @@ function makeRightClickMenu(date, lat, lng, keys, dLat, dLng){
         }
     });
     return right_click_info;
+}
+
+//**********************************************************************************************************************
+//Data at the Cursor Window CSS Updater
+//**********************************************************************************************************************
+//Checks for the currently selected fields and updates the data at the cursor popup css to highlight the selected fields
+function dataAtCursorCSSUpdate() {
+    var current_keys = {"sst":false, "currents":false, 'wheight':false, 'wdir':false, 'btemp':false, 'ssalt':false, 'bsalt':false, 'ssh':false};
+    for(var i=0; i < visibleKeys.length; i++){
+        var key_splitter = visibleKeys[i].split('/');
+        var key_checker = key_splitter[3].split('_');
+        if(key_checker[0] === 'sst'){
+            current_keys.sst = true;
+        }
+        else if(key_checker[0] === 'currents'){
+            current_keys.currents = true;
+        }
+        else if(key_checker[0] === 'wave' && key_checker[1] === 'height'){
+            current_keys.wheight = true;
+        }
+        else if(key_checker[0] === 'wave' && key_checker[1] === 'direction'){
+            current_keys.wdir = true;
+        }
+        else if(key_checker[0] === 'bottom' && key_checker[1] === 'temp'){
+            current_keys.btemp = true;
+        }
+        else if(key_checker[0] === 'salt'){
+            current_keys.ssalt = true;
+        }
+        else if(key_checker[0] === 'bottom' && key_checker[1] === 'salt'){
+            current_keys.bsalt = true;
+        }
+        else if(key_checker[0] === 'ssh'){
+            current_keys.ssh = true;
+        }
+    }
+    //Check SST
+    if(current_keys.sst === true){
+        document.documentElement.style.setProperty('--sst-color', 'black');
+        document.documentElement.style.setProperty('--sst-font', 20 + 'px');
+    }
+    else{
+        document.documentElement.style.setProperty('--sst-color', 'blue');
+        document.documentElement.style.setProperty('--sst-font', 17 + 'px');
+    }
+    //Check Currents
+    if(current_keys.currents === true){
+        document.documentElement.style.setProperty('--currents-color', 'black');
+        document.documentElement.style.setProperty('--currents-font', 20 + 'px');
+    }
+    else{
+            document.documentElement.style.setProperty('--currents-color', 'blue');
+            document.documentElement.style.setProperty('--currents-font', 17 + 'px');
+        }
+    //Check Wave Height
+    if(current_keys.wheight === true){
+        document.documentElement.style.setProperty('--wheight-color', 'black');
+        document.documentElement.style.setProperty('--wheight-font', 20 + 'px');
+    }
+    else{
+            document.documentElement.style.setProperty('--wheight-color', 'blue');
+            document.documentElement.style.setProperty('--wheight-font', 17 + 'px');
+        }
+    //Check Wave Direction and Period
+    if(current_keys.wdir === true){
+        document.documentElement.style.setProperty('--wdir-color', 'black');
+        document.documentElement.style.setProperty('--wdir-font', 20 + 'px');
+    }
+    else{
+            document.documentElement.style.setProperty('--wdir-color', 'blue');
+            document.documentElement.style.setProperty('--wdir-font', 17 + 'px');
+        }
+    //Checks Bottom Temp
+    if(current_keys.btemp === true){
+        document.documentElement.style.setProperty('--btemp-color', 'black');
+        document.documentElement.style.setProperty('--btemp-font', 20 + 'px');
+    }
+    else{
+            document.documentElement.style.setProperty('--btemp-color', 'blue');
+            document.documentElement.style.setProperty('--btemp-font', 17 + 'px');
+        }
+    //Checks Surface Temp
+    if(current_keys.ssalt === true){
+        document.documentElement.style.setProperty('--ssalt-color', 'black');
+        document.documentElement.style.setProperty('--ssalt-font', 20 + 'px');
+    }
+    else{
+            document.documentElement.style.setProperty('--ssalt-color', 'blue');
+            document.documentElement.style.setProperty('--ssalt-font', 17 + 'px');
+        }
+    //Checks Bottom Salt
+    if(current_keys.bsalt === true){
+        document.documentElement.style.setProperty('--bsalt-color', 'black');
+        document.documentElement.style.setProperty('--bsalt-font', 20 + 'px');
+    }
+    else{
+            document.documentElement.style.setProperty('--bsalt-color', 'blue');
+            document.documentElement.style.setProperty('--bsalt-font', 17 + 'px');
+        }
+    //Checks SSh
+    if(current_keys.ssh === true){
+        document.documentElement.style.setProperty('--ssh-color', 'black');
+        document.documentElement.style.setProperty('--ssh-font', 20 + 'px');
+    }
+    else{
+            document.documentElement.style.setProperty('--ssh-color', 'blue');
+            document.documentElement.style.setProperty('--ssh-font', 17 + 'px');
+        }
 }
 
 //**********************************************************************************************************************
@@ -353,10 +462,9 @@ function initialize() {
     // I wanted to do this with a function and just have two listeners but I currently cannot get it to work correctly
 {#    google.maps.event.addListener(map, "rightclick", data_at_cursor);#}
 {#    google.maps.event.addListener(map, "dblclick", data_at_cursor);#}
+
     google.maps.event.addListener(map, "rightclick", function(event){
-        console.log(visibleKeys);
         var current_date = datetime[document.getElementById('date-time').value];
-{#        console.log(event.latLng);#}
         if (typeof event !== "undefined") {
             lat = event.latLng.lat();
             lng = event.latLng.lng();
@@ -589,13 +697,13 @@ function prev_onclick() {
 // *********************************************************************************************************************
 function prev_next_enable_toggle() {
     var date = document.getElementById('date-time').value;
-    if (date == 0) {
+    if (date === 0) {
         document.getElementById("previous").disabled = 'true';
     }
     else {
         document.getElementById("previous").removeAttribute("disabled");
     }
-    if (date == (numDates-1)) {
+    if (date === (numDates-1)) {
         document.getElementById("next").disabled = 'true';
     }
     else {
@@ -610,17 +718,17 @@ function prev_next_enable_toggle() {
 function update_overlays(date) {
     for (name in definitions) {
         // enable disable toggles depending on if models is available
-        if (datedic[date][name] == null) {
-            console.log("disable true " + name);
+        if (datedic[date][name] === null) {
+{#            console.log("disable true " + name);#}
             $("#" + name).prop('class', 'disabled');
         }
         else {
-            console.log("disable false " + name);
+{#            console.log("disable false " + name);#}
             $("#" + name).prop('class', 'option');
         }
         // enable desired overlays
         if($("#" + name + ".toggle-checkbox").prop("checked")) {
-            if (insert_overlay(date, name) != true) {
+            if (insert_overlay(date, name) !== true) {
                 remove_overlay(name);
                 warning_message(date, name);
             }
@@ -634,7 +742,7 @@ function update_overlays(date) {
 // returns false on failure
 // *********************************************************************************************************************
 function insert_overlay(date, type) {
-    if (datedic[date][type] == null) {
+    if (datedic[date][type] === null) {
         return false;
     }
     var overlayURL = datedic[date][type][0];
@@ -656,8 +764,8 @@ function insert_overlay(date, type) {
         isPng: true,
         opacity:.8
     });
-    if (overlayType == "FC") {
-        if (visible_FC == true) {
+    if (overlayType === "FC") {
+        if (visible_FC === true) {
             map.overlayMapTypes.removeAt(0);
             visibleKeys.splice(0, 1);
         }
@@ -665,8 +773,8 @@ function insert_overlay(date, type) {
         map.overlayMapTypes.insertAt(0, x);
         visibleKeys.splice(0, 0, loc + overlayKey);
     }
-    else if (overlayType == "V") {
-        if (visible_V == true) {
+    else if (overlayType === "V") {
+        if (visible_V === true) {
             map.overlayMapTypes.pop();
             visibleKeys.splice(-1, 1);
         }
@@ -685,15 +793,15 @@ function insert_overlay(date, type) {
 // *********************************************************************************************************************
 function remove_overlay(type) {
     var overlayType = definitions[type][0];
-    if (overlayType == "FC") {
-        if (visible_FC == true) {
+    if (overlayType === "FC") {
+        if (visible_FC === true) {
             map.overlayMapTypes.removeAt(0);
             visibleKeys.splice(0, 1);
         }
         visible_FC = false;
     }
-    else if (overlayType == "V") {
-        if (visible_V == true) {
+    else if (overlayType === "V") {
+        if (visible_V === true) {
             map.overlayMapTypes.pop();
             visibleKeys.splice(-1, 1);
         }
@@ -704,7 +812,7 @@ function remove_overlay(type) {
         $("#key-img").hide();
         $("#key").hide();
     }
-    // this is bad makes assumption that only ever two in visibleKeys
+    // this is bad makes assumption that there is only ever two in visibleKeys
     // If you increase the number of fields that can be shown on
     // On screen you will need to change this.
     else {

@@ -490,8 +490,8 @@ def currents_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio)
     #                               color='white', labelsep=.5, coordinates='axes')
     # quiverkey2 = key_ax.quiverkey(overlay, 6.5, .4, 2*.5144, "2 knots", labelpos='S', labelcolor='white',
     #                               color='white', labelsep=.5, coordinates='axes')
-    textBox = pyplot.text(0, 0, "    Right Click To View Values        ", withdash=False,
-                          backgroundcolor='black', color='white', fontsize=22, )
+    textBox = pyplot.text(0, 0, "    Right Click or Double Tap to View Values        ", withdash=False,
+                          backgroundcolor='black', color='white', fontsize=18, )
 
     key_ax.set_axis_off()
 

@@ -212,41 +212,29 @@ def get_time_index_wave (wave_data, day, month, year, hour, meridian):
         if input_time == model_time:
             return x
 
-# Returns which model types are being displayed and determines the html styling for the popup. Active fields are larger font and bold
+# Returns which model types are being displayed
 # ------------------------------------------------------------------------------
 def get_models(keys):
-    selected_color = 'font-size:20px;color:black'
-    unselected_color = 'font-size:17px;color:blue'
-    models = {'wave':0, 'seas':0, 'wind':0, 'sst':unselected_color, 'currents':unselected_color, 'height':unselected_color, 'period':unselected_color, 'nams':unselected_color,
-              'btemp':unselected_color, 'ssalt':unselected_color, 'bsalt':unselected_color, 'ssh':unselected_color }
+    models = {'wave':0, 'seas':0, 'wind':0 }
     for x in keys:
         if x.find('sst') != -1:
             models['seas'] = 1
-            models['sst'] = selected_color
         elif x.find('currents') != -1:
             models['seas'] = 1
-            models['currents'] = selected_color
         elif x.find('wave_h') != -1:
             models['wave'] = 1
-            models['height'] = selected_color
         elif x.find('wave_d')!= -1:
             models['wave'] = 1
-            models['period'] = selected_color
         elif x.find('barb') != -1:
             models['wind'] = 1
-            models['nams'] = selected_color
         elif x.find('bottom_t') != -1:
             models['seas'] = 1
-            models['btemp'] = selected_color
         elif x.find('bottom_s') != -1:
             models['seas'] = 1
-            models['bsalt'] = selected_color
         elif x.find('salt') != -1:
             models['seas'] = 1
-            models['ssalt'] = selected_color
         elif x.find('ssh') != -1:
             models['seas'] = 1
-            models['ssh'] = selected_color
     return models
 
 #This is where we associate the Javascript variables (overlays, defs etc) with the Django objects from the database.
@@ -429,22 +417,22 @@ def right_click_menu(request):
     #datums.write('<p style="font-size:20px">' + '<b>' + " Lat " + '</b>' + display_lat + '<br>')
     #datums.write('<p style="font-size:20px">' + '<b>' + " Long " + '</b>' + display_lon + '<br>')
     if models['seas'] == 1:
-        datums.write('<p style="'+str(models['sst'])+'">' + '<b>' + spacify("SST:                   ") + '</b>' + str(surface_temp) + ' ' + d + 'F' + '<br>')
-        datums.write('<p style="font-size:16px;'+str(models['currents'])+'">' + '<b>' + spacify("SS Currents:     ") + '</b>' + str(current_speed) + ' Knots' + '<br>')
+        datums.write('<p class="sst">' + '<b>' + spacify("SST:                   ") + '</b>' + str(surface_temp) + ' ' + d + 'F' + '<br>')
+        datums.write('<p class="currents">' + '<b>' + spacify("SS Currents:     ") + '</b>' + str(current_speed) + ' Knots' + '<br>')
     if models['wave'] == 1 and wave_lat_lon_check == 0:
-        datums.write('<p style="'+str(models['height'])+'">' + '<b>' + spacify("Wave Height:  ") + '</b>' + str(wave_height) + ' Feet' + '<br>')
+        datums.write('<p class="wheight">' + '<b>' + spacify("Wave Height:  ") + '</b>' + str(wave_height) + ' Feet' + '<br>')
     if models['wave'] == 1 and wave_lat_lon_check == 0:
-        datums.write('<p style="'+str(models['period'])+'">' + '<b>' + spacify("Wave Period:  ") + '</b>' + str(wave_period) + ' Seconds' + '<br>')
+        datums.write('<p class="wdir">' + '<b>' + spacify("Wave Period:  ") + '</b>' + str(wave_period) + ' Seconds' + '<br>')
     if models['wave'] ==1 and wave_lat_lon_check == 1:
-        datums.write('<p style="' + str(models['height']) + '">' + '<b>' + spacify("Wave Height: ") + '</b>' + 'Outside Model'  + '<br>')
-        datums.write('<p style="' + str(models['period']) + '">' + '<b>' + spacify("Wave Period:  ") + '</b>' + 'Outside Model' + '<br>')
+        datums.write('<p class="wheight">' + '<b>' + spacify("Wave Height: ") + '</b>' + 'Outside Model'  + '<br>')
+        datums.write('<p class="wdir">' + '<b>' + spacify("Wave Period:  ") + '</b>' + 'Outside Model' + '<br>')
     if models['wind'] == 1:
         datums.write('<p style="'+str(models['nams'])+'">' + '<b>' + "Winds: " + '</b>' + str(wind_speed) + ' Knots' + '<br>')
     if models['seas'] == 1:
-        datums.write('<p style="'+str(models['btemp'])+'">' + '<b>' + spacify("Bottom Temp:  ") + '</b>' + str(bottom_temp) + ' ' + d + 'F' + '<br>')
-        datums.write('<p style="'+str(models['ssalt'])+'">' + '<b>' + spacify("SS Salinity:       ") + '</b>' + str(surface_salt) + '<br>')
-        datums.write('<p style="'+str(models['bsalt'])+'">' + '<b>' + spacify("Bottom Salt:     ") + '</b>' + str(bottom_salt) + '<br>')
-        datums.write('<p style="'+str(models['ssh'])+'">' + '<b>' + spacify("SSH:                   ") + '</b>' + str(ssh) + ' Feet' + '<br>')
+        datums.write('<p class="btemp">' + '<b>' + spacify("Bottom Temp:  ") + '</b>' + str(bottom_temp) + ' ' + d + 'F' + '<br>')
+        datums.write('<p class="ssalt">' + '<b>' + spacify("SS Salinity:       ") + '</b>' + str(surface_salt) + '<br>')
+        datums.write('<p class="bsalt">' + '<b>' + spacify("Bottom Salt:     ") + '</b>' + str(bottom_salt) + '<br>')
+        datums.write('<p class="ssh">' + '<b>' + spacify("SSH:                   ") + '</b>' + str(ssh) + ' Feet' + '<br>')
     return datums
 
 @csrf_exempt
