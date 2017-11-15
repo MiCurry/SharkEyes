@@ -217,6 +217,9 @@ function makeRightClickMenu(date, lat, lng, keys, dLat, dLng){
 //Checks for the currently selected fields and updates the data at the cursor popup css to highlight the selected fields
 function dataAtCursorCSSUpdate() {
     var current_keys = {"sst":false, "currents":false, 'wheight':false, 'wdir':false, 'btemp':false, 'ssalt':false, 'bsalt':false, 'ssh':false};
+    if(visibleKeys.length === 0){
+        infowindow.close();
+    }
     for(var i=0; i < visibleKeys.length; i++){
         var key_splitter = visibleKeys[i].split('/');
         var key_checker = key_splitter[3].split('_');
@@ -486,13 +489,16 @@ function initialize() {
     // The double click check is for mobile devices and touch screens. Google Maps API does not have a taphold event. Has nice side-effect of slightly zooming in on the location for desktop browsers.
     google.maps.event.addListener(map, "dblclick", function(event){
         var current_date = datetime[document.getElementById('date-time').value];
-        var lat = event.latLng.lat();
-        var long = event.latLng.lng();
-        var location = dataAtCursorLatLong(lat, long);
+        if (typeof event !== "undefined") {
+            lat = event.latLng.lat();
+            lng = event.latLng.lng();
+            position = event.latLng;
+        }
+        var location = dataAtCursorLatLong(lat, lng);
         var displayLat = location.lat;
         var displayLon = location.long;
-        infowindow.setPosition(event.latLng);
-        right_click_menu_content = makeRightClickMenu(current_date, lat, long, visibleKeys, displayLat, displayLon);
+        infowindow.setPosition(position);
+        right_click_menu_content = makeRightClickMenu(current_date, lat, lng, visibleKeys, displayLat, displayLon);
         infowindow.setContent(right_click_menu_content);
         infowindow.open(map);
     });
