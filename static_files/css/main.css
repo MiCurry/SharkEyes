@@ -61,7 +61,6 @@ body, html {
     font-size: var(--ssh-font);
 }
 
-
 body {
   font: 100% "HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -70,7 +69,6 @@ body {
   /*background-color: #bdf;*/
   margin: 0;
   padding: 0; }
-
 
 h2 {
     margin-left:15px;
@@ -96,13 +94,11 @@ h2 {
 -moz-user-select: none;
 -ms-user-select: none;
  padding-top:60px;
-
 }
 
 .coords{
     color: #000;
     font-weight:300;
-
 }
 
 #date-time{
@@ -122,7 +118,6 @@ h2 {
   left: -61px;
   opacity: 0; }
 
-
 #sidebar-left.hidden {
     display:none;
 }
@@ -140,63 +135,58 @@ h2 {
  }
 
 #label-lat{
-   position: absolute;
-   text-align: center;
-  background-color:#fff;
-   border: 1px solid #666;
-  border-radius: 5px;
-  z-index: 4;
-  padding: 5px;
-  width:50px;
-  right:80px;
-  bottom:18px;
-  color:#222;
+    position: absolute;
+    text-align: center;
+    background-color:#fff;
+    border: 1px solid #666;
+    border-radius: 5px;
+    z-index: 4;
+    padding: 5px;
+    width:50px;
+    right:80px;
+    bottom:18px;
+    color:#222;
 }
 
 #label-lon{
-   position: absolute;
-   text-align: center;
-  background-color:#fff;
-   border: 1px solid #666;
-  border-radius: 5px;
-  z-index: 4;
-  padding: 5px;
-  width:50px;
-  bottom:18px; /* okay that -2 is a lil arbitrary... */
-  right:10px;
-  color:#222;
+    position: absolute;
+    text-align: center;
+    background-color:#fff;
+    border: 1px solid #666;
+    border-radius: 5px;
+    z-index: 4;
+    padding: 5px;
+    width:50px;
+    bottom:18px; /* okay that -2 is a lil arbitrary... */
+    right:10px;
+    color:#222;
 }
 
  #line-lat {
-
-   position: absolute;
-  background-color:#fff;
-   border: 1px solid #666;
-  border-radius: 2px;
-  z-index: 2;
-
-  width: 100%;
-  height: 1px;
-  bottom: 30px;
-  left: -85px; /* match label position */
-  font-size: 20px;
-  z-index: 2;
+    position: absolute;
+    background-color:#fff;
+    border: 1px solid #666;
+    border-radius: 2px;
+    z-index: 2;
+    width: 100%;
+    height: 1px;
+    bottom: 30px;
+    left: -85px; /* match label position */
+    font-size: 20px;
  }
 
   #line-lon {
-
     position: absolute;
-  background-color:#fff;
-   border: 1px solid #666;
-  border-radius: 2px;
-  z-index: 2;
-
-  width: 1px;
-  height: 100%;
-  z-index: 1;
-  right: 25px;
-  top: -30px;
-  z-index: 2;
+    background-color:#fff;
+    border: 1px solid #666;
+    border-radius: 2px;
+    z-index: 2;
+    width: 1px;
+    height: 100%;
+    z-index: 1;
+    right: 25px;
+    top: -30px;
+    z-index: 2;
  }
 
 #key{
@@ -238,14 +228,11 @@ h2 {
         z-index: 10;
         z-index: 1;
         margin:auto;
-
-
     }
 }
 
 @media only screen
 and (min-width : 500px) {
-
     #key{
         width:500px;
     }
@@ -259,7 +246,6 @@ and (min-width : 500px) {
         z-index: 10;
         z-index: 1;
         margin:auto;
-
     }
 }
 
@@ -356,9 +342,7 @@ table td.col-three {
   text-align: left;
   padding-left: 15px;
   font-size: 16pt;
-
   font-weight: bold;
-
 }
 
 .lbl {
