@@ -212,41 +212,29 @@ def get_time_index_wave (wave_data, day, month, year, hour, meridian):
         if input_time == model_time:
             return x
 
-# Returns which model types are being displayed and determines the html styling for the popup. Active fields are larger font and bold
+# Returns which model types are being displayed
 # ------------------------------------------------------------------------------
 def get_models(keys):
-    selected_color = 'font-size:20px;color:black'
-    unselected_color = 'font-size:17px;color:purple'
-    models = {'wave':0, 'seas':0, 'wind':0, 'sst':unselected_color, 'currents':unselected_color, 'height':unselected_color, 'period':unselected_color, 'nams':unselected_color,
-              'btemp':unselected_color, 'ssalt':unselected_color, 'bsalt':unselected_color, 'ssh':unselected_color }
+    models = {'wave':0, 'seas':0, 'wind':0 }
     for x in keys:
         if x.find('sst') != -1:
             models['seas'] = 1
-            models['sst'] = selected_color
         elif x.find('currents') != -1:
             models['seas'] = 1
-            models['currents'] = selected_color
         elif x.find('wave_h') != -1:
             models['wave'] = 1
-            models['height'] = selected_color
         elif x.find('wave_d')!= -1:
             models['wave'] = 1
-            models['period'] = selected_color
         elif x.find('barb') != -1:
             models['wind'] = 1
-            models['nams'] = selected_color
         elif x.find('bottom_t') != -1:
             models['seas'] = 1
-            models['btemp'] = selected_color
         elif x.find('bottom_s') != -1:
             models['seas'] = 1
-            models['bsalt'] = selected_color
         elif x.find('salt') != -1:
             models['seas'] = 1
-            models['ssalt'] = selected_color
         elif x.find('ssh') != -1:
             models['seas'] = 1
-            models['ssh'] = selected_color
     return models
 
 #This is where we associate the Javascript variables (overlays, defs etc) with the Django objects from the database.
@@ -373,19 +361,28 @@ def right_click_menu(request):
         seas_time_index = get_time_index_seas(seas_data, int(day), int(month), int(current_year), int(hour), meridian)
 
         #Get the values from Alex's model
-        ssh = seas_data.variables['zeta'][seas_time_index, seas_lat:seas_lat + 1, seas_lon:seas_lon + 1]
-        ssh = np.round(ssh[0][0] * 3.28, 1) #convert from meters to feet
-        surface_temp = seas_data.variables['temp'][seas_time_index, 39, seas_lat:seas_lat + 1, seas_lon:seas_lon + 1]
-        surface_temp = np.round(surface_temp[0][0] * 1.8 + 32, 1) #convert from celsius to fahrenheit
-        bottom_temp = seas_data.variables['temp'][seas_time_index, 0, seas_lat:seas_lat + 1, seas_lon:seas_lon + 1]
-        bottom_temp = np.round(bottom_temp[0][0] * 1.8 + 32, 1) #convert from celsius to fahrenheit
-        surface_salt = seas_data.variables['salt'][seas_time_index, 39, seas_lat:seas_lat + 1, seas_lon:seas_lon + 1]
-        surface_salt = np.round(surface_salt[0][0], 1)
-        bottom_salt = seas_data.variables['salt'][seas_time_index, 0, seas_lat:seas_lat + 1, seas_lon:seas_lon + 1]
-        bottom_salt = np.round(bottom_salt[0][0], 1)
-        seas_u = seas_data.variables['u'][seas_time_index, 39, seas_lat:seas_lat + 1, seas_lon:seas_lon + 1]
-        seas_v = seas_data.variables['v'][seas_time_index, 39, seas_lat:seas_lat + 1, seas_lon:seas_lon + 1]
-        current_speed = np.round(np.sqrt(seas_u[0][0] ** 2 + seas_v[0][0] ** 2) * 1.944, 1)#convert from m/s to knots
+        ssh = seas_data.variables['zeta'][seas_time_index, seas_lat , seas_lon ]
+        zeta = seas_data.variables['zeta'][:].copy()
+        no_columbia_slice = zeta[seas_time_index, :, :]
+        no_columbia_slice = no_columbia_slice[75:354, :]
+        no_columbia_slice[:, 196:309] = np.nan
+        no_columbia_slice = np.reshape(no_columbia_slice, 86490)
+        for x in range(len(no_columbia_slice)):
+            if no_columbia_slice[x] > 10:
+                no_columbia_slice[x] = np.nan
+        mean_val = np.nanmean(no_columbia_slice)
+        ssh = np.round(((ssh - mean_val)  * 3.28 ), 1) - 1 #convert from meters to feet
+        surface_temp = seas_data.variables['temp'][seas_time_index, 39, seas_lat, seas_lon]
+        surface_temp = np.round(surface_temp * 1.8 + 32, 1) #convert from celsius to fahrenheit
+        bottom_temp = seas_data.variables['temp'][seas_time_index, 0, seas_lat, seas_lon]
+        bottom_temp = np.round(bottom_temp * 1.8 + 32, 1) #convert from celsius to fahrenheit
+        surface_salt = seas_data.variables['salt'][seas_time_index, 39, seas_lat, seas_lon]
+        surface_salt = np.round(surface_salt, 1)
+        bottom_salt = seas_data.variables['salt'][seas_time_index, 0, seas_lat, seas_lon]
+        bottom_salt = np.round(bottom_salt, 1)
+        seas_u = seas_data.variables['u'][seas_time_index, 39, seas_lat, seas_lon]
+        seas_v = seas_data.variables['v'][seas_time_index, 39, seas_lat, seas_lon]
+        current_speed = np.round(np.sqrt(seas_u ** 2 + seas_v ** 2) * 1.944, 1)#convert from m/s to knots
 
     if models['wind'] == 1:
         #Wind file access
@@ -408,34 +405,34 @@ def right_click_menu(request):
 
     #Build the html strings to send back to the front-end
     d = u"\u00b0" #unicode degree symbol
-    # We want to display the lat longs in degrees minutes seconds. This converts them to that. 
-    degree_lat = dd_to_deg(np.round(lat,5))
-    degree_lon = dd_to_deg(np.round(lon,5))
-    display_lat = degree_lat[0] + d + degree_lat[1] + '\'' + degree_lat[2]
-    display_lon = degree_lon[0] + d + degree_lon[1] + '\'' + degree_lon[2]
+    # We want to display the lat longs in degrees minutes seconds. This converts them to that. Currently we are doing lat long display on the front-end
+    # degree_lat = dd_to_deg(np.round(lat,5))
+    # degree_lon = dd_to_deg(np.round(lon,5))
+    # display_lat = degree_lat[0] + d + degree_lat[1] + '\'' + degree_lat[2]
+    # display_lon = degree_lon[0] + d + degree_lon[1] + '\'' + degree_lon[2]
 
     if models['seas'] == 0 and models['wave'] == 0 and models['wind'] == 0:
             datums.write('<p style="font-size:20px">' + '<b>' 'Select a field to view lat long specific information' '</b>')
             return datums
-    datums.write('<p style="font-size:20px">' + '<b>' + " Lat " + '</b>' + display_lat + '<b>' + " Lon " + '</b>' + display_lon + '<br>')
-    # datums.write('<p style="font-size:20px">' + '<b>' + " Lat " + '</b>' + str(np.round(lat,3)) + '<b>' + " Lon " + '</b>' + str(np.round(lon,3)) + '<br>')
+    #datums.write('<p style="font-size:20px">' + '<b>' + " Lat " + '</b>' + display_lat + '<br>')
+    #datums.write('<p style="font-size:20px">' + '<b>' + " Long " + '</b>' + display_lon + '<br>')
     if models['seas'] == 1:
-        datums.write('<p style="'+str(models['sst'])+'">' + '<b>' + spacify("SST:                ") + '</b>' + str(surface_temp) + ' ' + d + 'F' + '<br>')
-        datums.write('<p style="font-size:16px;'+str(models['currents'])+'">' + '<b>' + spacify("SS Currents:  ") + '</b>' + str(current_speed) + ' Knots' + '<br>')
+        datums.write('<p class="sst">' + '<b>' + spacify("SST:                   ") + '</b>' + str(surface_temp) + ' ' + d + 'F' + '<br>')
+        datums.write('<p class="currents">' + '<b>' + spacify("SS Currents:     ") + '</b>' + str(current_speed) + ' Knots' + '<br>')
     if models['wave'] == 1 and wave_lat_lon_check == 0:
-        datums.write('<p style="'+str(models['height'])+'">' + '<b>' + spacify("Wave Height:  ") + '</b>' + str(wave_height) + ' Feet' + '<br>')
+        datums.write('<p class="wheight">' + '<b>' + spacify("Wave Height:    ") + '</b>' + str(wave_height) + ' Feet' + '<br>')
     if models['wave'] == 1 and wave_lat_lon_check == 0:
-        datums.write('<p style="'+str(models['period'])+'">' + '<b>' + spacify("Wave Period:  ") + '</b>' + str(wave_period) + ' Seconds' + '<br>')
+        datums.write('<p class="wdir">' + '<b>' + spacify("Wave Period:    ") + '</b>' + str(wave_period) + ' Seconds' + '<br>')
     if models['wave'] ==1 and wave_lat_lon_check == 1:
-        datums.write('<p style="' + str(models['height']) + '">' + '<b>' + spacify("Wave Height: ") + '</b>' + 'Outside Model'  + '<br>')
-        datums.write('<p style="' + str(models['period']) + '">' + '<b>' + spacify("Wave Period:  ") + '</b>' + 'Outside Model' + '<br>')
+        datums.write('<p class="wheight">' + '<b>' + spacify("Wave Height:  ") + '</b>' + 'Outside Model'  + '<br>')
+        datums.write('<p class="wdir">' + '<b>' + spacify("Wave Period:  ") + '</b>' + 'Outside Model' + '<br>')
     if models['wind'] == 1:
         datums.write('<p style="'+str(models['nams'])+'">' + '<b>' + "Winds: " + '</b>' + str(wind_speed) + ' Knots' + '<br>')
     if models['seas'] == 1:
-        datums.write('<p style="'+str(models['btemp'])+'">' + '<b>' + spacify("Bot Temp:      ") + '</b>' + str(bottom_temp) + ' ' + d + 'F' + '<br>')
-        datums.write('<p style="'+str(models['ssalt'])+'">' + '<b>' + spacify("SS Salinity:    ") + '</b>' + str(surface_salt) + '<br>')
-        datums.write('<p style="'+str(models['bsalt'])+'">' + '<b>' + spacify("Bot Salt:         ") + '</b>' + str(bottom_salt) + '<br>')
-        datums.write('<p style="'+str(models['ssh'])+'">' + '<b>' + spacify("SSH:               ") + '</b>' + str(ssh) + ' Feet' + '<br>')
+        datums.write('<p class="btemp">' + '<b>' + spacify("Bottom Temp:  ") + '</b>' + str(bottom_temp) + ' ' + d + 'F' + '<br>')
+        datums.write('<p class="ssalt">' + '<b>' + spacify("SS Salinity:       ") + '</b>' + str(surface_salt) + '<br>')
+        datums.write('<p class="bsalt">' + '<b>' + spacify("Bottom Salt:     ") + '</b>' + str(bottom_salt) + '<br>')
+        datums.write('<p class="ssh">' + '<b>' + spacify("SSH:                   ") + '</b>' + str(ssh) + ' Feet' + '<br>')
     return datums
 
 @csrf_exempt
