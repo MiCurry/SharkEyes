@@ -164,7 +164,6 @@ $('#date-time').change(function(e) {
     // get date so can update overlays
     var textdate = datetime[document.getElementById('date-time').value];
     //This updates the tide windows with the correct data when the dates are changed.
-{#    console.log(infowindow.getMap());#}
     if(infowindow.getMap()){
         google.maps.event.trigger(map, 'rightclick');
     }
@@ -191,9 +190,9 @@ function makeRightClickMenu(date, lat, lng, keys, dLat, dLng){
     var valid_date = date;
     var right_click_data = {"display_date": date, "lat": lat, "long": lng, "keys": keys};
     var jsonData = JSON.stringify(right_click_data);
-    var right_click_info = '<p style="font-size:20px">' + '<b>' + valid_date + '</b>' + '</p>';
-    right_click_info += '<p style="font-size:20px">' + '<b>' + " Lat " + '</b>' + dLat + '<br>';
-    right_click_info += '<p style="font-size:20px">' + '<b>' + " Lng " + '</b>' + dLng + '<br>';
+    var right_click_info = '<p style="font-size:17px">' + '<b>' + valid_date + '</b>' + '</p>';
+    right_click_info += '<p style="font-size:17px">' + '<b>' + " Lat " + '</b>' + dLat + '<br>';
+    right_click_info += '<p style="font-size:17px">' + '<b>' + " Lng " + '</b>' + dLng + '<br>';
     jQuery.ajax({
         type: 'POST',
         url: '{% url "SharkEyesCore.views.right_click_menu" %}',
@@ -225,7 +224,7 @@ function dataAtCursorCSSUpdate() {
         var key_checker = key_splitter[3].split('_');
         var active_color = "blue";
         var inactive_color = "black";
-        var active_font = 20;
+        var active_font = 17;
         var inactive_font = 17;
         if(key_checker[0] === 'sst'){
             current_keys.sst = true;
@@ -356,7 +355,7 @@ function makeTideMarker(date, station, location){
 }
 
 //**********************************************************************************************************************
-//Function for making an easily readable date for displaying in tide windows
+//Function for making an easily readable date for displaying in popup windows
 //**********************************************************************************************************************
 function validDate(date){
     var valid_date = '';
@@ -520,7 +519,7 @@ function initialize() {
     //Make the South Beach (Newport) map marker
     var southBeachInfoWindow;
     var southBeachMarker = new google.maps.Marker({
-	    position: new google.maps.LatLng(44.635621, -123.842464), //Unfortunately you cannot get proper lat-longs for new stations by using our website. Its precision is not high enough. I used Google maps at Google.com to get them.
+	    position: new google.maps.LatLng(44.635621, -123.842464), //Use Google Maps to get these values.
         map: map,
         icon: image,
         title: 'South Beach Station, Newport OR'
@@ -707,13 +706,13 @@ function prev_onclick() {
 // *********************************************************************************************************************
 function prev_next_enable_toggle() {
     var date = document.getElementById('date-time').value;
-    if (date === 0) {
+    if (date == 0) {   //pycharm reports a warning here, but adding a third = sign breaks the functionality.
         document.getElementById("previous").disabled = 'true';
     }
     else {
         document.getElementById("previous").removeAttribute("disabled");
     }
-    if (date === (numDates-1)) {
+    if (date == (numDates-1)) {
         document.getElementById("next").disabled = 'true';
     }
     else {
