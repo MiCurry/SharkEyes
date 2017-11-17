@@ -418,21 +418,21 @@ def right_click_menu(request):
     #datums.write('<p style="font-size:20px">' + '<b>' + " Long " + '</b>' + display_lon + '<br>')
     if models['seas'] == 1:
         datums.write('<p class="sst">' + '<b>' + spacify("SST:                   ") + '</b>' + str(surface_temp) + ' ' + d + 'F' + '<br>')
-        datums.write('<p class="currents">' + '<b>' + spacify("SS Currents:     ") + '</b>' + str(current_speed) + ' Knots' + '<br>')
+        datums.write('<p class="currents">' + '<b>' + spacify("SS Currents:     ") + '</b>' + str(current_speed) + ' Kts' + '<br>')
     if models['wave'] == 1 and wave_lat_lon_check == 0:
-        datums.write('<p class="wheight">' + '<b>' + spacify("Wave Height:    ") + '</b>' + str(wave_height) + ' Feet' + '<br>')
+        datums.write('<p class="wheight">' + '<b>' + spacify("Wave Height:    ") + '</b>' + str(wave_height) + ' Ft' + '<br>')
     if models['wave'] == 1 and wave_lat_lon_check == 0:
-        datums.write('<p class="wdir">' + '<b>' + spacify("Wave Period:    ") + '</b>' + str(wave_period) + ' Seconds' + '<br>')
+        datums.write('<p class="wdir">' + '<b>' + spacify("Wave Period:    ") + '</b>' + str(wave_period) + ' Sec' + '<br>')
     if models['wave'] ==1 and wave_lat_lon_check == 1:
         datums.write('<p class="wheight">' + '<b>' + spacify("Wave Height:  ") + '</b>' + 'Outside Model'  + '<br>')
         datums.write('<p class="wdir">' + '<b>' + spacify("Wave Period:  ") + '</b>' + 'Outside Model' + '<br>')
     if models['wind'] == 1:
-        datums.write('<p style="'+str(models['nams'])+'">' + '<b>' + "Winds: " + '</b>' + str(wind_speed) + ' Knots' + '<br>')
+        datums.write('<p style="'+str(models['nams'])+'">' + '<b>' + "Winds: " + '</b>' + str(wind_speed) + ' Kts' + '<br>')
     if models['seas'] == 1:
         datums.write('<p class="btemp">' + '<b>' + spacify("Bottom Temp:  ") + '</b>' + str(bottom_temp) + ' ' + d + 'F' + '<br>')
         datums.write('<p class="ssalt">' + '<b>' + spacify("SS Salinity:       ") + '</b>' + str(surface_salt) + '<br>')
         datums.write('<p class="bsalt">' + '<b>' + spacify("Bottom Salt:     ") + '</b>' + str(bottom_salt) + '<br>')
-        datums.write('<p class="ssh">' + '<b>' + spacify("SSH:                   ") + '</b>' + str(ssh) + ' Feet' + '<br>')
+        datums.write('<p class="ssh">' + '<b>' + spacify("SSH:                   ") + '</b>' + str(ssh) + ' Ft' + '<br>')
     return datums
 
 @csrf_exempt

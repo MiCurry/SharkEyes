@@ -212,7 +212,7 @@ if __name__ == "__main__":
         windFile = DataFile.objects.filter(type='WIND').latest('model_date')
         windName = windFile.file.name
         windData = netcdf.netcdf_file(os.path.join(settings.MEDIA_ROOT, settings.WIND_DIR, windName), 'r')
-        indices = numpy.shape(windData.variables['time1'])[0]
+        indices = numpy.shape(windData.variables['time'])[0]
         times = [48,52,55,56,57,59,60,61,63,64] # 49, 51, 53,  these are setup for when the model swaps to three hour increments use this to view just those dates
         raw_epoch_date = str(windFile.model_date)
         epoch_date = raw_epoch_date.split('-')
@@ -224,8 +224,7 @@ if __name__ == "__main__":
         for x in range(0, indices, 1):
             modifier = 0
             # if x < 48 and x % 4 == 0:
-            hours_since_epoch = timedelta(
-                hours=(windData.variables['time1'][x] - windData.variables['reftime1'][0]) + modifier)
+            hours_since_epoch = timedelta(hours=(windData.variables['time'][x] - windData.variables['reftime'][0]) - modifier)
             print "Time", ocean_time_epoch + hours_since_epoch, " at index ", x
             # elif x in times:
             #     if x == 57 or x == 61:
