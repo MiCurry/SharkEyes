@@ -544,7 +544,10 @@ def wind_function(ax, data_file, bmap, time_index, downsample_ratio):
 
         # Timestamps for interpolation purposes.
         # -------------------------------------------------------------------------
-        times = data_file.variables['time']
+        try:
+            times = data_file.variables['time']
+        except Exception:
+            times = data_file.variables['time1']
         size = times.shape[0]
 
         # Create two different time stamps used for interpolating

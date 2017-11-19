@@ -118,6 +118,13 @@ class WindPlotter:
         if isdst_now_in("America/Los_Angeles"):
             dst = -1
         wind_file = DataFile.objects.filter(type='WIND').latest('model_date')
+        time_var = 'time'
+        reftime_var = 'reftime'
+        try:
+            self.data_file.variables["time"]
+        except Exception:
+            time_var = 'time1'
+            reftime_var = 'reftime1'
         raw_epoch_date = str(wind_file.model_date)
         epoch_date = raw_epoch_date.split('-')
         epoch_year = int(epoch_date[0])
@@ -131,7 +138,7 @@ class WindPlotter:
         elif index == 55 or index == 59 or index == 63:
             modifier = -1
         hours_since_epoch = timedelta(
-            hours=(self.data_file.variables['time'][index] + dst - self.data_file.variables['reftime'][0]) + modifier)
+            hours=(self.data_file.variables[time_var][index] + dst - self.data_file.variables[reftime_var][0]) + modifier)
         return ocean_time_epoch + hours_since_epoch
 
     def key_check(self):
