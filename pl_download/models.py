@@ -365,11 +365,25 @@ class DataFile(models.Model):
 
     def delete(self,*args,**kwargs):
         """ Custom delete method which will also delete the DataFile's image file from the disk """
-        pathName = os.path.join(
+        alex_model_path = os.path.join(
             settings.MEDIA_ROOT  + settings.NETCDF_STORAGE_DIR + "/" + self.file.name)
 
-        if os.path.isfile(pathName):
-            os.remove(pathName)
+        wave_model_path = os.path.join(
+            settings.MEDIA_ROOT + settings.WAVE_WATCH_DIR + "/" + self.file.name
+        )
+
+        wind_model_path = os.path.join(
+            settings.MEDIA_ROOT + settings.WIND_DIR + "/" + self.file.name
+        )
+
+        if os.path.isfile(alex_model_path):
+            os.remove(alex_model_path)
+
+        if os.path.isfile(wave_model_path):
+            os.remove(wave_model_path)
+
+        if os.path.isfile(wind_model_path):
+            os.remove(wind_model_path)
 
         #Delete the model instance
         super(DataFile, self).delete(*args,**kwargs)
