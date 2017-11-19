@@ -5,9 +5,10 @@ import traceback
 from uuid import uuid4
 from scipy.io import netcdf
 import numpy
+import pytz
 from matplotlib import pyplot
 from mpl_toolkits.basemap import Basemap
-
+from pl_download.models import DataFile
 from django.utils import timezone
 from django.conf import settings
 from datetime import datetime, timedelta
@@ -107,16 +108,38 @@ class WindPlotter:
         )
 
     def get_number_of_model_times(self):
-        return 24 #This is the number of time_indexes for the wind model after interpolating from 3 hour increments to 4
+        return numpy.shape(self.data_file.variables['time'])[0]
 
-    def get_time_at_oceantime_index(self,index):
-        time = timezone.now()+ timedelta(hours=7)-timedelta(days=1)
-        time = time.replace(hour = 0, minute = 0, second = 0, microsecond = 0)
-        if(index == 0):
-            time = time.replace(hour = 0)
-        else:
-            time = time + timedelta(hours = (index * 4))
-        return time
+    def get_time_at_oceantime_index(self, index):
+        # The Wind model uses a dynamic reference date for date calculation
+        # This calculates that date and then uses it to calculate the dates for each index
+        dst = 0
+        isdst_now_in = lambda zonename: bool(datetime.now(pytz.timezone(zonename)).dst())
+        if isdst_now_in("America/Los_Angeles"):
+            dst = -1
+        wind_file = DataFile.objects.filter(type='WIND').latest('model_date')
+        time_var = 'time'
+        reftime_var = 'reftime'
+        try:
+            self.data_file.variables["time"]
+        except Exception:
+            time_var = 'time1'
+            reftime_var = 'reftime1'
+        raw_epoch_date = str(wind_file.model_date)
+        epoch_date = raw_epoch_date.split('-')
+        epoch_year = int(epoch_date[0])
+        epoch_month = int(epoch_date[1])
+        epoch_day = int(epoch_date[2])
+        ocean_time_epoch = datetime(day=epoch_day, month=epoch_month, year=epoch_year, hour=8, minute=0, second=0,
+                                    tzinfo=timezone.utc)
+        modifier = 0
+        if index == 57 or index == 61:
+            modifier = 1
+        elif index == 55 or index == 59 or index == 63:
+            modifier = -1
+        hours_since_epoch = timedelta(
+            hours=(self.data_file.variables[time_var][index] + dst - self.data_file.variables[reftime_var][0]) + modifier)
+        return ocean_time_epoch + hours_since_epoch
 
     def key_check(self):
         # The Barb Key is Static, so make sure its in the correct directory each time we make a plot

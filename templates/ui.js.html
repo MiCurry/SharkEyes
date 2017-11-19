@@ -29,6 +29,17 @@ var visibleKeys = [];
 var visible_FC = false;
 // is there an active vector (V) being displayed
 var visible_V = false;
+//These are variables for the data at the cursor.
+//******************************************************************
+// infoWindow is the window that is displayed also used to determine if a window is open
+// lat, long, and position are used to save the last location queried so it can be updated when the date changes
+// right_click_menu_content holds the html that will be in the window
+//******************************************************************
+var infowindow = new google.maps.InfoWindow;
+var lat = 0;
+var lng = 0;
+var position = 0;
+var right_click_menu_content = '';
 //These are variables for the tide stations.
 //******************************************************************
 //New tide tables can be found at http://tidesandcurrents.noaa.gov/tide_predictions.html?gid=1409
@@ -128,15 +139,15 @@ $(".overlay-toggle").click(function(e) {
     // get id of the toggle
     var type = toggle.attr('id');
     // insert/remove overlay
-    if (prevState == false) {
+    if (prevState === false) {
         // fix conflicting toggle states
         for (name in definitions) {
-            if (name != type && definitions[name][0] == definitions[type][0]){
+            if (name !== type && definitions[name][0] === definitions[type][0]){
                 $("#" + name + ".toggle-checkbox").prop('checked', false);
                 remove_overlay(type);
             }
         }
-        if(insert_overlay(textdate, type) != true) {
+        if(insert_overlay(textdate, type) !== true) {
             toggle.prop('checked', false);
             warning_message(textdate, type);
         }
@@ -144,6 +155,7 @@ $(".overlay-toggle").click(function(e) {
     else {
         remove_overlay(type);
     }
+    dataAtCursorCSSUpdate();
 });
 // run update_overlays to enable disable as needed
 update_overlays(datetime[document.getElementById('date-time').value]);
@@ -152,6 +164,9 @@ $('#date-time').change(function(e) {
     // get date so can update overlays
     var textdate = datetime[document.getElementById('date-time').value];
     //This updates the tide windows with the correct data when the dates are changed.
+    if(infowindow.getMap()){
+        google.maps.event.trigger(map, 'rightclick');
+    }
     southBeachContent = '';
     astoriaContent = '';
     coosContent = '';
@@ -166,6 +181,149 @@ $('#date-time').change(function(e) {
     // update overlays
     update_overlays(textdate);
 });
+
+//**********************************************************************************************************************
+//Data at the Cursor Function
+//**********************************************************************************************************************
+//Makes a call to the backend to get lat lon specific information
+function makeRightClickMenu(date, lat, lng, keys, dLat, dLng){
+    var valid_date = date;
+    var right_click_data = {"display_date": date, "lat": lat, "long": lng, "keys": keys};
+    var jsonData = JSON.stringify(right_click_data);
+    var right_click_info = '<p style="font-size:17px">' + '<b>' + valid_date + '</b>' + '</p>';
+    right_click_info += '<p style="font-size:17px">' + '<b>' + " Lat " + '</b>' + dLat + '<br>';
+    right_click_info += '<p style="font-size:17px">' + '<b>' + " Lng " + '</b>' + dLng + '<br>';
+    jQuery.ajax({
+        type: 'POST',
+        url: '{% url "SharkEyesCore.views.right_click_menu" %}',
+        data: jsonData,
+        datatype: "JSON",
+        success: function(data){
+                right_click_info += data;
+        },
+        async: false, //Running with async true returns nothing
+        error: function(xhr, ajaxOptions, thrownError){
+            alert(xhr.status);
+            alert(thrownError);
+        }
+    });
+    return right_click_info;
+}
+
+//**********************************************************************************************************************
+//Data at the Cursor Window CSS Updater
+//**********************************************************************************************************************
+//Checks for the currently selected fields and updates the data at the cursor popup css to highlight the selected fields
+function dataAtCursorCSSUpdate() {
+    var current_keys = {"sst":false, "currents":false, 'wheight':false, 'wdir':false, 'btemp':false, 'ssalt':false, 'bsalt':false, 'ssh':false};
+    if(visibleKeys.length === 0){
+        infowindow.close();
+    }
+    for(var i=0; i < visibleKeys.length; i++){
+        var key_splitter = visibleKeys[i].split('/');
+        var key_checker = key_splitter[3].split('_');
+        var active_color = "blue";
+        var inactive_color = "black";
+        var active_font = 17;
+        var inactive_font = 17;
+        if(key_checker[0] === 'sst'){
+            current_keys.sst = true;
+        }
+        else if(key_checker[0] === 'currents'){
+            current_keys.currents = true;
+        }
+        else if(key_checker[0] === 'wave' && key_checker[1] === 'height'){
+            current_keys.wheight = true;
+        }
+        else if(key_checker[0] === 'wave' && key_checker[1] === 'direction'){
+            current_keys.wdir = true;
+        }
+        else if(key_checker[0] === 'bottom' && key_checker[1] === 'temp'){
+            current_keys.btemp = true;
+        }
+        else if(key_checker[0] === 'salt'){
+            current_keys.ssalt = true;
+        }
+        else if(key_checker[0] === 'bottom' && key_checker[1] === 'salt'){
+            current_keys.bsalt = true;
+        }
+        else if(key_checker[0] === 'ssh'){
+            current_keys.ssh = true;
+        }
+    }
+    //Check SST
+    if(current_keys.sst === true){
+        document.documentElement.style.setProperty('--sst-color', active_color);
+        document.documentElement.style.setProperty('--sst-font', active_font + 'px');
+    }
+    else{
+        document.documentElement.style.setProperty('--sst-color', inactive_color);
+        document.documentElement.style.setProperty('--sst-font', inactive_font + 'px');
+    }
+    //Check Currents
+    if(current_keys.currents === true){
+        document.documentElement.style.setProperty('--currents-color', active_color);
+        document.documentElement.style.setProperty('--currents-font', active_font + 'px');
+    }
+    else{
+            document.documentElement.style.setProperty('--currents-color', inactive_color);
+            document.documentElement.style.setProperty('--currents-font', inactive_font + 'px');
+        }
+    //Check Wave Height
+    if(current_keys.wheight === true){
+        document.documentElement.style.setProperty('--wheight-color', active_color);
+        document.documentElement.style.setProperty('--wheight-font', active_font + 'px');
+    }
+    else{
+            document.documentElement.style.setProperty('--wheight-color', inactive_color);
+            document.documentElement.style.setProperty('--wheight-font', inactive_font + 'px');
+        }
+    //Check Wave Direction and Period
+    if(current_keys.wdir === true){
+        document.documentElement.style.setProperty('--wdir-color', active_color);
+        document.documentElement.style.setProperty('--wdir-font', active_font + 'px');
+    }
+    else{
+            document.documentElement.style.setProperty('--wdir-color', inactive_color);
+            document.documentElement.style.setProperty('--wdir-font', inactive_font + 'px');
+        }
+    //Checks Bottom Temp
+    if(current_keys.btemp === true){
+        document.documentElement.style.setProperty('--btemp-color', active_color);
+        document.documentElement.style.setProperty('--btemp-font', active_font + 'px');
+    }
+    else{
+            document.documentElement.style.setProperty('--btemp-color', inactive_color);
+            document.documentElement.style.setProperty('--btemp-font', inactive_font + 'px');
+        }
+    //Checks Surface Temp
+    if(current_keys.ssalt === true){
+        document.documentElement.style.setProperty('--ssalt-color', active_color);
+        document.documentElement.style.setProperty('--ssalt-font', active_font + 'px');
+    }
+    else{
+            document.documentElement.style.setProperty('--ssalt-color', inactive_color);
+            document.documentElement.style.setProperty('--ssalt-font', inactive_font + 'px');
+        }
+    //Checks Bottom Salt
+    if(current_keys.bsalt === true){
+        document.documentElement.style.setProperty('--bsalt-color', active_color);
+        document.documentElement.style.setProperty('--bsalt-font', active_font + 'px');
+    }
+    else{
+            document.documentElement.style.setProperty('--bsalt-color', inactive_color);
+            document.documentElement.style.setProperty('--bsalt-font', inactive_font + 'px');
+        }
+    //Checks SSh
+    if(current_keys.ssh === true){
+        document.documentElement.style.setProperty('--ssh-color', active_color);
+        document.documentElement.style.setProperty('--ssh-font', active_font + 'px');
+    }
+    else{
+            document.documentElement.style.setProperty('--ssh-color', inactive_color);
+            document.documentElement.style.setProperty('--ssh-font', inactive_font + 'px');
+        }
+}
 
 //**********************************************************************************************************************
 //Map Marker Function
@@ -197,7 +355,7 @@ function makeTideMarker(date, station, location){
 }
 
 //**********************************************************************************************************************
-//Function for making an easily readable date for displaying in tide windows
+//Function for making an easily readable date for displaying in popup windows
 //**********************************************************************************************************************
 function validDate(date){
     var valid_date = '';
@@ -285,7 +443,7 @@ function initialize() {
             style: google.maps.ZoomControlStyle.LARGE,
             position: google.maps.ControlPosition.TOP_RIGHT
         },
-        center: new google.maps.LatLng(44.032222, -128.2),
+        center: new google.maps.LatLng(44.150363, -133.537875),
         zoom: 7,
         mapTypeControl: false,
         scaleControl: true,
@@ -302,6 +460,48 @@ function initialize() {
     google.maps.event.addListener(map, 'mousemove', function(event) {
         LatLongUpdate(event);
     });
+
+    //**********************************************************************************************************************
+    //Right Click Menu
+    //**********************************************************************************************************************
+    //This is the event handler to create the window for the data at the cursor. It uses the google maps api for info windows
+    // I wanted to do this with a function and just have two listeners but I currently cannot get it to work correctly
+{#    google.maps.event.addListener(map, "rightclick", data_at_cursor);#}
+{#    google.maps.event.addListener(map, "dblclick", data_at_cursor);#}
+
+    google.maps.event.addListener(map, "rightclick", function(event){
+        var current_date = datetime[document.getElementById('date-time').value];
+        if (typeof event !== "undefined") {
+            lat = event.latLng.lat();
+            lng = event.latLng.lng();
+            position = event.latLng;
+        }
+        var location = dataAtCursorLatLong(lat, lng);
+        var displayLat = location.lat;
+        var displayLon = location.long;
+        infowindow.setPosition(position);
+        right_click_menu_content = makeRightClickMenu(current_date, lat, lng, visibleKeys, displayLat, displayLon);
+        infowindow.setContent(right_click_menu_content);
+        infowindow.open(map);
+    });
+
+    // The double click check is for mobile devices and touch screens. Google Maps API does not have a taphold event. Has nice side-effect of slightly zooming in on the location for desktop browsers.
+    google.maps.event.addListener(map, "dblclick", function(event){
+        var current_date = datetime[document.getElementById('date-time').value];
+        if (typeof event !== "undefined") {
+            lat = event.latLng.lat();
+            lng = event.latLng.lng();
+            position = event.latLng;
+        }
+        var location = dataAtCursorLatLong(lat, lng);
+        var displayLat = location.lat;
+        var displayLon = location.long;
+        infowindow.setPosition(position);
+        right_click_menu_content = makeRightClickMenu(current_date, lat, lng, visibleKeys, displayLat, displayLon);
+        infowindow.setContent(right_click_menu_content);
+        infowindow.open(map);
+    });
+
     //a hack to make sure the scale is in miles... (can we do better?)
     var scaleInterval = setInterval(function() {
         var scale = $(".gm-style-cc:not(.gmnoprint):contains(' km')");
@@ -319,14 +519,14 @@ function initialize() {
     //Make the South Beach (Newport) map marker
     var southBeachInfoWindow;
     var southBeachMarker = new google.maps.Marker({
-	    position: new google.maps.LatLng(44.635621, -123.842464), //Unfortunately you cannot get proper lat-longs for new stations by using our website. Its precision is not high enough. I used Google maps at Google.com to get them.
+	    position: new google.maps.LatLng(44.635621, -123.842464), //Use Google Maps to get these values.
         map: map,
         icon: image,
         title: 'South Beach Station, Newport OR'
     });
 
     southBeachMarker.addListener('click', function(){
-        if(southBeachFlag == 0) {
+        if(southBeachFlag === 0) {
             southBeachContent += makeTideMarker(datetime[0], southBeachId, 'South Beach');
             southBeachFlag = 1;
         }
@@ -346,7 +546,7 @@ function initialize() {
     });
 
     astoriaMarker.addListener('click', function(){
-        if(astoriaFlag == 0) {
+        if(astoriaFlag === 0) {
             astoriaContent += makeTideMarker(datetime[0], astoriaId, 'Astoria');
             astoriaFlag = 1;
         }
@@ -366,7 +566,7 @@ function initialize() {
     });
 
     coosMarker.addListener('click', function(){
-        if(coosFlag == 0) {
+        if(coosFlag === 0) {
             coosContent += makeTideMarker(datetime[0], coosId, 'Coos Bay');
             coosFlag = 1;
         }
@@ -386,7 +586,7 @@ function initialize() {
     });
 
     orfordMarker.addListener('click', function(){
-        if(orfordFlag == 0) {
+        if(orfordFlag === 0) {
             orfordContent += makeTideMarker(datetime[0], orfordId, 'Port Orford');
             orfordFlag = 1;
         }
@@ -426,6 +626,31 @@ function LatLongUpdate(event) {
     // set lat long in sidebar
     $("#coords-lat").html(ret.lat);
     $("#coords-long").html(ret.long);
+}
+
+// This mimics the sidebar lat long updater to make the data at cursor menu lat long match the sidebar lat long
+function dataAtCursorLatLong(lat, long) {
+    // tempary variable to hold stuffs
+    var location = {lat:"", long:""};
+    var temp;
+    // hours
+    lat = lat.toString().split(".");
+    long = long.toString().split(".");
+    location.lat += lat[0];
+    location.long += long[0];
+    // minutes
+    temp = ("0." + lat[1]) * 60;
+    lat = temp.toString().split(".");
+    location.lat += "°" + lat[0];
+    temp = ("0." + long[1]) * 60;
+    long = temp.toString().split(".");
+    location.long += "°" + long[0];
+    // seconds
+    temp = ("0." + lat[1]) * 60;
+    location.lat += "'" + Math.round(temp) + '"';
+    temp = ("0." + long[1]) * 60;
+    location.long += "'" + Math.round(temp) + '"';
+    return location;
 }
 
 // *********************************************************************************************************************
@@ -481,7 +706,7 @@ function prev_onclick() {
 // *********************************************************************************************************************
 function prev_next_enable_toggle() {
     var date = document.getElementById('date-time').value;
-    if (date == 0) {
+    if (date == 0) {   //pycharm reports a warning here, but adding a third = sign breaks the functionality.
         document.getElementById("previous").disabled = 'true';
     }
     else {
@@ -502,17 +727,17 @@ function prev_next_enable_toggle() {
 function update_overlays(date) {
     for (name in definitions) {
         // enable disable toggles depending on if models is available
-        if (datedic[date][name] == null) {
-            console.log("disable true " + name);
+        if (datedic[date][name] === null) {
+{#            console.log("disable true " + name);#}
             $("#" + name).prop('class', 'disabled');
         }
         else {
-            console.log("disable false " + name);
+{#            console.log("disable false " + name);#}
             $("#" + name).prop('class', 'option');
         }
         // enable desired overlays
         if($("#" + name + ".toggle-checkbox").prop("checked")) {
-            if (insert_overlay(date, name) != true) {
+            if (insert_overlay(date, name) !== true) {
                 remove_overlay(name);
                 warning_message(date, name);
             }
@@ -526,7 +751,7 @@ function update_overlays(date) {
 // returns false on failure
 // *********************************************************************************************************************
 function insert_overlay(date, type) {
-    if (datedic[date][type] == null) {
+    if (datedic[date][type] === null) {
         return false;
     }
     var overlayURL = datedic[date][type][0];
@@ -548,8 +773,8 @@ function insert_overlay(date, type) {
         isPng: true,
         opacity:.8
     });
-    if (overlayType == "FC") {
-        if (visible_FC == true) {
+    if (overlayType === "FC") {
+        if (visible_FC === true) {
             map.overlayMapTypes.removeAt(0);
             visibleKeys.splice(0, 1);
         }
@@ -557,8 +782,8 @@ function insert_overlay(date, type) {
         map.overlayMapTypes.insertAt(0, x);
         visibleKeys.splice(0, 0, loc + overlayKey);
     }
-    else if (overlayType == "V") {
-        if (visible_V == true) {
+    else if (overlayType === "V") {
+        if (visible_V === true) {
             map.overlayMapTypes.pop();
             visibleKeys.splice(-1, 1);
         }
@@ -577,15 +802,15 @@ function insert_overlay(date, type) {
 // *********************************************************************************************************************
 function remove_overlay(type) {
     var overlayType = definitions[type][0];
-    if (overlayType == "FC") {
-        if (visible_FC == true) {
+    if (overlayType === "FC") {
+        if (visible_FC === true) {
             map.overlayMapTypes.removeAt(0);
             visibleKeys.splice(0, 1);
         }
         visible_FC = false;
     }
-    else if (overlayType == "V") {
-        if (visible_V == true) {
+    else if (overlayType === "V") {
+        if (visible_V === true) {
             map.overlayMapTypes.pop();
             visibleKeys.splice(-1, 1);
         }
@@ -596,7 +821,7 @@ function remove_overlay(type) {
         $("#key-img").hide();
         $("#key").hide();
     }
-    // this is bad makes assumption that only ever two in visibleKeys
+    // this is bad makes assumption that there is only ever two in visibleKeys
     // If you increase the number of fields that can be shown on
     // On screen you will need to change this.
     else {

@@ -28,7 +28,6 @@
         <h2>Map Data Layers</h2>
 
       <table>
-
         {% for item in defs %}
         <tr id="{{ item.function_name }}" class="option overlay-toggle">
           <td class="col-one">{{ item.display_name_long }}</td>
@@ -45,9 +44,12 @@
           </td>
         </tr>
         {% endfor %}
-
       </table>
-
+      <table>
+          <tr>
+              <td class="click">Right click or double tap for data at the cursor</td>
+          </tr>
+      </table>
         <h2>Options</h2>
 
     <table>

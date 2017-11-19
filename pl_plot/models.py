@@ -1,20 +1,15 @@
 import os
 import datetime
 from uuid import uuid4
-
 from scipy.io import netcdf_file
-import numpy
 import shutil
-
 from django.db import models
 from django.utils import timezone
 from django.db.models.aggregates import Max
 from django.conf import settings
 from datetime import timedelta
-
 from celery import group
 from celery import shared_task
-
 from pl_download.models import DataFile, DataFileManager
 from pl_plot.plotter import Plotter, WaveWatchPlotter, WindPlotter
 from pl_plot import plot_functions
@@ -99,28 +94,32 @@ class OverlayManager(models.Manager):
 
             # Wavewatch and SST/currents files use a separate Plot function.
             if datafile.file.name.startswith(settings.OSU_WW3_DF_FN):
-                for t in xrange(0, 85):
+                for t in range(20, 85, 4):
                     # The unchopped file's index starts at noon: index = 0 and progresses throgh 85 forecasts, one per hour,
                     # for the next 85 hours.
                     # Only plot every 4th index to match up with the SST forecast.
                     # WaveWatch has forecasts for every hour but at this time we don't need them all.
-                    if t % 4 == 0:
-                        task_list.append(cls.make_wave_watch_plot.subtask(args=(settings.OSU_WW3_HI, t, fid), immutable=True))
-                        task_list.append(cls.make_wave_watch_plot.subtask(args=(settings.OSU_WW3_DIR, t, fid), immutable=True))
+                    task_list.append(cls.make_wave_watch_plot.subtask(args=(settings.OSU_WW3_HI, t, fid), immutable=True))
+                    task_list.append(cls.make_wave_watch_plot.subtask(args=(settings.OSU_WW3_DIR, t, fid), immutable=True))
             elif datafile.file.name.startswith(settings.NAMS_WIND_DF_FN):
                 plotter = WindPlotter(datafile.file.name)
                 number_of_times = plotter.get_number_of_model_times()
-                print "WIND!"
-                for t in xrange(number_of_times):
-                    task_list.append(cls.make_plot.subtask(args=(settings.NAMS_WIND, t, fid), immutable=True))
+                for t in range(0, number_of_times, 1):
+                    if t < 56:
+                        if t % 4 == 0:
+                            task_list.append(cls.make_plot.subtask(args=(settings.NAMS_WIND, t, fid), immutable=True))
+                    elif t > 56:
+                        threehourindices = [57, 59,60,61,63,64]
+                        if t in threehourindices:
+                            task_list.append(cls.make_plot.subtask(args=(settings.NAMS_WIND, t, fid), immutable=True))
             else:
                 plotter = Plotter(datafile.file.name)
                 number_of_times = plotter.get_number_of_model_times()
 
-                for t in xrange(number_of_times):
-                    #SST Now has values every 2 hours, but we only want every 4
-                    #This only adds the task for every other time stamp
+                for t in range(0, number_of_times, 1):
                     if t % 2 != 0:
+                        #SST Now has values every 2 hours, but we only want every 4
+                        #This only adds the task for every other time stamp
                         #using EXTEND because we are adding multiple items: might also be able to use APPEND
                         task_list.extend(cls.make_plot.subtask(args=(od_id, t, fid),
                                                                immutable=True) for od_id in [settings.OSU_ROMS_SST,
@@ -152,14 +151,6 @@ class OverlayManager(models.Manager):
             Overlay.delete(eachfile)
 
         return True
-
-        datafile = DataFile.objects.get(pk=file_id)
-        data_file = netcdf_file(os.path.join(settings.MEDIA_ROOT, settings.NETCDF_STORAGE_DIR, datafile.file.name))
-        currents_u = data_file.variables['u'][forecast_index][39]
-        currents_v = data_file.variables['v'][forecast_index][39]
-
-        print "currents u:", 10.0*currents_u
-        print "\n\n\ncurrents v:", 10.0*currents_v
 
     @staticmethod
     @shared_task(name='pl_plot.make_wave_watch_plot')
@@ -276,11 +267,11 @@ class OverlayManager(models.Manager):
         zoom_levels_for_currents = [('2-7', 8),  ('8-12', 4)]
         zoom_levels_for_others = [(None, None)]
         zoom_levels_for_winds = [('1-10', 2), ('11-12', 1)]
-        if file_id is None:
-            datafile = DataFile.objects.latest('model_date')
+        # if file_id is None:
+        #     datafile = DataFile.objects.latest('model_date')
 
         # If plotting winds grab the latest wind file
-        elif overlay_definition_id == settings.NAMS_WIND:
+        if overlay_definition_id == settings.NAMS_WIND:
             datafile = DataFile.objects.filter(type='WIND').latest('model_date')
         else:
             datafile = DataFile.objects.get(pk=file_id)
@@ -290,6 +281,7 @@ class OverlayManager(models.Manager):
             plotter = WindPlotter(datafile.file.name)
         else:
             plotter = Plotter(datafile.file.name)
+            #print "time from models = ", plotter.get_time_at_oceantime_index(time_index)
 
         overlay_definition = OverlayDefinition.objects.get(pk=overlay_definition_id)
 
