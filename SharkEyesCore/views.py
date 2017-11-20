@@ -450,7 +450,6 @@ def tides(request):
         info = line.split()
         if info[0] == display_date:
             info.pop(5)
-            print "info ", info
             response.write('<tr>')
             for x in info[2:]:
                 response.write('<th style="padding:0 10px 0 0px;">' + x + '</th>')
