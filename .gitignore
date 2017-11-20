@@ -123,4 +123,7 @@ $RECYCLE.BIN/
 # Django ____________________
 settings_local.py
 
+#Other Files
+debugging.txt
+
 
