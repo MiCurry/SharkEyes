@@ -445,18 +445,15 @@ def tides(request):
     address = '/opt/sharkeyes/src/static_files/tides/' + station_id + '.txt'
     fopen = open(address, 'r')
     response = HttpResponse()
-    response.write('<table class="tides"><tr><th>Time</th><th></th><th>Feet</th><th>High/Low</th>')
+    response.write('<table class="tides"><tr><th>Time</th><th></th><th>Feet</th><th>H/L</th>')
     for line in fopen:
         info = line.split()
         if info[0] == display_date:
             info.pop(5)
-            # meridian = info[3]
-            # info.pop(3)
-            # info[2] = info[2] + " " + meridian
             print "info ", info
             response.write('<tr>')
             for x in info[2:]:
-                response.write('<td>' + x + '</td>')
+                response.write('<th style="padding:0 10px 0 0px;">' + x + '</th>')
             response.write('</tr>')
     response.write('</table>')
     return response
