@@ -26,9 +26,9 @@ if __name__ == "__main__":
         from pl_plot.models import OverlayManager
         from pl_chop.tasks import tile_overlay, tile_wave_watch_overlay
         from pl_plot.plotter import WindPlotter, Plotter
-        wave = 0
+        wave = 1
         sst = 0
-        wind = 1
+        wind = 0
         if wave:
             #DataFileManager.get_latest_wave_watch_files()
             wave = DataFile.objects.filter(type='WAVE').latest('model_date')
@@ -38,7 +38,7 @@ if __name__ == "__main__":
             #need to offset 16 to match with sst plot
             #NOTE it increments in 1 hour changes
             tiles += OverlayManager.make_wave_watch_plot(4, 20, wave.id)
-            tiles += OverlayManager.make_wave_watch_plot(6, 20, wave.id)
+            #tiles += OverlayManager.make_wave_watch_plot(6, 20, wave.id)
             for t in tiles:
                 tile_wave_watch_overlay(t)
             finish = time.time()

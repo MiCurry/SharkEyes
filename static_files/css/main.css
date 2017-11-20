@@ -345,6 +345,12 @@ table td.col-three {
   font-weight: bold;
 }
 
+table.tides{
+    text-align: left;
+    font-size:17px;
+    width: 85%;
+}
+
 .lbl {
   display: inline-block;
   float: left; }
