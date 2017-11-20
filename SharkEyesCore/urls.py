@@ -6,8 +6,8 @@ from django.conf import settings
 admin.autodiscover()
 
 urlpatterns = patterns('',
-    url(r'^$', 'SharkEyesCore.views.home', name='home'),
-    #url(r'^$', 'SharkEyesCore.views.oops', name='oops'),
+    #url(r'^$', 'SharkEyesCore.views.home', name='home'),
+    url(r'^$', 'SharkEyesCore.views.oops', name='oops'),
     url(r'^about.html', 'SharkEyesCore.views.about', name='about'),
     url(r'^admin/', include(admin.site.urls)),
     url(r'^pl_plot/', include('pl_plot.urls')),
