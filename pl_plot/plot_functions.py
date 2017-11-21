@@ -532,7 +532,7 @@ def wind_function(ax, data_file, bmap, time_index, downsample_ratio):
     wind_u = numpy.multiply(wind_u, 1.943)
     wind_v = numpy.multiply(wind_v, 1.943)
 
-    interpindices = -1
+    interpindices = [-1]
     time_var = 'time'
     try:
         data_file.variables["time"]
