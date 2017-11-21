@@ -82,8 +82,8 @@ if __name__ == "__main__":
         from pl_plot.models import OverlayManager as om
         from pl_chop.tasks import tile_overlay, tile_wave_watch_overlay
         from pl_plot.plotter import WindPlotter, Plotter
-        wave = 1
-        sst = 1
+        wave = 0
+        sst = 0
         wind = 1
 
         if wave:
@@ -136,11 +136,11 @@ if __name__ == "__main__":
             plotter = WindPlotter(winds.file.name)
             number_of_times = plotter.get_number_of_model_times()
             for t in range(0, number_of_times, 1):
-                indices = [37,39,40,41,43,44,45,47,48,49,51,52]
-                if t < 36 and t % 4 == 0:
+                indices = [55,56,57,59,60,61,63,64,65,67,68]
+                if t < 48 and t % 4 == 0:
                     print "Plotting and Tiling NAMS - Time_Index:", t
                     tile_overlay(om.make_plot(5, t, id))
-                elif t > 36 and t in indices:
+                elif t > 48 and t in indices:
                     print "Plotting and Tiling NAMS - Time_Index:", t
                     tile_overlay(om.make_plot(5, t, id))
                 print "plot/tile success"
