@@ -231,7 +231,7 @@ if __name__ == "__main__":
         ocean_time_epoch = datetime(day=epoch_day, month=epoch_month, year=epoch_year, hour=0, minute=0, second=0,
                                     tzinfo=timezone.utc)
         print "Ocean Time Epoch ", ocean_time_epoch
-        for x in range(61, indices, 1):
+        for x in range(0, indices, 1):
             modifier = 0
             # if x < 48 and x % 4 == 0:
             hours_since_epoch = timedelta(hours=(windData.variables[time_var][x] - (windData.variables[reftime_var][0] + modifier)))
