@@ -108,7 +108,12 @@ class WindPlotter:
         )
 
     def get_number_of_model_times(self):
-        return numpy.shape(self.data_file.variables['time'])[0]
+        time_var = 'time'
+        try:
+            self.data_file.variables["time"]
+        except Exception:
+            time_var = 'time1'
+        return numpy.shape(self.data_file.variables[time_var])[0]
 
     def get_time_at_oceantime_index(self, index):
         # The Wind model uses a dynamic reference date for date calculation
@@ -130,15 +135,32 @@ class WindPlotter:
         epoch_year = int(epoch_date[0])
         epoch_month = int(epoch_date[1])
         epoch_day = int(epoch_date[2])
-        ocean_time_epoch = datetime(day=epoch_day, month=epoch_month, year=epoch_year, hour=8, minute=0, second=0,
+        ocean_time_epoch = datetime(day=epoch_day, month=epoch_month, year=epoch_year, hour=0, minute=0, second=0,
                                     tzinfo=timezone.utc)
+        swap_time = numpy.shape(self.data_file.variables[time_var])[0]
+        if swap_time > 70:
+            mod_plus = [61,65,69]
+            mod_sub = [63,67,71]
+            no_mod = [64,68,72]
+        elif 65 > swap_time < 70:
+            mod_plus = [57,61,65]
+            mod_sub = [55,59,63,67]
+            no_mod = [56,60,64,68]
+        elif swap_time < 60:
+            mod_plus = [37,41,45,49]
+            mod_sub = [39,43,47,51]
+            no_mod = [40,44,48,52]
         modifier = 0
-        if index == 57 or index == 61:
+        if index in mod_plus:
             modifier = 1
-        elif index == 55 or index == 59 or index == 63:
+        elif index in mod_sub:
             modifier = -1
+        elif index in no_mod:
+            modifier = 0
+
         hours_since_epoch = timedelta(
             hours=(self.data_file.variables[time_var][index] + dst - self.data_file.variables[reftime_var][0]) + modifier)
+        print "Plotted time ", ocean_time_epoch + hours_since_epoch
         return ocean_time_epoch + hours_since_epoch
 
     def key_check(self):
