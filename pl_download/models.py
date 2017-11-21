@@ -242,10 +242,14 @@ class DataFileManager(models.Manager):
         destination_directory = os.path.join(settings.MEDIA_ROOT, settings.WIND_DIR)
 
         current_time = datetime.now().date()
+        print "Current time ", current_time
         generated_time = datetime.now().today()
+        print "Generated time ", generated_time
         modified_datetime = timezone.make_aware(generated_time, timezone.utc)
+        print "Modified Datetime ", modified_datetime
         end_time = datetime.now().date()+timedelta(days=4)
-        begin = str(current_time) + 'T08%3A00%3A00Z'
+        print "End Time ", end_time
+        begin = str(current_time) + 'T00%3A00%3A00Z'
         end = str(end_time) + 'T00%3A00%3A00Z'
 
         local_filename = "{0}_{1}.nc".format(settings.NAMS_WIND_DF_FN, current_time)
@@ -259,7 +263,7 @@ class DataFileManager(models.Manager):
         if not matches_old_file:
             print "Downloading Wind file "
             #If you need to modify the time, or coordinates for the downloaded wind file change this values in url
-            url = 'http://thredds.ucar.edu/thredds/ncss/grib/NCEP/NAM/CONUS_12km/conduit/Best?var=u-component_of_wind_height_above_ground&var=v-component_of_wind_height_above_ground&north=48.563922&west=-129.876507&east=-123.863860&south=40&horizStride=1&time_start='+begin+'&time_end='+end+'&timeStride=1&vertCoord=&addLatLon=true&accept=netcdf'
+            url = 'http://thredds.ucar.edu/thredds/ncss/grib/NCEP/NAM/CONUS_12km/conduit/Best?var=u-component_of_wind_height_above_ground&var=v-component_of_wind_height_above_ground&north=48.563922&west=-129.876507&east=-123.863860&south=40&disableProjSubset=on&horizStride=1&time_start='+begin+'&time_end='+end+'&timeStride=1&vertCoord=&addLatLon=true&accept=netcdf'
             urllib.urlretrieve(url=url, filename=os.path.join(destination_directory, local_filename))
             print "Download Complete "
 

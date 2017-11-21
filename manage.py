@@ -26,9 +26,9 @@ if __name__ == "__main__":
         from pl_plot.models import OverlayManager
         from pl_chop.tasks import tile_overlay, tile_wave_watch_overlay
         from pl_plot.plotter import WindPlotter, Plotter
-        wave = 1
+        wave = 0
         sst = 0
-        wind = 0
+        wind = 1
         if wave:
             #DataFileManager.get_latest_wave_watch_files()
             wave = DataFile.objects.filter(type='WAVE').latest('model_date')
@@ -199,7 +199,7 @@ if __name__ == "__main__":
                 print "Date = ", check_date, " at index ", x
 
     elif sys.argv[-1] == "winddates": #use this to view what the timestamps are for each index of the wind model
-        print "Times for the wind model is local time"
+        print "Times for the wind model"
         from datetime import datetime, timedelta
         from django.utils import timezone
         import numpy
@@ -217,9 +217,11 @@ if __name__ == "__main__":
         try:
             windData.variables["time"]
         except Exception:
+            print "Variables = time1"
             time_var = 'time1'
             reftime_var = 'reftime1'
         indices = numpy.shape(windData.variables[time_var])[0]
+        print "Indices ", indices
         times = [48,52,55,56,57,59,60,61,63,64] # 49, 51, 53,  these are setup for when the model swaps to three hour increments use this to view just those dates
         raw_epoch_date = str(windFile.model_date)
         epoch_date = raw_epoch_date.split('-')
@@ -228,11 +230,12 @@ if __name__ == "__main__":
         epoch_day = int(epoch_date[2])
         ocean_time_epoch = datetime(day=epoch_day, month=epoch_month, year=epoch_year, hour=0, minute=0, second=0,
                                     tzinfo=timezone.utc)
-        for x in range(0, indices, 1):
-            modifier = 0
+        print "Ocean Time Epoch ", ocean_time_epoch
+        for x in range(61, indices, 1):
+            modifier = 8
             # if x < 48 and x % 4 == 0:
-            hours_since_epoch = timedelta(hours=(windData.variables[time_var][x] - windData.variables[reftime_var][0]) - modifier)
-            print "Time", ocean_time_epoch + hours_since_epoch, " at index ", x
+            hours_since_epoch = timedelta(hours=(windData.variables[time_var][x] - (windData.variables[reftime_var][0] + modifier)))
+            print "Local Time", ocean_time_epoch + hours_since_epoch, " at index ", x
             # elif x in times:
             #     if x == 57 or x == 61:
             #         modifier = 1

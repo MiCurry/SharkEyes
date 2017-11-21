@@ -18,6 +18,7 @@ from django.template import Library
 from django.template.defaultfilters import stringfilter
 from django.utils.html import conditional_escape
 from django.utils.safestring import mark_safe
+from mpl_toolkits.basemap import Basemap
 import re
 
 # Django likes to remove whitespace from HTML strings. Use spacify("string with space") to preserve whitespace
@@ -97,6 +98,40 @@ def prep_date(date):
     clean_date.append(day)
     return clean_date
 
+def get_x_y_wind(lat, lon, dataset, model):
+    indices = []
+    # m = Basemap(rsphere=(6371229.00, 6356752.3142), projection='merc',
+    #             llcrnrlat=40.5833284543, urcrnrlat=47.4999927992,
+    #                    llcrnrlon=-129, urcrnrlon=-123.7265625)
+    # xpt, ypt = m(lon,lat)
+    # print "x ", xpt/100
+    # print "y ", ypt/100
+    print "lat ", lat
+    print "lon ", lon
+    lat_name = 'lat'
+    lon_name = 'lon'
+    file_lats = dataset.variables[lat_name][:]
+    file_lons = dataset.variables[lon_name][:]
+    file_lat = np.abs(file_lats - lat).argmin()
+    file_lon = np.abs(file_lons - lon).argmin()
+    print "Argmin lat", file_lat
+    print "Argmin lon", file_lon
+    file_lat = np.unravel_index(file_lat, file_lats.shape)
+    file_lon = np.unravel_index(file_lon, file_lons.shape)
+    print "Unravel lat", file_lat
+    print "Unravel lon", file_lon
+    file_lat_y = file_lat[0]
+    file_lat_x = file_lat[1]
+    print"lat y x", file_lat_y, file_lat_x
+    file_lon_y = file_lon[0]
+    file_lon_x = file_lon[1]
+    print"lon y x", file_lon_y, file_lon_x
+    print "lat ", file_lats[file_lat_y][file_lat_x]
+    print "lon ", file_lons[file_lon_y][file_lon_x]
+    indices.append(file_lat_y)
+    indices.append(file_lat_x)
+    return indices
+
 # Finds the correct lat and lon indices for the model
 # --------------------------------------------------------------------
 def get_lat_long_index(lat, lon, dataset, model):
@@ -156,36 +191,36 @@ def get_time_index_seas(ncdf_data, day, month, year, hour, meridian):
 # the wind time indices are not consistent. They swap from every hour to every three hours.
 # -----------------------------------------------------------------------
 def get_time_index_wind(wind_file, day, month, year, hour, meridian):
-    index = 0
-    if hour == 12 and meridian == "a.m.":
-        hour = 0
-    if hour != 12 and meridian == "p.m.":
-        hour += 12
-    dst = 0
-    isdst_now_in = lambda zonename: bool(datetime.now(pytz.timezone(zonename)).dst())
-    if isdst_now_in("America/Los_Angeles"):
-        dst = 1
-    input_time = datetime(day=day, month=month, year=year, hour=hour, minute=0, second=0, tzinfo=timezone.utc)
-    wind_name = wind_file.file.name
-    wind_data = netcdf.netcdf_file(os.path.join(settings.MEDIA_ROOT, settings.WIND_DIR, wind_name), 'r')
-    indices = np.shape(wind_data.variables['time'])[0]
-    raw_epoch_date = str(wind_file.model_date)
-    epoch_date = raw_epoch_date.split('-')
-    epoch_year = int(epoch_date[0])
-    epoch_month = int(epoch_date[1])
-    epoch_day = int(epoch_date[2])
-    ocean_time_epoch = datetime(day=epoch_day, month=epoch_month, year=epoch_year, hour=7, minute=0, second=0,
-                                tzinfo=timezone.utc)
-    for x in xrange(0, indices, 1):
-        modifier = 0
-        if x == 49 or x == 53 or x == 57 or x == 61:
-            modifier = 1
-        elif x == 51 or x == 55 or x == 59 or x == 63:
-            modifier = -1
-        hours_since_epoch = timedelta(hours=(wind_data.variables['time'][x] + dst - wind_data.variables['reftime'][0]) + modifier)
-        current_date = ocean_time_epoch + hours_since_epoch
-        if current_date == input_time:
-            index = x
+    index = 8
+    # if hour == 12 and meridian == "a.m.":
+    #     hour = 0
+    # if hour != 12 and meridian == "p.m.":
+    #     hour += 12
+    # dst = 0
+    # isdst_now_in = lambda zonename: bool(datetime.now(pytz.timezone(zonename)).dst())
+    # if isdst_now_in("America/Los_Angeles"):
+    #     dst = 1
+    # input_time = datetime(day=day, month=month, year=year, hour=hour, minute=0, second=0, tzinfo=timezone.utc)
+    # wind_name = wind_file.file.name
+    # wind_data = netcdf.netcdf_file(os.path.join(settings.MEDIA_ROOT, settings.WIND_DIR, wind_name), 'r')
+    # indices = np.shape(wind_data.variables['time'])[0]
+    # raw_epoch_date = str(wind_file.model_date)
+    # epoch_date = raw_epoch_date.split('-')
+    # epoch_year = int(epoch_date[0])
+    # epoch_month = int(epoch_date[1])
+    # epoch_day = int(epoch_date[2])
+    # ocean_time_epoch = datetime(day=epoch_day, month=epoch_month, year=epoch_year, hour=7, minute=0, second=0,
+    #                             tzinfo=timezone.utc)
+    # for x in xrange(0, indices, 1):
+    #     modifier = 0
+    #     if x == 49 or x == 53 or x == 57 or x == 61:
+    #         modifier = 1
+    #     elif x == 51 or x == 55 or x == 59 or x == 63:
+    #         modifier = -1
+    #     hours_since_epoch = timedelta(hours=(wind_data.variables['time'][x] + dst - wind_data.variables['reftime'][0]) + modifier)
+    #     current_date = ocean_time_epoch + hours_since_epoch
+    #     if current_date == input_time:
+    #         index = x
     return index
 
 # Calculates the time index for Tuba's WW3 file
@@ -391,17 +426,24 @@ def right_click_menu(request):
         wind_data = netcdf.netcdf_file(os.path.join(settings.MEDIA_ROOT,settings.WIND_DIR,wind_name), 'r')
 
         #Get wind file lat lon indices
-        wind_index = get_lat_long_index(lat, lon, wind_data, 'wind')
+        wind_index = get_x_y_wind(lat, lon, wind_data, 'wind')
+        print "wind index ", wind_index
         x = wind_index[1]
         y = wind_index[0]
+        print "x ", x
+        print "y ", y
 
         #Get the time index for the wind model
         wind_time_index = get_time_index_wind(wind_file, int(day), int(month), int(current_year), int(hour), meridian)  # Gets the wind time index
+        print "wind time index ", wind_time_index
 
         #Get the wind model values
         wind_u = wind_data.variables['u-component_of_wind_height_above_ground'][wind_time_index,0,y,x]
         wind_v = wind_data.variables['v-component_of_wind_height_above_ground'][wind_time_index,0,y,x]
+        print "wind u ", wind_u
+        print "wind v ", wind_v
         wind_speed = np.round(np.sqrt(wind_u**2 + wind_v**2) * 1.944, 1)#converts from m/s to knots and rounds to 3 decimals
+        print "wind speed ", wind_speed
 
     #Build the html strings to send back to the front-end
     d = u"\u00b0" #unicode degree symbol
@@ -427,7 +469,7 @@ def right_click_menu(request):
         datums.write('<p class="wheight">' + '<b>' + spacify("Wave Height:  ") + '</b>' + 'Outside Model'  + '<br>')
         datums.write('<p class="wdir">' + '<b>' + spacify("Wave Period:  ") + '</b>' + 'Outside Model' + '<br>')
     if models['wind'] == 1:
-        datums.write('<p style="'+str(models['nams'])+'">' + '<b>' + "Winds: " + '</b>' + str(wind_speed) + ' Kts' + '<br>')
+        datums.write('<p style="font-size:18px">' + '<b>' + "Winds: " + '</b>' + str(wind_speed) + ' Kts' + '<br>')
     if models['seas'] == 1:
         datums.write('<p class="btemp">' + '<b>' + spacify("Bottom Temp:  ") + '</b>' + str(bottom_temp) + ' ' + d + 'F' + '<br>')
         datums.write('<p class="ssalt">' + '<b>' + spacify("SS Salinity:       ") + '</b>' + str(surface_salt) + '<br>')
