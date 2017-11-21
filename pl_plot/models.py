@@ -107,11 +107,12 @@ class OverlayManager(models.Manager):
                 if number_of_times > 70:
                     threehourindices = [61,63,64,65,67,68,69,71,72]
                     swap = 60
-                elif 65 > number_of_times < 70:
+                elif 65 >= number_of_times < 70:
                     threehourindices = [55,56,57,59,60,61,63,64,65,67,68]
                     swap = 54
                 elif number_of_times < 60:
                     threehourindices = [37,39,40,41,43,44,45,47,48,49,51,52]
+                    swap = 36
                 for t in range(0, number_of_times, 1):
                     if t < swap:
                         if t % 4 == 0:

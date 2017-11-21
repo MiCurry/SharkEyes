@@ -258,8 +258,8 @@ class DataFileManager(models.Manager):
 
         hour_check = 0
         current_date = datetime.now()
-        early_time = datetime(day=current_date.day, month=current_date.month, year=current_date.year, hour=9, minute=0,second=0)
-        late_time = datetime(day=current_date.day, month=current_date.month, year=current_date.year, hour=19, minute=0,second=0)
+        early_time = datetime(day=current_date.day, month=current_date.month, year=current_date.year, hour=4, minute=0,second=0)
+        late_time = datetime(day=current_date.day, month=current_date.month, year=current_date.year, hour=18, minute=0,second=0)
         generated_time = datetime.now().today()
         if generated_time < early_time or generated_time > late_time:
             hour_check = 1
