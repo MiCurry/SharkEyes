@@ -245,7 +245,7 @@ class DataFileManager(models.Manager):
         generated_time = datetime.now().today()
         modified_datetime = timezone.make_aware(generated_time, timezone.utc)
         end_time = datetime.now().date()+timedelta(days=4)
-        begin = str(current_time) + 'T08%3A00%3A00Z'
+        begin = str(current_time) + 'T00%3A00%3A00Z'
         end = str(end_time) + 'T00%3A00%3A00Z'
 
         local_filename = "{0}_{1}.nc".format(settings.NAMS_WIND_DF_FN, current_time)
@@ -256,10 +256,18 @@ class DataFileManager(models.Manager):
             type='WIND'
         )
 
-        if not matches_old_file:
+        hour_check = 0
+        current_date = datetime.now()
+        early_time = datetime(day=current_date.day, month=current_date.month, year=current_date.year, hour=4, minute=0,second=0)
+        late_time = datetime(day=current_date.day, month=current_date.month, year=current_date.year, hour=18, minute=0,second=0)
+        generated_time = datetime.now().today()
+        if generated_time < early_time or generated_time > late_time:
+            hour_check = 1
+
+        if not matches_old_file and hour_check == 1:
             print "Downloading Wind file "
             #If you need to modify the time, or coordinates for the downloaded wind file change this values in url
-            url = 'http://thredds.ucar.edu/thredds/ncss/grib/NCEP/NAM/CONUS_12km/conduit/Best?var=u-component_of_wind_height_above_ground&var=v-component_of_wind_height_above_ground&north=48.563922&west=-129.876507&east=-123.863860&south=40&horizStride=1&time_start='+begin+'&time_end='+end+'&timeStride=1&vertCoord=&addLatLon=true&accept=netcdf'
+            url = 'http://thredds.ucar.edu/thredds/ncss/grib/NCEP/NAM/CONUS_12km/conduit/Best?var=u-component_of_wind_height_above_ground&var=v-component_of_wind_height_above_ground&north=48.563922&west=-129.876507&east=-123.863860&south=40&disableProjSubset=on&horizStride=1&time_start='+begin+'&time_end='+end+'&timeStride=1&vertCoord=&addLatLon=true&accept=netcdf'
             urllib.urlretrieve(url=url, filename=os.path.join(destination_directory, local_filename))
             print "Download Complete "
 

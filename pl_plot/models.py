@@ -104,12 +104,20 @@ class OverlayManager(models.Manager):
             elif datafile.file.name.startswith(settings.NAMS_WIND_DF_FN):
                 plotter = WindPlotter(datafile.file.name)
                 number_of_times = plotter.get_number_of_model_times()
+                if number_of_times > 70:
+                    threehourindices = [61,63,64,65,67,68,69,71,72]
+                    swap = 60
+                elif 65 >= number_of_times < 70:
+                    threehourindices = [55,56,57,59,60,61,63,64,65,67,68]
+                    swap = 54
+                elif number_of_times < 60:
+                    threehourindices = [37,39,40,41,43,44,45,47,48,49,51,52]
+                    swap = 36
                 for t in range(0, number_of_times, 1):
-                    if t < 56:
+                    if t < swap:
                         if t % 4 == 0:
                             task_list.append(cls.make_plot.subtask(args=(settings.NAMS_WIND, t, fid), immutable=True))
-                    elif t > 56:
-                        threehourindices = [57, 59,60,61,63,64]
+                    elif t > swap:
                         if t in threehourindices:
                             task_list.append(cls.make_plot.subtask(args=(settings.NAMS_WIND, t, fid), immutable=True))
             else:

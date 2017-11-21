@@ -12,17 +12,45 @@ import sys , traceback
 def do_pipeline():
 
     # Cleaning up old files from the database and the disk
-    DataFileManager.delete_old_files()
-    OverlayManager.delete_old_files()
+    print "CLEANING UP - DELETING OLD FILES"
+    try:
+        DataFileManager.delete_old_files()
+    except Exception:
+        print '-' * 60
+        print "COULD NOT DELETE OLD NETCDF FILES"
+        traceback.print_exc(file=sys.stdout)
+        print '-' * 60
+
+    try:
+        OverlayManager.delete_old_files()
+    except Exception:
+        print '-' * 60
+        print "COULD NOT DELETE OVERLAY FILES"
+        traceback.print_exc(file=sys.stdout)
+        print '-' * 60
 
     # Check for new feedback surveys or comments, and email them to Flaxen
-    FeedbackHistory.send_feedback_forms()
-    FeedbackQuestionaire.send_feedback_survey()
+    print "SENDING OUT FEEDBACK"
+    try:
+        FeedbackHistory.send_feedback_forms()
+    except Exception:
+        print '-' * 60
+        print "COULD NOT SEND FEEDBACK"
+        traceback.print_exc(file=sys.stdout)
+        print '-' * 60
+
+    try:
+        FeedbackQuestionaire.send_feedback_survey()
+    except Exception:
+        print '-' * 60
+        print "COULD NOT SEND FEEDBACK SURVEY"
+        traceback.print_exc(file=sys.stdout)
+        print '-' * 60
 
     # Downloading the latest datafiles for our models. See the appropriate functions
     #   pl_download/models.py.DataFileManager.get_latest_wave_watch_files() and
     #   pl_download/models.py.DataFileManager.fetch_new_files() respectively
-
+    print "DOWNLOADING OSU WW3 FILES"
     try: # Try Catches to ensure do_pipeline completes even if a model server cant be reached
         wave_watch_files = DataFileManager.get_latest_wave_watch_files()
     except Exception:
@@ -31,6 +59,7 @@ def do_pipeline():
         traceback.print_exc(file=sys.stdout)
         print '-' * 60
 
+    print "DOWNLOADING OSU ROMS FILES"
     try: # Try Catches to ensure do_pipeline completes even if a model server cant be reached
         sst_files = DataFileManager.download_osu_roms()
     except Exception:
@@ -39,6 +68,7 @@ def do_pipeline():
         traceback.print_exc(file=sys.stdout)
         print '-' * 60
 
+    print "DOWNLOADING WIND FILES"
     try: # Try Catches to ensure do_pipeline completes even if a model server cant be reached
         wind_files = DataFileManager.get_wind_file()
     except Exception:
@@ -72,7 +102,7 @@ def do_pipeline():
             list_of_chains.append(chain(pt, tile_wave_watch_overlay.s()))
 
     job = group(item for item in list_of_chains)
-    print "do_pipeline: JOBS:"
+    print "PIPELINE: JOBS: "
     for each in job:
         print each
     result = job.apply_async() # Run the group.

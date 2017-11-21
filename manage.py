@@ -38,7 +38,7 @@ if __name__ == "__main__":
             #need to offset 16 to match with sst plot
             #NOTE it increments in 1 hour changes
             tiles += OverlayManager.make_wave_watch_plot(4, 20, wave.id)
-            tiles += OverlayManager.make_wave_watch_plot(6, 20, wave.id)
+            #tiles += OverlayManager.make_wave_watch_plot(6, 20, wave.id)
             for t in tiles:
                 tile_wave_watch_overlay(t)
             finish = time.time()
@@ -64,13 +64,13 @@ if __name__ == "__main__":
             print "Time taken for SST = " + str(round(totalTime, 2)) + " minutes"
 
         if wind:
-            winds = DataFileManager.get_wind_file()
+            #winds = DataFileManager.get_wind_file()
             winds = DataFile.objects.filter(type='WIND').latest('model_date')
             plotter = WindPlotter(winds.file.name)
             print "Time value ", plotter.get_time_at_oceantime_index(0)
             tiles = []
             begin = time.time()
-            tiles += OverlayManager.make_plot(5, 8, winds.id)
+            tiles += OverlayManager.make_plot(5, 63, winds.id)
             for t in tiles:
                 tile_overlay(t)
             finish = time.time()
@@ -82,8 +82,8 @@ if __name__ == "__main__":
         from pl_plot.models import OverlayManager as om
         from pl_chop.tasks import tile_overlay, tile_wave_watch_overlay
         from pl_plot.plotter import WindPlotter, Plotter
-        wave = 1
-        sst = 1
+        wave = 0
+        sst = 0
         wind = 1
 
         if wave:
@@ -135,14 +135,12 @@ if __name__ == "__main__":
             id = winds.id
             plotter = WindPlotter(winds.file.name)
             number_of_times = plotter.get_number_of_model_times()
-            for t in xrange(number_of_times):
-                indices = [57,59,60,61,63,64]
-                if t < 56 and t % 4 == 0:
-                    print "t = ", t
+            for t in range(0, number_of_times, 1):
+                indices = [55,56,57,59,60,61,63,64,65,67,68]
+                if t < 48 and t % 4 == 0:
                     print "Plotting and Tiling NAMS - Time_Index:", t
                     tile_overlay(om.make_plot(5, t, id))
-                elif t > 56 and t in indices:
-                    print "t = ", t
+                elif t > 48 and t in indices:
                     print "Plotting and Tiling NAMS - Time_Index:", t
                     tile_overlay(om.make_plot(5, t, id))
                 print "plot/tile success"
@@ -199,7 +197,7 @@ if __name__ == "__main__":
                 print "Date = ", check_date, " at index ", x
 
     elif sys.argv[-1] == "winddates": #use this to view what the timestamps are for each index of the wind model
-        print "Times for the wind model is local time"
+        print "Times for the wind model"
         from datetime import datetime, timedelta
         from django.utils import timezone
         import numpy
@@ -212,15 +210,19 @@ if __name__ == "__main__":
         windFile = DataFile.objects.filter(type='WIND').latest('model_date')
         windName = windFile.file.name
         windData = netcdf.netcdf_file(os.path.join(settings.MEDIA_ROOT, settings.WIND_DIR, windName), 'r')
+        # modified_datetime = timezone.make_aware(generated_time, timezone.utc)
+        # print "Modified Datetime ", modified_datetime
         time_var = 'time'
         reftime_var = 'reftime'
         try:
             windData.variables["time"]
         except Exception:
+            print "Variables = time1"
             time_var = 'time1'
             reftime_var = 'reftime1'
         indices = numpy.shape(windData.variables[time_var])[0]
-        times = [48,52,55,56,57,59,60,61,63,64] # 49, 51, 53,  these are setup for when the model swaps to three hour increments use this to view just those dates
+        print "Indices ", indices
+        times = [61,63,64,65,67,68,69,71,72] # 49, 51, 53,  these are setup for when the model swaps to three hour increments use this to view just those dates
         raw_epoch_date = str(windFile.model_date)
         epoch_date = raw_epoch_date.split('-')
         epoch_year = int(epoch_date[0])
@@ -228,11 +230,12 @@ if __name__ == "__main__":
         epoch_day = int(epoch_date[2])
         ocean_time_epoch = datetime(day=epoch_day, month=epoch_month, year=epoch_year, hour=0, minute=0, second=0,
                                     tzinfo=timezone.utc)
+        print "Ocean Time Epoch ", ocean_time_epoch
         for x in range(0, indices, 1):
             modifier = 0
             # if x < 48 and x % 4 == 0:
-            hours_since_epoch = timedelta(hours=(windData.variables[time_var][x] - windData.variables[reftime_var][0]) - modifier)
-            print "Time", ocean_time_epoch + hours_since_epoch, " at index ", x
+            hours_since_epoch = timedelta(hours=(windData.variables[time_var][x] - (windData.variables[reftime_var][0] + modifier)))
+            print "Local Time", ocean_time_epoch + hours_since_epoch, " at index ", x
             # elif x in times:
             #     if x == 57 or x == 61:
             #         modifier = 1

@@ -532,8 +532,21 @@ def wind_function(ax, data_file, bmap, time_index, downsample_ratio):
     wind_u = numpy.multiply(wind_u, 1.943)
     wind_v = numpy.multiply(wind_v, 1.943)
 
+    interpindices = [-1]
+    time_var = 'time'
+    try:
+        data_file.variables["time"]
+    except Exception:
+        time_var = 'time1'
+    swap_time = numpy.shape(data_file.variables[time_var])[0]
+    if swap_time > 70:
+        interpindices = [61, 65, 69,63, 67, 71]
+    elif 65 > swap_time < 70:
+        interpindices = [57, 61, 65,55, 59, 63, 67]
+    if swap_time < 60:
+        interpindices = [37,39,41,43,45,47,49,51]
+
     interpolate = 0
-    interpindices = [49, 51, 53, 55, 57, 59, 61, 63,]
     if time_index in interpindices:
         interpolate = 1
 
