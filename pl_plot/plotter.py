@@ -143,7 +143,7 @@ class WindPlotter:
             mod_plus = [61,65,69]
             mod_sub = [63,67,71]
             no_mod = [64,68,72]
-        elif 65 > swap_time < 70:
+        elif 65 >= swap_time < 70:
             mod_plus = [57,61,65]
             mod_sub = [55,59,63,67]
             no_mod = [56,60,64,68]
