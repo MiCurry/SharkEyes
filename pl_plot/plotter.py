@@ -138,6 +138,7 @@ class WindPlotter:
         ocean_time_epoch = datetime(day=epoch_day, month=epoch_month, year=epoch_year, hour=0, minute=0, second=0,
                                     tzinfo=timezone.utc)
         swap_time = numpy.shape(self.data_file.variables[time_var])[0]
+        print "PLOTTER SWAP_TIME = ", swap_time
         if swap_time > 70:
             mod_plus = [61,65,69]
             mod_sub = [63,67,71]
