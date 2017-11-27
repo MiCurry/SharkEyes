@@ -104,22 +104,15 @@ class OverlayManager(models.Manager):
             elif datafile.file.name.startswith(settings.NAMS_WIND_DF_FN):
                 plotter = WindPlotter(datafile.file.name)
                 number_of_times = plotter.get_number_of_model_times()
-                if number_of_times > 70:
-                    threehourindices = [61,63,64,65,67,68,69,71,72]
-                    swap = 60
-                elif 65 >= number_of_times < 70:
-                    threehourindices = [55,56,57,59,60,61,63,64,65,67,68]
-                    swap = 54
-                elif number_of_times < 60:
-                    threehourindices = [37,39,40,41,43,44,45,47,48,49,51,52]
-                    swap = 36
-                for t in range(0, number_of_times, 1):
-                    if t < swap:
-                        if t % 4 == 0:
-                            task_list.append(cls.make_plot.subtask(args=(settings.NAMS_WIND, t, fid), immutable=True))
-                    elif t > swap:
-                        if t in threehourindices:
-                            task_list.append(cls.make_plot.subtask(args=(settings.NAMS_WIND, t, fid), immutable=True))
+                wind_values = plotter.get_wind_indices()
+                begin = wind_values['begin']
+                swap = wind_values['swap']
+                three_hour_indices = wind_values['indices']
+                for t in range(begin, swap, 4):
+                    task_list.append(cls.make_plot.subtask(args=(settings.NAMS_WIND, t, fid), immutable=True))
+                for t in range(swap, number_of_times, 1):
+                    if t in three_hour_indices:
+                        task_list.append(cls.make_plot.subtask(args=(settings.NAMS_WIND, t, fid), immutable=True))
             else:
                 plotter = Plotter(datafile.file.name)
                 number_of_times = plotter.get_number_of_model_times()

@@ -256,15 +256,7 @@ class DataFileManager(models.Manager):
             type='WIND'
         )
 
-        hour_check = 0
-        current_date = datetime.now()
-        early_time = datetime(day=current_date.day, month=current_date.month, year=current_date.year, hour=4, minute=0,second=0)
-        late_time = datetime(day=current_date.day, month=current_date.month, year=current_date.year, hour=18, minute=0,second=0)
-        generated_time = datetime.now().today()
-        if generated_time < early_time or generated_time > late_time:
-            hour_check = 1
-
-        if not matches_old_file and hour_check == 1:
+        if not matches_old_file:
             print "Downloading Wind file "
             #If you need to modify the time, or coordinates for the downloaded wind file change this values in url
             url = 'http://thredds.ucar.edu/thredds/ncss/grib/NCEP/NAM/CONUS_12km/conduit/Best?var=u-component_of_wind_height_above_ground&var=v-component_of_wind_height_above_ground&north=48.563922&west=-129.876507&east=-123.863860&south=40&disableProjSubset=on&horizStride=1&time_start='+begin+'&time_end='+end+'&timeStride=1&vertCoord=&addLatLon=true&accept=netcdf'
