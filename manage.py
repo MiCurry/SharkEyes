@@ -82,6 +82,7 @@ if __name__ == "__main__":
         from pl_plot.models import OverlayManager as om
         from pl_chop.tasks import tile_overlay, tile_wave_watch_overlay
         from pl_plot.plotter import WindPlotter, Plotter
+        from datetime import datetime, timedelta
         wave = 0
         sst = 0
         wind = 1
@@ -90,12 +91,12 @@ if __name__ == "__main__":
             DataFileManager.get_latest_wave_watch_files()
             print "\n--- Plotting WW3 - Height and Direction ---"
             wave = DataFile.objects.filter(type='WAVE').latest('model_date')
-            id = wave.id
+            wind_id = wave.id
             for t in xrange(20, 85, 4):
                 try:
-                    print "Plotting WW3 - File ID:", id, "Time Index:", t
-                    tile_wave_watch_overlay(om.make_wave_watch_plot(4, t, id))
-                    tile_wave_watch_overlay(om.make_wave_watch_plot(6, t, id))
+                    print "Plotting WW3 - File ID:", wind_id, "Time Index:", t
+                    tile_wave_watch_overlay(om.make_wave_watch_plot(4, t, wind_id))
+                    tile_wave_watch_overlay(om.make_wave_watch_plot(6, t, wind_id))
                     print "plot/tile success"
                 except Exception:
                     print '-' * 60
@@ -109,17 +110,17 @@ if __name__ == "__main__":
             for file in sst_files:
                 plotter = Plotter(file.file.name)
                 number_of_times = plotter.get_number_of_model_times()
-                id = file.id
+                wind_id = file.id
                 for t in xrange(number_of_times):
                     if t % 2 != 0:
                         try:
-                            print "Plotting ROMS - File ID:", id, "Time Index:", t
-                            tile_overlay(om.make_plot(1, t, id))
-                            tile_overlay(om.make_plot(2, t, id))
-                            tile_overlay(om.make_plot(3, t, id))
-                            tile_overlay(om.make_plot(7, t, id))
-                            tile_overlay(om.make_plot(8, t, id))
-                            tile_overlay(om.make_plot(9, t, id))
+                            print "Plotting ROMS - File ID:", wind_id, "Time Index:", t
+                            tile_overlay(om.make_plot(1, t, wind_id))
+                            tile_overlay(om.make_plot(2, t, wind_id))
+                            tile_overlay(om.make_plot(3, t, wind_id))
+                            tile_overlay(om.make_plot(7, t, wind_id))
+                            tile_overlay(om.make_plot(8, t, wind_id))
+                            tile_overlay(om.make_plot(9, t, wind_id))
                             print "plot/tile success"
                         except Exception:
                             print '-' * 60
@@ -130,23 +131,23 @@ if __name__ == "__main__":
         if wind:
             print "\n Plotting NAMS - Winds"
             start = time.time()
-            DataFileManager.get_wind_file()
+            #DataFileManager.get_wind_file()
             winds = DataFile.objects.filter(type='WIND').latest('model_date')
-            id = winds.id
+            wind_id = winds.id
             plotter = WindPlotter(winds.file.name)
             number_of_times = plotter.get_number_of_model_times()
-            for t in range(0, number_of_times, 1):
-                indices = [55,56,57,59,60,61,63,64,65,67,68]
-                if t < 48 and t % 4 == 0:
-                    print "Plotting and Tiling NAMS - Time_Index:", t
-                    tile_overlay(om.make_plot(5, t, id))
-                elif t > 48 and t in indices:
-                    print "Plotting and Tiling NAMS - Time_Index:", t
-                    tile_overlay(om.make_plot(5, t, id))
-                print "plot/tile success"
-                print '-' * 60
-                traceback.print_exc(file=sys.stdout)
-                print '-' * 60
+            wind_values = plotter.get_wind_indices()
+            begin = wind_values['begin']
+            swap = wind_values['swap']
+            three_hour_indices = wind_values['indices']
+            for t in range(begin, swap, 4):
+                print "Plotting and Tiling NAMS - Time: ", plotter.get_time_at_oceantime_index(t)- timedelta(hours=8)
+                tile_overlay(om.make_plot(5, t, wind_id))
+            for t in range(swap, number_of_times, 1):
+                if t in three_hour_indices:
+                    print "Plotting and Tiling NAMS - Time: ", plotter.get_time_at_oceantime_index(t)-timedelta(hours=8)
+                    tile_overlay(om.make_plot(5, t, wind_id))
+            print "plot/tile success"
             end = time.time()
             total = (end - start)/ 60
             print "Total time taken for plotting and tiling = " + str(round(total, 2)) + " minutes"
@@ -156,7 +157,6 @@ if __name__ == "__main__":
         from datetime import datetime, timedelta
         from django.utils import timezone
         import numpy
-        import pytz
         from scipy.io import netcdf
         from django.conf import settings
         from pl_download.models import DataFile
@@ -198,52 +198,43 @@ if __name__ == "__main__":
 
     elif sys.argv[-1] == "winddates": #use this to view what the timestamps are for each index of the wind model
         print "Times for the wind model"
-        from datetime import datetime, timedelta
-        from django.utils import timezone
-        import numpy
-        import pytz
+        from pl_plot.plotter import WindPlotter
         from scipy.io import netcdf
         from django.conf import settings
         from pl_download.models import DataFile
+        from datetime import datetime, timedelta
+        from django.utils import timezone
         # The Wind model uses a dynamic reference date for date calculation
         # This calculates that date and then uses it to calculate the dates for each index
-        windFile = DataFile.objects.filter(type='WIND').latest('model_date')
-        windName = windFile.file.name
-        windData = netcdf.netcdf_file(os.path.join(settings.MEDIA_ROOT, settings.WIND_DIR, windName), 'r')
-        # modified_datetime = timezone.make_aware(generated_time, timezone.utc)
-        # print "Modified Datetime ", modified_datetime
-        time_var = 'time'
-        reftime_var = 'reftime'
-        try:
-            windData.variables["time"]
-        except Exception:
-            print "Variables = time1"
-            time_var = 'time1'
-            reftime_var = 'reftime1'
-        indices = numpy.shape(windData.variables[time_var])[0]
-        print "Indices ", indices
-        times = [61,63,64,65,67,68,69,71,72] # 49, 51, 53,  these are setup for when the model swaps to three hour increments use this to view just those dates
-        raw_epoch_date = str(windFile.model_date)
+        wind_file = DataFile.objects.filter(type='WIND').latest('model_date')
+        wind_name = wind_file.file.name
+        wind_data = netcdf.netcdf_file(os.path.join(settings.MEDIA_ROOT, settings.WIND_DIR, wind_name), 'r')
+        plotter = WindPlotter(wind_file.file.name)
+        indices = plotter.get_number_of_model_times()
+        wind_values=plotter.get_wind_indices()
+        time_val = wind_values['time']
+        reftime_val = wind_values['reftime']
+        begin = wind_values['begin']
+        swap = wind_values['swap']
+        three_hour_indices = wind_values['indices']
+        raw_epoch_date = str(wind_file.model_date)
         epoch_date = raw_epoch_date.split('-')
         epoch_year = int(epoch_date[0])
         epoch_month = int(epoch_date[1])
         epoch_day = int(epoch_date[2])
         ocean_time_epoch = datetime(day=epoch_day, month=epoch_month, year=epoch_year, hour=0, minute=0, second=0,
                                     tzinfo=timezone.utc)
-        print "Ocean Time Epoch ", ocean_time_epoch
-        for x in range(0, indices, 1):
-            modifier = 0
-            # if x < 48 and x % 4 == 0:
-            hours_since_epoch = timedelta(hours=(windData.variables[time_var][x] - (windData.variables[reftime_var][0] + modifier)))
-            print "Local Time", ocean_time_epoch + hours_since_epoch, " at index ", x
-            # elif x in times:
-            #     if x == 57 or x == 61:
-            #         modifier = 1
-            #     elif x == 55 or x == 59 or x == 63:
-            #         modifier = -1
-            #     hours_since_epoch = timedelta(
-            #         hours=(windData.variables['time'][x] + dst - windData.variables['reftime'][0]) + modifier)
-            #     print "Time", ocean_time_epoch + hours_since_epoch, " at index ", x
+        # print "UNMODIFIED WIND INDICES "
+        # for x in range (0, indices, 1):
+        #     hours_since_epoch = timedelta(hours=(wind_data.variables[time_val][x] - wind_data.variables[reftime_val][0]))
+        #     print "Unmodified Time ", ocean_time_epoch + hours_since_epoch, " at ", x
+
+        print "MODIFIED WIND INDICES "
+        for x in range(begin, swap, 4):
+            print "Pre Swap Time", plotter.get_time_at_oceantime_index(x)-timedelta(hours=8) , " at ", x
+        for x in range(swap, indices, 1):
+            if x in three_hour_indices:
+                print "Post Swap Time ", plotter.get_time_at_oceantime_index(x)-timedelta(hours=8) , " at ", x
 
     else:
         from django.core.management import execute_from_command_line

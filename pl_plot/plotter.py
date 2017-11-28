@@ -115,21 +115,22 @@ class WindPlotter:
             time_var = 'time1'
         return numpy.shape(self.data_file.variables[time_var])[0]
 
-    def get_time_at_oceantime_index(self, index):
-        # The Wind model uses a dynamic reference date for date calculation
-        # This calculates that date and then uses it to calculate the dates for each index
-        dst = 0
-        isdst_now_in = lambda zonename: bool(datetime.now(pytz.timezone(zonename)).dst())
-        if isdst_now_in("America/Los_Angeles"):
-            dst = -1
+    def get_wind_indices(self):
         wind_file = DataFile.objects.filter(type='WIND').latest('model_date')
+        wind_name = wind_file.file.name
+        wind_data = netcdf.netcdf_file(os.path.join(settings.MEDIA_ROOT, settings.WIND_DIR, wind_name), 'r')
+        wind_values = {'time':0, 'reftime':0, 'begin':0, 'swap':0, 'indices':0}
         time_var = 'time'
         reftime_var = 'reftime'
         try:
-            self.data_file.variables["time"]
+            wind_data.variables["time"]
         except Exception:
             time_var = 'time1'
             reftime_var = 'reftime1'
+        wind_values['time'] = time_var
+        wind_values['reftime']= reftime_var
+
+        indices = numpy.shape(wind_data.variables[time_var])[0]
         raw_epoch_date = str(wind_file.model_date)
         epoch_date = raw_epoch_date.split('-')
         epoch_year = int(epoch_date[0])
@@ -137,31 +138,68 @@ class WindPlotter:
         epoch_day = int(epoch_date[2])
         ocean_time_epoch = datetime(day=epoch_day, month=epoch_month, year=epoch_year, hour=0, minute=0, second=0,
                                     tzinfo=timezone.utc)
-        swap_time = numpy.shape(self.data_file.variables[time_var])[0]
-        print "PLOTTER SWAP_TIME = ", swap_time
-        if swap_time > 70:
-            mod_plus = [61,65,69]
-            mod_sub = [63,67,71]
-            no_mod = [64,68,72]
-        elif 65 >= swap_time < 70:
-            mod_plus = [57,61,65]
-            mod_sub = [55,59,63,67]
-            no_mod = [56,60,64,68]
-        elif swap_time < 60:
-            mod_plus = [37,41,45,49]
-            mod_sub = [39,43,47,51]
-            no_mod = [40,44,48,52]
-        modifier = 0
-        if index in mod_plus:
-            modifier = 1
-        elif index in mod_sub:
-            modifier = -1
-        elif index in no_mod:
-            modifier = 0
 
-        hours_since_epoch = timedelta(
-            hours=(self.data_file.variables[time_var][index] + dst - self.data_file.variables[reftime_var][0]) + modifier)
-        print "Plotted time ", ocean_time_epoch + hours_since_epoch
+        # This finds the correct index to start with. The files should always start at midnight, but sometimes they don't.
+        # This returns the earliest valid index if index 0 is not midnight
+        begin = 0
+        for x in range(0, 12, 1):
+            hours_since_epoch = timedelta(
+                hours=(wind_data.variables[time_var][x] - wind_data.variables[reftime_var][0]))
+            current_hour = (ocean_time_epoch + hours_since_epoch).hour
+            if current_hour == 0 or current_hour == 4 or current_hour == 8:
+                begin = x
+                break
+        wind_values['begin'] = begin
+
+        # This provides the index where they swap to three hour increments
+        times = wind_data.variables[time_var]
+        swap = 0
+        for x in range(0, indices, 1):
+            if times[x] - times[x - 1] == 3 and times[x - 1] - times[x - 2] == 1:
+                swap = x
+        wind_values['swap'] = swap
+
+        # This determines which of the three hour incremented indices to use
+        # three_hour = [0, 3, 9, 12, 15, 21]
+        three_hour_indices = []
+        for x in range(swap, indices, 1):
+            hours_since_epoch = timedelta(hours=(wind_data.variables[time_var][x] - wind_data.variables[reftime_var][0]))
+            current_hour = (ocean_time_epoch + hours_since_epoch).hour
+            if current_hour % 4 == 0 or current_hour % 4 == 1 or current_hour % 4 == 3:
+                three_hour_indices.append(x)
+        wind_values['indices'] = three_hour_indices
+        return wind_values
+
+    def get_time_at_oceantime_index(self, index):
+        # The Wind model uses a dynamic reference date for date calculation
+        # This calculates that date and then uses it to calculate the dates for each index
+        wind_file = DataFile.objects.filter(type='WIND').latest('model_date')
+        plotter = WindPlotter(wind_file.file.name)
+        wind_values = plotter.get_wind_indices()
+        time_var = wind_values['time']
+        reftime_var = wind_values['reftime']
+        swap = wind_values['swap']
+        three_hour_indices = wind_values['indices']
+        modifier = 0
+        raw_epoch_date = str(wind_file.model_date)
+        epoch_date = raw_epoch_date.split('-')
+        epoch_year = int(epoch_date[0])
+        epoch_month = int(epoch_date[1])
+        epoch_day = int(epoch_date[2])
+        ocean_time_epoch = datetime(day=epoch_day, month=epoch_month, year=epoch_year, hour=0, minute=0, second=0,
+                                    tzinfo=timezone.utc)
+
+        if index >= swap and index in three_hour_indices:
+            hours_since_epoch = timedelta(hours=(self.data_file.variables[time_var][index] - self.data_file.variables[reftime_var][0]))
+            current_hour = (ocean_time_epoch + hours_since_epoch).hour
+            if current_hour % 4 == 0:
+                modifier = 0
+            elif current_hour % 4 == 3:
+                modifier = 1
+            elif current_hour % 4 == 1:
+                modifier = -1
+
+        hours_since_epoch = timedelta(hours=(self.data_file.variables[time_var][index] - self.data_file.variables[reftime_var][0]) + modifier)
         return ocean_time_epoch + hours_since_epoch
 
     def key_check(self):

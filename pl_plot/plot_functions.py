@@ -2,6 +2,8 @@ import numpy
 import scipy
 from scipy import ndimage
 from matplotlib import pyplot, colors
+from pl_download.models import DataFile
+from pl_plot.plotter import WindPlotter
 
 numpy.set_printoptions(threshold=numpy.inf) # This is helpful for testing purposes:
 # it sets print options so that when you print a large array, it doesn't get truncated in the middle
@@ -501,7 +503,6 @@ def currents_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio)
 # -------------------------------------------------------------------------
 def wind_function(ax, data_file, bmap, time_index, downsample_ratio):
     print "CREATING A WIND PLOT"
-    print "DOWNSAMPLERATIO = ", downsample_ratio, "Time Index =", time_index
     # We are now using barbs instead of vectors. We should not need this anymore
     # -------------------------------------------------------------------------
     # tmp = numpy.loadtxt('/opt/sharkeyes/src/latlon.g218')
@@ -532,22 +533,14 @@ def wind_function(ax, data_file, bmap, time_index, downsample_ratio):
     wind_u = numpy.multiply(wind_u, 1.943)
     wind_v = numpy.multiply(wind_v, 1.943)
 
-    interpindices = [-1]
-    time_var = 'time'
-    try:
-        data_file.variables["time"]
-    except Exception:
-        time_var = 'time1'
-    swap_time = numpy.shape(data_file.variables[time_var])[0]
-    if swap_time > 70:
-        interpindices = [61, 65, 69,63, 67, 71]
-    elif 65 > swap_time < 70:
-        interpindices = [57, 61, 65,55, 59, 63, 67]
-    if swap_time < 60:
-        interpindices = [37,39,41,43,45,47,49,51]
+    wind_file = DataFile.objects.filter(type='WIND').latest('model_date')
+    plotter = WindPlotter(wind_file.file.name)
+    wind_values = plotter.get_wind_indices()
+    time_var = wind_values['time']
+    interp_indices = wind_values['indices']
 
     interpolate = 0
-    if time_index in interpindices:
+    if time_index in interp_indices:
         interpolate = 1
 
     if interpolate == 1:
@@ -557,10 +550,7 @@ def wind_function(ax, data_file, bmap, time_index, downsample_ratio):
 
         # Timestamps for interpolation purposes.
         # -------------------------------------------------------------------------
-        try:
-            times = data_file.variables['time']
-        except Exception:
-            times = data_file.variables['time1']
+        times = data_file.variables[time_var]
         size = times.shape[0]
 
         # Create two different time stamps used for interpolating
@@ -617,7 +607,7 @@ def wind_function(ax, data_file, bmap, time_index, downsample_ratio):
                length=length, sizes=dict(spacing=0.2, height=0.3))
                #barb_increments=dict(half=.1, full=10, flag=50))
 
-    print "WIND PLOT CREATED!"
+    print "WIND PLOT CREATED"
 
 def crop_and_downsample(source_array, downsample_ratio, average=True):
     ys, xs = source_array.shape
