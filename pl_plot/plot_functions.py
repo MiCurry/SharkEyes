@@ -199,7 +199,7 @@ def sst_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
     #min_temp = int(math.floor(celsius_to_fahrenheit(numpy.amin(all_day))))
     #max_temp = int(math.ceil(celsius_to_fahrenheit(numpy.amax(numpy.ma.masked_greater(all_day, 1000)))))
     min_temp = 46
-    max_temp = 65
+    max_temp = 58
 
     x, y = bmap(longs, lats)
 
@@ -492,7 +492,7 @@ def currents_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio)
     #                               color='white', labelsep=.5, coordinates='axes')
     # quiverkey2 = key_ax.quiverkey(overlay, 6.5, .4, 2*.5144, "2 knots", labelpos='S', labelcolor='white',
     #                               color='white', labelsep=.5, coordinates='axes')
-    textBox = pyplot.text(0, 0, " Right Click or Double Tap to View Values ", withdash=False,
+    textBox = pyplot.text(0, 0, "Right Click or Double Tap to View Values  ", withdash=False,
                           backgroundcolor='black', color='white', fontsize=17, )
 
     key_ax.set_axis_off()
