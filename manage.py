@@ -67,10 +67,11 @@ if __name__ == "__main__":
             #winds = DataFileManager.get_wind_file()
             winds = DataFile.objects.filter(type='WIND').latest('model_date')
             plotter = WindPlotter(winds.file.name)
-            print "Time value ", plotter.get_time_at_oceantime_index(0)
+            x = 0
+            print "Time value ", plotter.get_time_at_oceantime_index(x)
             tiles = []
             begin = time.time()
-            tiles += OverlayManager.make_plot(5, 63, winds.id)
+            tiles += OverlayManager.make_plot(5, x, winds.id)
             for t in tiles:
                 tile_overlay(t)
             finish = time.time()
@@ -138,11 +139,16 @@ if __name__ == "__main__":
             number_of_times = plotter.get_number_of_model_times()
             wind_values = plotter.get_wind_indices()
             begin = wind_values['begin']
+            print "Begin = ", begin
             swap = wind_values['swap']
+            print "Swap = ", swap
             three_hour_indices = wind_values['indices']
+            print "Indices = ", three_hour_indices
+            print "Pre Swap"
             for t in range(begin, swap, 4):
                 print "Plotting and Tiling NAMS - Time: ", plotter.get_time_at_oceantime_index(t)- timedelta(hours=8)
                 tile_overlay(om.make_plot(5, t, wind_id))
+            print "Post Swap"
             for t in range(swap, number_of_times, 1):
                 if t in three_hour_indices:
                     print "Plotting and Tiling NAMS - Time: ", plotter.get_time_at_oceantime_index(t)-timedelta(hours=8)
