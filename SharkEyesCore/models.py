@@ -69,8 +69,6 @@ class FeedbackQuestionaire (models.Model):
     usage_frequency = models.CharField(max_length=4, choices=FREQUENCY_TYPES)
     #What did you use?
     usage_device = models.CharField(max_length=4, choices=DEVICE_TYPE)
-    #General Comments about the experience?
-    usage_comment = models.CharField(max_length=2000)
     #sea surface temperature accuracy?
     ss_temperature_accuracy = models.CharField(max_length=4, choices=ACCURACY_TYPE)
     #surface currents accuracy
@@ -87,16 +85,18 @@ class FeedbackQuestionaire (models.Model):
     bsalt_accuracy = models.CharField(max_length=4, choices=ACCURACY_TYPE)
     # ssh plot accuracy
     ssh_accuracy = models.CharField(max_length=4, choices=ACCURACY_TYPE)
+    # General Comments about the experience?
+    usage_comment = models.CharField(max_length=2000)
     #How does seacast.org compare with other forecasting system?
     usage_comparison = models.CharField(max_length=2000)
     #What are three things you like about seacst.org
     usage_likes = models.CharField(max_length=2000)
     #What are the first three things you would change?
     usage_suggestion = models.CharField(max_length=2000)
-    #What other ocean condition would you like to see?
-    usage_model_suggestion = models.CharField(max_length=2000)
     # Where are you?
     port = models.CharField(max_length=2000)
+    #What other ocean condition would you like to see?
+    usage_model_suggestion = models.CharField(max_length=2000)
     # Has this survey been delivered to Flaxen by email yet?
     sent = models.BooleanField(default=False)
 
@@ -143,18 +143,18 @@ class FeedbackQuestionaire (models.Model):
 
             # Use the Django framework's send_mail function to create the email
             # pattern Subject, Body, From, To(as a list)
-            send_mail('[Seacast Survey] ', '\nLocation: '+location+ '\nUsage Frequency: '+ str(frequency) +
+            send_mail('[Seacast Survey] ', '\nLocation: ' + location + '\nUsage Frequency: '+ str(frequency) +
                     '\nDevice: '+ device + '\nGeneral Comments: ' + str(each.usage_comment) +
-                    '\nSST accuracy: ' + sst_accuracy + '\nCurrents accuracy: ' + currents_accuracy
-                      + '\nWind accuracy: ' + wind_accuracy + '\nWave accuracy: ' + wave_accuracy
-                      + '\nBottom temp: ' + btemp_accuracy + '\nSalinity accuracy: ' + salt_accuracy
-                      + '\nBottom salinity accuracy: ' + bsalt_accuracy + '\nSSH accuracy: ' + ssh_accuracy
-                      + '\nHow Seacast compares to other forecasting systems: '+ str(each.usage_comparison)
-                      + '\nWhat is liked about Seacast: ' + str(each.usage_likes)
-                      + '\nSuggestions to change: ' + str(each.usage_suggestion)
-                      + '\nLocation (port or city): ' + str(each.port)
-                      + '\nOther information to incorporate: ' + str(each.usage_model_suggestion) ,
-                      'seacast.mail@gmail.com',  [recipient], fail_silently=False)
+                    '\nSST accuracy: ' + sst_accuracy + '\nCurrents accuracy: ' + currents_accuracy +
+                    '\nWind accuracy: ' + wind_accuracy + '\nWave accuracy: ' + wave_accuracy +
+                    '\nBottom temp: ' + btemp_accuracy + '\nSalinity accuracy: ' + salt_accuracy +
+                    '\nBottom salinity accuracy: ' + bsalt_accuracy + '\nSSH accuracy: ' + ssh_accuracy +
+                    '\nHow Seacast compares to other forecasting systems: '+ str(each.usage_comparison) +
+                    '\nWhat is liked about Seacast: ' + str(each.usage_likes) +
+                    '\nSuggestions to change: ' + str(each.usage_suggestion) +
+                    '\nLocation (port or city): ' + str(each.port) +
+                    '\nOther information to incorporate: ' + str(each.usage_model_suggestion) ,
+                    'seacast.mail@gmail.com',  [recipient], fail_silently=False)
             each.sent = True
             each.save()
 
