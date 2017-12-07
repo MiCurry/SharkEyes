@@ -528,11 +528,11 @@ def save_survey(request):
         #Establish DB Connection
         cursor = connection.cursor()
         #Execute SQL Query
-        cursor.execute("""INSERT INTO SharkEyesCore_feedbackquestionaire(usage_location, usage_frequency, usage_device,usage_comment, 
+        cursor.execute("""INSERT INTO SharkEyesCore_feedbackquestionaire(usage_location, usage_frequency, usage_device, usage_comment, 
                         ss_temperature_accuracy, ss_currents_accuracy, wave_accuracy, wind_accuracy, btemp_accuracy, salt_accuracy, bsalt_accuracy, 
-                        ssh_accuracy, usage_comparison,usage_likes, usage_suggestion, port,  
-                        usage_model_suggestion, sent ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,%s, %s, %s, %s, %s);""",
-                       (usage_location, usage_frequency, usage_device, general_comment, ss_temperature_accuracy, ss_currents_accuracy,wave_accuracy,
+                        ssh_accuracy, usage_comparison, usage_likes, usage_suggestion, port,  
+                        usage_model_suggestion, sent ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);""",
+                       (usage_location, usage_frequency, usage_device, general_comment, ss_temperature_accuracy, ss_currents_accuracy, wave_accuracy,
                         wind_accuracy, btemp_accuracy, salt_accuracy, bsalt_accuracy, ssh_accuracy, usage_comparison, usage_likes, usage_suggestion, port, usage_model_suggestion, sent))
         #Nothing needs to be returned
     except IntegrityError as e:
