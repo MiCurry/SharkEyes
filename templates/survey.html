@@ -42,6 +42,11 @@
                 var currents_accuracy = "";
                 var wind_accuracy = "";
                 var wave_accuracy = "";
+                var btemp_accuracy = "";
+                var salt_accuracy = "";
+                var bsalt_accuracy = "";
+                var ssh_accuracy = "";
+                var port = "";
                 var usage_comparison = "";
                 var usage_likes = "";
                 var usage_suggestion = "";
@@ -69,6 +74,18 @@
                 if ($("input[name='wave_accuracy']:checked").val()) {
                     wave_accuracy = $("input[name='wave_accuracy']:checked").val();
                 }
+                if ($("input[name='btemp_accuracy']:checked").val()) {
+                    btemp_accuracy = $("input[name='btemp_accuracy']:checked").val();
+                }
+                if ($("input[name='salt_accuracy']:checked").val()) {
+                    salt_accuracy = $("input[name='salt_accuracy']:checked").val()
+                }
+                if ($("input[name='bsalt_accuracy']:checked").val()) {
+                    bsalt_accuracy = $("input[name='bsalt_accuracy']:checked").val();
+                }
+                if ($("input[name='ssh_accuracy']:checked").val()) {
+                    ssh_accuracy = $("input[name='ssh_accuracy']:checked").val();
+                }
                 if ($('#usage_comparison').val()) {
                     usage_comparison = $('#usage_comparison').val().toString();
                 }
@@ -80,6 +97,9 @@
                 }
                 if ($('#usage_model_suggestion').val()) {
                     usage_model_suggestion = $('#usage_model_suggestion').val().toString();
+                }
+                if ($('#port').val()) {
+                    usage_model_suggestion = $('#port').val().toString();
                 }
                 if ($('#usage_comment').val()) {
                     usage_comments = $('#usage_comment').val().toString();
@@ -100,6 +120,9 @@
                     $('#usage_model_suggestion').val(length_error);
                 }
                 else if(usage_comments.length > 2000){
+                    $('#port').val(length_error);
+                }
+                else if(usage_comments.length > 2000){
                     $('#usage_comment').val(length_error);
                 }
                 else{
@@ -107,9 +130,10 @@
                     var myObj = {"usage_location": usage_location, "usage_frequency": usage_frequency,
                                  "usage_device": usage_device, "sst_accuracy": sst_accuracy,
                                  "currents_accuracy": currents_accuracy, "wave_accuracy": wave_accuracy,
-                                 "wind_accuracy": wind_accuracy, "usage_comparison": usage_comparison,
+                                 "wind_accuracy": wind_accuracy, "btemp_accuracy": btemp_accuracy, "salt_accuracy":salt_accuracy,
+                                 "bsalt_accuracy": bsalt_accuracy, "ssh_accuracy":ssh_accuracy,"usage_comparison": usage_comparison,
                                  "usage_likes": usage_likes, "usage_suggestion": usage_suggestion,
-                                 "usage_model_suggestion": usage_model_suggestion, "usage_comments": usage_comments};
+                                 "usage_model_suggestion": usage_model_suggestion, "port":port, "usage_comments": usage_comments};
                     var jsonData = JSON.stringify(myObj);
 
                     //Attach csrftoken to ajax header, otherwhise we get forbidden error
@@ -131,10 +155,15 @@
                                     $("input:radio[name=wave_accuracy]").removeAttr("checked");
                                     $("input:radio[name=wind_accuracy]").removeAttr("checked");
                                     $("input:radio[name=c_accuracy]").removeAttr("checked");
+                                    $("input:radio[name=btemp_accuracy]").removeAttr("checked");
+                                    $("input:radio[name=salt_accuracy]").removeAttr("checked");
+                                    $("input:radio[name=bsalt_accuracy]").removeAttr("checked");
+                                    $("input:radio[name=ssh_accuracy]").removeAttr("checked");
                                     $('#usage_comparison').val("");
                                     $('#usage_likes').val("");
                                     $('#usage_suggestion').val("");
                                     $('#usage_model_suggestion').val("");
+                                    $('#port').val("");
                                     $('#usage_comment').val("");
                                     window.location.href = '{% url "SharkEyesCore.views.home" %}';
                                 },
@@ -180,7 +209,7 @@
                     <input type="radio" name="c_accuracy" value="NA">Not Accurate<br/>
                     <input type="radio" name="c_accuracy" value="U">Unsure <br/>
                 </div>
-            <b> The Wave Watch forecast was:</b><br/>
+            <b> The Wave forecasts were:</b><br/>
                 <div class="survey_answers">
                     <input type="radio" name="wave_accuracy" value="A">Accurate <br/>
                     <input type="radio" name="wave_accuracy" value="NA">Not Accurate<br/>
@@ -192,6 +221,30 @@
                     <input type="radio" name="wind_accuracy" value="NA">Not Accurate<br/>
                     <input type="radio" name="wind_accuracy" value="U">Unsure <br/>
                 </div>
+            <b> The Bottom Temp forecast was:</b>
+                <div class="survey_answers">
+                    <input type="radio" name="btemp_accuracy" value="A">Accurate <br/>
+                    <input type="radio" name="btemp_accuracy" value="NA">Not Accurate<br/>
+                    <input type="radio" name="btemp_accuracy" value="U">Unsure <br/>
+                </div>
+            <b> The Surface Salinity forecast was:</b>
+                <div class="survey_answers">
+                    <input type="radio" name="salt_accuracy" value="A">Accurate <br/>
+                    <input type="radio" name="salt_accuracy" value="NA">Not Accurate<br/>
+                    <input type="radio" name="salt_accuracy" value="U">Unsure <br/>
+                </div>
+            <b> The Bottom Salinity forecast was:</b>
+                <div class="survey_answers">
+                    <input type="radio" name="bsalt_accuracy" value="A">Accurate <br/>
+                    <input type="radio" name="bsalt_accuracy" value="NA">Not Accurate<br/>
+                    <input type="radio" name="bsalt_accuracy" value="U">Unsure <br/>
+                </div>
+            <b> The Sea Surface Height forecast was:</b>
+                <div class="survey_answers">
+                    <input type="radio" name="ssh_accuracy" value="A">Accurate <br/>
+                    <input type="radio" name="ssh_accuracy" value="NA">Not Accurate<br/>
+                    <input type="radio" name="ssh_accuracy" value="U">Unsure <br/>
+                </div>
             <b>How does Seacast.org compare with other forecasts systems?</b><br/>
                 <textarea rows="5" cols="35" id="usage_comparison"></textarea><br/>
             <b>What do you like about seacast.org?</b><br/>
@@ -200,6 +253,8 @@
                 <textarea rows="5" cols="35" id="usage_suggestion"></textarea><br/>
             <b>What other ocean condition forecasts would you be interested in seeing added?</b><br/>
                 <textarea rows="5" cols="35" id="usage_model_suggestion"></textarea><br/>
+            <b>Where are you located? (city or port)</b><br/>
+                <textarea rows="5" cols="35" id="port"></textarea><br/>
             <b>Please share any further comments about your experience:</b><br/>
                <textarea rows="5" cols="35" id="usage_comment"></textarea><br/>
             <br/>
