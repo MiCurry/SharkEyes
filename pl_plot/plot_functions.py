@@ -543,7 +543,7 @@ def wind_function(ax, data_file, bmap, time_index, downsample_ratio):
     if time_index in interp_indices:
         interpolate = 1
 
-    interpolate = 0 # Interpolation seems to be making all the plots the same. 
+    interpolate = 0 # Interpolation seems to be making all the plots the same.
     if interpolate == 1:
         # Interpolation process
         # -------------------------------------------------------------------------

@@ -512,10 +512,15 @@ def save_survey(request):
     ss_currents_accuracy = json.loads(request.body)["currents_accuracy"]
     wave_accuracy = json.loads(request.body)["wave_accuracy"]
     wind_accuracy = json.loads(request.body)["wind_accuracy"]
+    btemp_accuracy = json.loads(request.body)["btemp_accuracy"]
+    salt_accuracy = json.loads(request.body)["salt_accuracy"]
+    bsalt_accuracy = json.loads(request.body)["bsalt_accuracy"]
+    ssh_accuracy = json.loads(request.body)["ssh_accuracy"]
     usage_comparison = json.loads(request.body)["usage_comparison"]
     usage_likes = json.loads(request.body)["usage_likes"]
     usage_suggestion = json.loads(request.body)["usage_suggestion"]
     usage_model_suggestion = json.loads(request.body)["usage_model_suggestion"]
+    port = json.loads(request.body)["port"]
     general_comment = json.loads(request.body)["usage_comments"]
     sent = False
 
@@ -523,7 +528,12 @@ def save_survey(request):
         #Establish DB Connection
         cursor = connection.cursor()
         #Execute SQL Query
-        cursor.execute("""INSERT INTO SharkEyesCore_feedbackquestionaire(usage_location, usage_frequency, usage_device,usage_comment, ss_temperature_accuracy, ss_currents_accuracy, wave_accuracy,  wind_accuracy, usage_comparison,usage_likes, usage_suggestion, usage_model_suggestion, sent ) VALUES (%s, %s, %s, %s,%s, %s, %s, %s,%s, %s, %s, %s, %s);""",(usage_location, usage_frequency, usage_device, general_comment, ss_temperature_accuracy, ss_currents_accuracy,wave_accuracy, wind_accuracy, usage_comparison, usage_likes, usage_suggestion, usage_model_suggestion, sent))
+        cursor.execute("""INSERT INTO SharkEyesCore_feedbackquestionaire(usage_location, usage_frequency, usage_device, usage_comment, 
+                        ss_temperature_accuracy, ss_currents_accuracy, wave_accuracy, wind_accuracy, btemp_accuracy, salt_accuracy, bsalt_accuracy, 
+                        ssh_accuracy, usage_comparison, usage_likes, usage_suggestion, port,  
+                        usage_model_suggestion, sent ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);""",
+                       (usage_location, usage_frequency, usage_device, general_comment, ss_temperature_accuracy, ss_currents_accuracy, wave_accuracy,
+                        wind_accuracy, btemp_accuracy, salt_accuracy, bsalt_accuracy, ssh_accuracy, usage_comparison, usage_likes, usage_suggestion, port, usage_model_suggestion, sent))
         #Nothing needs to be returned
     except IntegrityError as e:
         print "Error Message: "
