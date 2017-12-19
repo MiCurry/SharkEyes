@@ -257,7 +257,7 @@ def ww3_direction(ax, data_file, bmap, key_ax, forecast_index, downsample_ratio)
 
     textBox = pyplot.text(0,
                           0,
-                          "       Wave period average and maximum values ""\n" "Average: " + str(mean_val) + " seconds " "  -  "" Maximum: " + str(max_val) + " seconds",
+                          "    Extended - Wave period average and maximum values ""\n" "Average: " + str(mean_val) + " seconds " "  -  "" Maximum: " + str(max_val) + " seconds",
                           withdash=False,
                           backgroundcolor='black',
                           color='white')
@@ -323,7 +323,7 @@ def ww3_height(ax, data_file, bmap, key_ax, forecast_index, downsample_ratio):
     labels = ["%.1f" % num for num in float_labels]
     cbar.ax.xaxis.set_ticks(locations)
     cbar.ax.xaxis.set_ticklabels(labels)
-    cbar.set_label("Wave Height (Meters)")
+    cbar.set_label("Wave Height (Meters) - Extended")
 
 
 
@@ -593,8 +593,6 @@ def currents_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio)
         avg = numpy.average(array)
         return numpy.nan if avg > 10**3 else avg
 
-    print "Currents Downsample Ratio:", downsample_ratio
-
     currents_u = data_file.variables['u'][time_index][39]
     currents_v = data_file.variables['v'][time_index][39]
     rho_mask = get_rho_mask(data_file)
@@ -804,7 +802,7 @@ def hycom_temp(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
     labels = ["%.1f" % num for num in float_labels]
     cbar.ax.xaxis.set_ticks(locations)
     cbar.ax.xaxis.set_ticklabels(labels)
-    cbar.set_label("fahrenheit")
+    cbar.set_label("Fahrenheit - Extended")
 
 def hycom_currents(ax, data_file, bmap, key_ax, time_index, downsample_ratio=1):
     verbose = 0
@@ -836,7 +834,6 @@ def hycom_currents(ax, data_file, bmap, key_ax, time_index, downsample_ratio=1):
         return array
 
     downsample_ratio = 1
-    print "Currents Downsample Ratio:", downsample_ratio
 
     currents_u = data_file.variables['u'][time_index, DEPTH]
     currents_v = data_file.variables['v'][time_index, DEPTH]
@@ -868,16 +865,15 @@ def hycom_currents(ax, data_file, bmap, key_ax, time_index, downsample_ratio=1):
     # Multiplying .5, 1, and 2 by .5144 is converting from knots to m/s
     #-------------------------------------------------------------------------
     quiverkey = key_ax.quiverkey(overlay, .95, .4, 0.5*.5144, ".5 knots", labelpos='S', labelcolor='white',
-                                 color='white', labelsep=.5, coordinates='axes')
+                                 color='white', labelsep=.5, coordinates='axes', label="Extended")
     quiverkey1 = key_ax.quiverkey(overlay, 3.75, .4, 1*.5144, "1 knot", labelpos='S', labelcolor='white',
-                                  color='white', labelsep=.5, coordinates='axes')
+                                  color='white', labelsep=.5, coordinates='axes', label="Extended")
     quiverkey2 = key_ax.quiverkey(overlay, 6.5, .4, 2*.5144, "2 knots", labelpos='S', labelcolor='white',
-                                  color='white', labelsep=.5, coordinates='axes')
+                                  color='white', labelsep=.5, coordinates='axes', label="Extended")
     key_ax.set_axis_off()
 
 def crop_and_downsample(source_array, downsample_ratio, average=True):
     ys, xs = source_array.shape
-    print "shape is ", source_array.shape
     cropped_array = source_array[:ys - (ys % int(downsample_ratio)), :xs - (xs % int(downsample_ratio))]
     if average:
         zoomed_array = scipy.nanmean(numpy.concatenate(

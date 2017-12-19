@@ -195,6 +195,7 @@ class Plotter:
 
     def load_file(self, file_name):
         try:
+            print "File Name", file_name
             self.data_file = netcdf.netcdf_file(
                 os.path.join(
                     settings.MEDIA_ROOT,

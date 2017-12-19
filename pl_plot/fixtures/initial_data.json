@@ -114,5 +114,57 @@
             "function_name": "ssh_function",
             "forecast": 53
         }
+    },
+
+    {
+        "model": "pl_plot.overlaydefinition",
+        "pk": 10,
+        "fields": {
+            "display_name_long": "NCEP WW3 Direction & Period",
+            "is_base": false,
+            "type": "V",
+            "display_name_short": "NCEP WW3 Dir and Per",
+            "function_name": "ww3_direction",
+            "forecast": 53
+        }
+    },
+
+    {
+        "model": "pl_plot.overlaydefinition",
+        "pk": 11,
+        "fields": {
+            "display_name_long": "NCEP WW3 Height",
+            "is_base": false,
+            "type": "FC",
+            "display_name_short": "NCEPWW3_Height",
+            "function_name": "ww3_height",
+            "forecast": 53
+        }
+    },
+
+    {
+        "model": "pl_plot.overlaydefinition",
+        "pk": 12,
+        "fields": {
+            "display_name_long": "HYCOM Sea Surface Tempature",
+            "is_base": false,
+            "type": "FC",
+            "display_name_short": "HYCOM SST",
+            "function_name": "hycom_temp",
+            "forecast": 53
+        }
+    },
+
+    {
+        "model": "pl_plot.overlaydefinition",
+        "pk": 13,
+        "fields": {
+            "display_name_long": "HYCOM Sea Surface Currents",
+            "is_base": false,
+            "type": "V",
+            "display_name_short": "HYCOM SSC",
+            "function_name": "hycom_currents",
+            "forecast": 53
+        }
     }
 ]

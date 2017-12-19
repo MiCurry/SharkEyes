@@ -21,6 +21,10 @@ def home(request):
     # 7 = Bottom Temperature,
     # 8 = Bottom Salinity,
     # 9 = Sea Surface Height
+    # 10 =
+    # 11 =
+    # 12 =
+    # 13 =
     models = [settings.OSU_ROMS_SST,
               settings.OSU_ROMS_SUR_SAL,
               settings.OSU_ROMS_SUR_CUR,
@@ -29,11 +33,7 @@ def home(request):
               settings.OSU_WW3_DIR,
               settings.OSU_ROMS_BOT_SAL,
               settings.OSU_ROMS_BOT_TEMP,
-              settings.OSU_ROMS_SSH,
-              settings.NCEP_WW3_HI,
-              settings.NCEP_WW3_DIR,
-              settings.HYCOM_SST,
-              settings.HYCOM_SUR_CUR]
+              settings.OSU_ROMS_SSH]
     fields = []
 
     for value in models:

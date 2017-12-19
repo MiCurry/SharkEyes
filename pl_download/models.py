@@ -29,6 +29,19 @@ HOW_LONG_TO_KEEP_FILES = settings.HOW_LONG_TO_KEEP_FILES
 # This is how many days' worth of older forecasts to grab from the database
 PAST_DAYS_OF_FILES_TO_DISPLAY = settings.PAST_DAYS_OF_FILES_TO_DISPLAY
 
+def reporthook(blocknum, blocksize, totalsize):
+    readsofar = blocknum * blocksize
+    if totalsize > 0:
+        percent = readsofar * 1e2 / totalsize
+        s = "\r%5.1f%% %*d / %d" % (
+            percent, len(str(totalsize)), readsofar, totalsize)
+        sys.stderr.write(s)
+        if readsofar >= totalsize: # near the end
+            sys.stderr.write("\n")
+    else: # total size is unknown
+        sys.stderr.write("read %d\n" % (readsofar,))
+
+
 class DataFileManager(models.Manager):
     @staticmethod
     @shared_task(name='pl_download.fetch_new_files')
@@ -142,7 +155,9 @@ class DataFileManager(models.Manager):
 
                 try:
                     print "Downloading OSU ROMS File {0}".format(url,)
-                    urllib.urlretrieve(url=url, filename=os.path.join(destination_directory, local_filename))
+                    urllib.urlretrieve(url=url,
+                                       filename=os.path.join(destination_directory, local_filename),
+                                       )
                     datafile = DataFile(
                         type='NCDF',
                         download_datetime=timezone.now(),
@@ -163,7 +178,7 @@ class DataFileManager(models.Manager):
 
     @staticmethod
     @shared_task(name='pl_download.hycom_download')
-    def hycom_download():
+    def hycom_download(count=None):
         """ Downloads a netCDF of the current days hycom forecast
 
         Base Link (settings.HYCOM_URL): http://nomads.ncep.noaa.gov/pub/data/nccf/com/rtofs/prod/rtofs.
@@ -172,8 +187,18 @@ class DataFileManager(models.Manager):
 
         :return: id of the downloaded datafile
         """
-        date = str(dt.date.today()).replace("-", "", 3)
+
+        # Count Can Limit the amount of downloads you want to download
+        if count is not None:
+            cnt = 0
+
+        verbose = 1
+
+        date = str(dt.date.today()).replace("-", "", 3) # Todays Date used for access
         index_url = settings.HYCOM_URL+date+"/"
+
+        # Calculate what files we need to use for downloading
+        HOURS = 96
 
         page = requests.get(index_url)
         tree = html.fromstring(page.content)
@@ -182,17 +207,23 @@ class DataFileManager(models.Manager):
 
         ids = []
 
-        count = 0
-
         for forecast in forecasts:
-            if "6hrly" in forecast and "reg2" in forecast:
+            if "6hrly" in forecast and "US_west" in forecast:
 
                 filename = forecast
+                if verbose > 0:
+                    print filename
 
                 url = index_url + filename
                 tag = url.split('_')[3] # If we don't grab the tag we'll have a bunch of files with the same
                                         # filename as they all have the same date!
-                if 'n' in tag:
+
+                hour = int(tag[1:]) # Hour of the forecast pulled from the html url
+
+                if 'n' in tag:  # Don't grab nowcasts
+                    continue
+
+                if int(tag[1:]) < HOURS: # Download files that are not used for extension
                     continue
 
                 local_filename = "{0}_{1}_{2}.nc".format(settings.HYCOM_DF_FN, date, tag)
@@ -205,9 +236,11 @@ class DataFileManager(models.Manager):
                 days = data_file.variables['MT'].data
                 epoch = datetime.strptime(data_file.variables['MT'].units, "days since %Y-%m-%d %H:%M:%S")
                 model_date = epoch + timedelta(days=days[0]) # Values enced as days since..
-                print epoch
-                print "Days: ", days
-                print "Model Date: ", model_date
+
+                if verbose > 0:
+                    print epoch
+                    print "Days: ", days
+                    print "Model Date: ", model_date
 
                 datafile = DataFile(
                     type='HYCOM',
@@ -218,7 +251,13 @@ class DataFileManager(models.Manager):
                 )
                 datafile.save()
                 ids.append(datafile.id)
-                count += 1
+
+                if count is not None:
+                    if cnt > count:
+                        return ids
+                    else:
+                        cnt += 1
+
             else:
                 continue
 
@@ -235,7 +274,11 @@ class DataFileManager(models.Manager):
         :return: id of downloaded datafile
         """
         # TODO: Check to see if the download file already exists?
-        begin, end = create_nomads_time_series_from_today(days=8)
+        begin_date, end_date = create_nomads_time_series_from_today(start=4, end=8)
+
+        begin = str(begin_date) + 'T00%3A00%3A00Z'
+        end = str(end_date) + 'T00%3A00%3A00Z'
+
 
         url = "http://thredds.ucar.edu/thredds/ncss/grib/NCEP/WW3/Regional_US_West_Coast/Best?" \
               "var=Direction_of_wind_waves_surface&var=" \
@@ -256,7 +299,7 @@ class DataFileManager(models.Manager):
             type='NCEP_WW3',
             download_datetime=timezone.now(),
             generated_datetime=timezone.now(),
-            model_date=dt.date.today(),
+            model_date=begin_date,
             file=local_filename,
         )
         datafile.save()
@@ -408,14 +451,14 @@ class DataFileManager(models.Manager):
         return False
 
     @classmethod
-    def get_next_few_days_files_from_db(cls):
+    def get_next_few_days_files_from_db(cls, days=10):
         """ This function gets the file ID's from the database that do not have plots.
 
         :return: A list of datafiles that haven't had plots generated for them yet
         """
         next_few_days_of_files = DataFile.objects.filter(
             model_date__gte=(timezone.now()-timedelta(days=PAST_DAYS_OF_FILES_TO_DISPLAY+1)).date(),
-            model_date__lte=(timezone.now()+timedelta(days=10)).date()
+            model_date__lte=(timezone.now()+timedelta(days=days)).date()
         )
 
         # Select the most recent within each model date and type (ie wave or SST)
@@ -432,6 +475,15 @@ class DataFileManager(models.Manager):
         actual_datafile_objects = DataFile.objects.filter(reduce(OR, q_objects))
 
         return actual_datafile_objects
+
+    @classmethod
+    def get_next_few_datafiles_of_a_type(cls, type, days=10, past_days=0):
+        datafiles = DataFile.objects.filter(
+            model_date__gte=(timezone.now()-timedelta(days=past_days)).date(),
+            model_date__lte=(timezone.now()+timedelta(days=days)).date(),
+            type=type
+        )
+        return datafiles
 
     @classmethod
     def get_next_few_datafiles_of_hycom_file_ids(cls):
@@ -459,18 +511,17 @@ class DataFileManager(models.Manager):
 
         return True
 
-def create_nomads_time_series_from_today(days=4):
+def create_nomads_time_series_from_today(start=0, end=4):
     """ Creates a nomads time series in the format of: T00%3A00%3A00Z with today's date as the start
     and to todays date + range.
 
-    :param days: number of days into the future
+
+    :param start: number of days into the future to start
+    :param end: number of days into the future to end
     :return: begin_date, end_date
     """
-    current_time = datetime.now().date()
-    generated_time = datetime.now().today()
-    end_time = datetime.now().date() + timedelta(days=days)
-    begin_date = str(current_time) + 'T00%3A00%3A00Z'
-    end_date = str(end_time) + 'T00%3A00%3A00Z'
+    begin_date = datetime.now().date() + timedelta( days = start )
+    end_date = datetime.now().date() + timedelta( days = end)
 
     return begin_date, end_date
 

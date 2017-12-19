@@ -96,61 +96,61 @@ class OverlayManager(models.Manager):
 
         for fid in file_ids:
             datafile = DataFile.objects.get(pk=fid)
+        if datafile.file.name.startswith(settings.OSU_WW3_DF_FN):
 
-            # Wavewatch
-            if datafile.file.name.startswith(settings.OSU_WW3_DF_FN):
+            # The unchopped file's index starts at noon: index = 0 and progresses throgh 85 forecasts, one per hour,
+            # for the next 85 hours.
+            # Only plot every 4th index to match up with the SST forecast.
+            # WaveWatch has forecasts for every hour but at this time we don't need them all.
+            for t in xrange(0, 85):
+                if t % 4 == 0:
+                    task_list.append(cls.make_wave_watch_plot.subtask(args=(settings.OSU_WW3_HI, t, fid), immutable=True))
+                    task_list.append(cls.make_wave_watch_plot.subtask(args=(settings.OSU_WW3_DIR, t, fid), immutable=True))
 
-                # The unchopped file's index starts at noon: index = 0 and progresses throgh 85 forecasts, one per hour,
-                # for the next 85 hours.
-                # Only plot every 4th index to match up with the SST forecast.
-                # WaveWatch has forecasts for every hour but at this time we don't need them all.
-                for t in xrange(0, 85):
-                    if t % 4 == 0:
-                        task_list.append(cls.make_wave_watch_plot.subtask(args=(settings.OSU_WW3_HI, t, fid), immutable=True))
-                        task_list.append(cls.make_wave_watch_plot.subtask(args=(settings.OSU_WW3_DIR, t, fid), immutable=True))
+        # Wind
+        elif datafile.file.name.startswith(settings.NAMS_WIND_DF_FN):
+            print "WIND!"
+            plotter = WindPlotter(datafile.file.name)
+            number_of_times = plotter.get_number_of_model_times()
+            for t in xrange(number_of_times):
+                task_list.append(cls.make_plot.subtask(args=(settings.NAMS_WIND, t, fid), immutable=True))
 
-            # Wind
-            elif datafile.file.name.startswith(settings.NAMS_WIND_DF_FN):
-                print "WIND!"
-                plotter = WindPlotter(datafile.file.name)
-                number_of_times = plotter.get_number_of_model_times()
-                for t in xrange(number_of_times):
-                    task_list.append(cls.make_plot.subtask(args=(settings.NAMS_WIND, t, fid), immutable=True))
+        # NCEP WW3
+        elif datafile.file.name.startswith(settings.NCEP_WW3_DF_FN):
+            print "NCEP"
+            plotter = NcepWW3Plotter(datafile.file.name)
+            for t in xrange(plotter.get_number_of_model_times()):
+                task_list.append(cls.make_plot.subtask(args=(settings.NCEP_WW3_DIR, t, fid), immutable=True))
+                task_list.append(cls.make_plot.subtask(args=(settings.NCEP_WW3_HI, t, fid), immutable=True))
 
-            # NCEP WW3
-            elif datafile.file.name.startswith(settings.NCEP_WW3_DF_FN):
-                print "NCEP"
-                plotter = NcepWW3Plotter(datafile.file.name)
-                for t in xrange(plotter.get_number_of_model_times()):
-                    task_list.append(cls.make_plot.subtask(args=(settings.NCEP_WW3_DIR, t, fid), immutable=True))
-                    task_list.append(cls.make_plot.subtask(args=(settings.NCEP_WW3_HI, t, fid), immutable=True))
+        # Hycom
+        elif datafile.file.name.startswith(settings.HYCOM_DF_FN):
+            print "HYCOM"
+            plotter = HycomPlotter(datafile.file.name)
+            t = plotter.get_number_of_model_times()
 
-            # Hycom
-            elif datafile.file.name.startswith(settings.HYCOM_DF_FN):
-                print "HYCOM"
-                plotter = HycomPlotter(datafile.file.name)
-                for t in xrange(plotter.get_number_of_model_times()):
-                    task_list.append(cls.make_plot.subtask(args=(settings.HYCOM_SST, t, fid), immutable=True))
-                    task_list.append(cls.make_plot.subtask(args=(settings.HYCOM_SUR_CUR, t, fid), immutable=True))
+            task_list.append(cls.make_plot.subtask(args=(settings.HYCOM_SST, t, fid), immutable=True))
+            task_list.append(cls.make_plot.subtask(args=(settings.HYCOM_SUR_CUR, t, fid), immutable=True))
 
-            # OSU_ROMS
-            else:
-                print "OSU ROMS"
-                plotter = Plotter(datafile.file.name)
-                number_of_times = plotter.get_number_of_model_times()
+        # OSU_ROMS
+        else:
+            print "OSU ROMS"
+            plotter = Plotter(datafile.file.name)
+            number_of_times = plotter.get_number_of_model_times()
 
-                for t in xrange(number_of_times):
-                    #SST Now has values every 2 hours, but we only want every 4
-                    #This only adds the task for every other time stamp
-                    if t % 2 != 0:
-                        #using EXTEND because we are adding multiple items: might also be able to use APPEND
-                        task_list.extend(cls.make_plot.subtask(args=(od_id, t, fid),
-                                                               immutable=True) for od_id in [settings.OSU_ROMS_SST,
-                                                                                             settings.OSU_ROMS_SUR_SAL,
-                                                                                             settings.OSU_ROMS_SUR_CUR,
-                                                                                             settings.OSU_ROMS_BOT_SAL,
-                                                                                             settings.OSU_ROMS_BOT_TEMP,
-                                                                                             settings.OSU_ROMS_SSH])
+            for t in xrange(number_of_times):
+                #SST Now has values every 2 hours, but we only want every 4
+                #This only adds the task for every other time stamp
+                if t % 2 != 0:
+                    #using EXTEND because we are adding multiple items: might also be able to use APPEND
+                    task_list.extend(cls.make_plot.subtask(args=(od_id, t, fid),
+                                                           immutable=True) for od_id in [settings.OSU_ROMS_SST,
+                                                                                         settings.OSU_ROMS_SUR_SAL,
+                                                                                         settings.OSU_ROMS_SUR_CUR,
+                                                                                         settings.OSU_ROMS_BOT_SAL,
+                                                                                         settings.OSU_ROMS_BOT_TEMP,
+                                                                                         settings.OSU_ROMS_SSH])
+                    # Wavewatch
         return task_list
 
     @classmethod
@@ -229,6 +229,17 @@ class OverlayManager(models.Manager):
                                                             generated_datetime=generated_datetime, downsample_ratio=zoom_level[1],
                                                             zoom_levels=zoom_level[0])
 
+            ''' Here we are changing the overlay_id number of forecasted models to be that of the corresponding
+                base foreacast overlay_id.
+                
+                That way when SharkEyesCore.views creates the list of overlays, it grabs the base forecast and
+                appends the extended one to the end as if the extended forecasts were part of the base forecast. '''
+            # Extended Forecasts
+            if overlay_id == settings.NCEP_WW3_DIR:
+                overlay_id = settings.OSU_WW3_DIR
+            if overlay_id == settings.NCEP_WW3_HI:
+                overlay_id = settings.OSU_WW3_HI
+
             overlay = Overlay(
                 file=os.path.join(settings.UNCHOPPED_STORAGE_DIR, plot_filename),
                 key=os.path.join(settings.KEY_STORAGE_DIR, key_filename),
@@ -291,6 +302,7 @@ class OverlayManager(models.Manager):
             plotter = HycomPlotter(datafile.file.name)
             zoom_levels = plotter.get_zoom_level(overlay__id)
 
+
         elif overlay__id == settings.NAMS_WIND:
             if file_id is None:
                 datafile = DataFile.objects.filter(type='WIND').latest('model_date')
@@ -309,6 +321,17 @@ class OverlayManager(models.Manager):
                                                             time_index=time_index,
                                                             downsample_ratio=zoom_level[1],
                                                             zoom_levels=zoom_level[0])
+
+            ''' Here we are changing the overlay_id number of forecasted models to be that of the corresponding
+                base foreacast overlay_id.
+                
+                That way when SharkEyesCore.views creates the list of overlays, it grabs the base forecast and
+                appends the extended one to the end as if the extended forecasts were part of the base forecast. '''
+            # Extended Forecasts
+            if overlay__id == settings.HYCOM_SST:
+                overlay__id = settings.OSU_ROMS_SST
+            elif overlay__id == settings.HYCOM_SUR_CUR:
+                overlay__id = settings.OSU_ROMS_SUR_CUR
 
             overlay = Overlay(
                 file=os.path.join(settings.UNCHOPPED_STORAGE_DIR, plot_filename),
