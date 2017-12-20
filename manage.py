@@ -1,247 +1,485 @@
 #!/usr/bin/env python
 import os
 import sys , traceback
+import argparse
 import time
+
+import SharkEyesCore.startup as startup
+from django.core.management import execute_from_command_line
+
+from django.conf import settings
+
+""" manage.py - Information
+
+Baisc usages
+
+`python manage.py download -r -w -n` # Download Roms, wind and nams
+
+`python manage.py plot -i 23 34 45 -r` # Plot rom df with id 23, 34 and 45 
+
+With manage.py plot you can only plot one file type at a time. So if 23, 34 
+were ROMS datafiles and 45 was a wave file, you'll get an error.
+
+`python manage.py plot-all -r` # Download and plot all of roms. Fresh
+plots!
+
+`python manage.py plot-l -d today -r -w` # Plot today's plots
+
+Options for plot-l are `latest`, `all`, `today`.
+
+
+
+
+"""
+
+DEF_NUM_PLOTS = 5 # Default Number of Num Plots
+DEF_TILE_FLAG = False # Default Tile Flag
+DEF_FULL_ROMS_FLAG = False # Default Full Roms Flag
+
+verbose = 0
+
+def download(roms=False, wave=False,
+             wind=False, hycom=False,
+             ncep=False,
+             num_dl=None):
+
+    from pl_download.models import DataFileManager
+
+    ids = []
+    if roms:
+        roms_ids = []
+        roms_ids = DataFileManager.download_osu_roms()
+        print("OSU ROM dl ids:", roms_ids)
+        ids.append(roms_ids)
+
+    if wave:
+        wave_ids = []
+        wave_ids = DataFileManager.get_latest_wave_watch_files()
+        print("OSU WW3 dl ids:", wave_ids)
+        ids.append(wave_ids)
+
+    if wind:
+        wind_ids = []
+        wind_ids = DataFileManager.get_wind_file()
+        print("NAM Wind dl ids:", wind_ids)
+        ids.append(wind_ids)
+
+    if hycom:
+        hycom_ids = []
+        hycom_ids = DataFileManager.hycom_download(count=num_dl)
+        print("HYCOM dl ids:", hycom_ids)
+        ids.append(hycom_ids)
+
+    if ncep:
+        ncep_ids = []
+        ncep_ids = DataFileManager.ww3_download()
+        print("NCEP dl ids:", ncep_ids)
+        ids.append(ncep_ids)
+
+
+
+    return ids
+
+
+def tile():
+    from pl_chop.tasks import tile_overlay
+
+    ids = range(221, 279, 1)
+
+    if tile:
+        print "Tiling NCEP"
+        for f in ids:
+            tile_overlay(f)
+
+def plot(ids,
+         num_plots=DEF_NUM_PLOTS, tile=DEF_TILE_FLAG, full_roms=DEF_FULL_ROMS_FLAG,
+         roms=False,
+         wave=False,
+         wind=False,
+         hycom=False,
+         ncep=False):
+    '''  Just generates plots. You need to pass in the df id to get a plot! Pass it in manually
+    or by using one of the functions below which grabs them using the database or via downloading!
+    '''
+
+    from pl_plot.models import OverlayManager as om
+    from pl_chop.tasks import tile_overlay
+
+    if roms:
+        roms = []
+
+        print "Plotting Roms"
+        if len(ids) > 1:
+            for id in ids:
+                for i in range(num_plots):
+                    print "PLOT: OSU ROMS SST - timeslice: ", i
+                    roms.append(om.make_plot(settings.OSU_ROMS_SST, i, id))
+                    print "PLOT: OSU ROMS SSC - timeslice: ", i
+                    roms.append(om.make_plot(settings.OSU_ROMS_SUR_CUR, i, id))
+
+                    if full_roms:
+                        print "PLOT: Plotting full roms"
+                        print "PLOT: OSU ROMS SSC - timeslice: ", i
+                        roms.append(om.make_plot(settings.OSU_ROMS_SUR_SAL, i, id))
+                        print "PLOT: OSU ROMS BOT Sal- timeslice: ", i
+                        roms.append(om.make_plot(settings.OSU_ROMS_BOT_SAL, i, id))
+                        print "PLOT: OSU ROMS BOT Temp- timeslice: ", i
+                        roms.append(om.make_plot(settings.OSU_ROMS_BOT_TEMP, i, id))
+                        print "PLOT: OSU ROMS SSH - timeslice: ", i
+                        roms.append(om.make_plot(settings.OSU_ROMS_SSH, i, id))
+        else:
+            for i in range(num_plots):
+                roms.append(om.make_plot(settings.OSU_ROMS_SST, i, id))
+                roms.append(om.make_plot(settings.OSU_ROMS_SUR_CUR, i, id))
+
+                if full_roms:
+                    roms.append(om.make_plot(settings.OSU_ROMS_SUR_SAL, i, id))
+                    roms.append(om.make_plot(settings.OSU_ROMS_BOT_SAL, i, id))
+                    roms.append(om.make_plot(settings.OSU_ROMS_BOT_TEMP, i, id))
+                    roms.append(om.make_plot(settings.OSU_ROMS_SSH, i, id))
+
+        if tile:
+            print "Tiling ROMS"
+            for f in roms:
+                tile_overlay(f)
+
+        return
+
+    if wave:
+        waves = []
+
+
+        print ids
+        print "Plotting OSU WW3"
+
+        if not ids:
+            print "Empty List of IDS for OSU WW3"
+            return
+
+        for id in ids:
+            for i in range(num_plots):
+                waves.append(om.make_wave_watch_plot(settings.OSU_WW3_HI, i, id))
+                waves.append(om.make_wave_watch_plot(settings.OSU_WW3_DIR, i, id))
+
+        if tile:
+            print "Tiling OSU WW3"
+            for f in waves:
+                tile_overlay(f)
+
+        return
+
+    if wind:
+        winds = []
+
+        print "Plotting NAM Winds"
+        for id in ids:
+            for i in range(num_plots):
+                winds.append(om.make_plot(settings.NAMS_WIND, i, id))
+
+        if tile:
+            print "Tiling NAM Winds"
+            for f in winds:
+                tile_overlay(f)
+
+        return
+
+    if hycom:
+        hycoms = []
+
+        print "Plotting HYCOM"
+        for id in ids:
+            hycoms.append(om.make_plot(settings.HYCOM_SST, 0, id))
+            hycoms.append(om.make_plot(settings.HYCOM_SUR_CUR, 0, id))
+
+        if tile:
+            print "Tiling HYCOM"
+            for f in hycoms:
+                tile_overlay(f)
+
+        return
+
+    if ncep:
+        nceps = []
+
+        print ids
+        print "Plotting NCEP WW3"
+        for id in ids:
+            for i in range(num_plots):
+                nceps.append(om.make_wave_watch_plot(settings.NCEP_WW3_DIR, i, id))
+                nceps.append(om.make_wave_watch_plot(settings.NCEP_WW3_HI, i, id))
+
+        if tile:
+            print "Tiling NCEP"
+            for f in nceps:
+                tile_overlay(f)
+
+        return
+
+
+
+def plot_new(num_plots=DEF_NUM_PLOTS, tile=DEF_TILE_FLAG, full_roms=DEF_FULL_ROMS_FLAG,
+             roms=False, wave=False, wind=False,
+             hycom=False, ncep=False):
+    # num_plots = The number of plots you want for each file - save time!
+    # Download and plot the newset freshest files from ze interwebz
+
+    from pl_plot.models import OverlayManager as om
+    from pl_chop.tasks import tile_overlay
+
+    if roms:
+        ids = download(roms=True)
+        roms = []
+
+        plot( ids, roms=True, num_plots=num_plots, tile=tile, full_roms=full_roms )
+
+    if wave:
+        ids = download(wave=True)
+        waves = []
+
+        plot( ids, wave=True, num_plots=num_plots, tile=tile )
+
+    if wind:
+        ids = download(wind=True)
+        winds = []
+
+        plot( ids, wind=True, num_plots=num_plots, tile=tile )
+
+    if hycom:
+        ids = download(hycom=True, num_dl=num_plots)
+        hycoms = []
+
+        plot( ids, hycom=True, num_plots=num_plots, tile=tile )
+
+    if ncep:
+        ids = download(ncep=True)
+        nceps = []
+
+        plot( ids, ncep=True, num_plots=num_plots, tile=tile )
+
+def plot_latest(num_plots=DEF_NUM_PLOTS, tile=DEF_TILE_FLAG, full_roms=DEF_FULL_ROMS_FLAG, date='latest',
+                roms=False, wave=False, wind=False,
+                hycom=False, ncep=False):
+    # num_plots = The number of plots you want for each file - save time!
+    # Pull the latest files from the database and plot those
+
+    """
+
+    Using `latest` grabs all plots into the future. Similar to do_pipeline()
+    """
+    from pl_download.models import DataFile as df
+    from pl_download.models import DataFileManager as dm
+    from datetime import datetime
+
+    if verbose > 0:
+        print "Date span request: ", date
+
+
+    # Today
+    if date == 'today':
+        today = datetime.now().date()
+        print "Printing all datafiles with date of today"
+    elif date == 'all':
+        print "Printing all datafiles"
+        pass
+    elif date == 'latest':
+        print "Printing datafiles that start with PAST_FILES_TO_DISPALY until whats returned from \n"
+        print "get_next_few_days_files_from_db(days=x)"
+        pass
+    elif date is None:
+        print "Printing datafiles that start with PAST_FILES_TO_DISPALY until whats returned from \n"
+        print "get_next_few_days_files_from_db(days=x)"
+        date = 'latest'
+    else:
+        print "Wrong date paramater. Please use - 'today', 'all', or 'latest'"
+        return
+
+    if roms:
+        roms = []
+        ids = []
+
+        if date == "today":
+            ids = df.objects.filter(type='NCDF').get(model_date=today)
+        elif date == "latest":
+            ids = dm.get_next_few_datafiles_of_a_type(days=1, type ='NCDF')
+        elif date == "all":
+            ids = df.objects.all().filter(type = "NCDF")
+
+        for id in ids:
+            print id.model_date
+
+        ids = [id.id for id in ids] # Unwrap ids
+
+        plot( ids, roms=True, num_plots=num_plots, tile=tile, full_roms=full_roms )
+
+    if wave:
+        waves = []
+        ids = []
+        if date == "today":
+            ids = df.objects.filter(type='WAVE').get(model_date=today)
+        elif date == "latest":
+            ids = dm.get_next_few_datafiles_of_a_type(days=1, past_days=1, type ='WAVE')
+        elif date == "all":
+            ids = df.objects.all().filter(type = "WAVE")
+
+
+        ids = [id.id for id in ids] # Unwrap ids
+
+
+        plot( ids, wave=True, num_plots=num_plots, tile=tile )
+
+    if wind:
+        winds = []
+        ids = []
+        if date is "today":
+            ids = df.objects.filter(type='WIND').get(model_date=today)
+        elif date is "latest":
+            ids = dm.get_next_few_datafiles_of_a_type(days=1, type ='WIND')
+        elif date is "all":
+            ids = df.objects.all().filter(type = "WIND")
+
+        ids = [id.id for id in ids] # Unwrap ids
+
+        plot(ids, wind=True, num_plots=num_plots, tile=tile )
+
+    if hycom:
+        hycoms = []
+        if date == "today":
+            ids = df.objects.filter(type='HYCOM').get(model_date=today)
+        elif date == "latest":
+            ids = dm.get_next_few_datafiles_of_a_type(days=15, type ='HYCOM')
+        elif date == "all":
+            ids = df.objects.all().filter(type = "HYCOM")
+
+        ids = [id.id for id in ids] # Unwrap ids
+
+        plot( ids, hycom=True, num_plots=num_plots, tile=tile )
+
+
+    if ncep:
+        nceps = []
+        ids = []
+        if date is "today":
+            ids = df.objects.filter(type='NCEP_WW3').get(model_date=today)
+        elif date is "latest":
+            ids = dm.get_next_few_datafiles_of_a_type(days=15, type ='NCEP_WW3')
+        elif date is "all":
+            ids = df.objects.all().filter(type = "NCEP_WW3")
+
+        print ids
+
+        ids = [id.id for id in ids] # Unwrap ids
+        plot( ids, ncep=True, num_plots=num_plots, tile=tile )
+
+
+
+
 
 if __name__ == "__main__":
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "SharkEyesCore.settings")
-
-    import SharkEyesCore.startup as startup
     startup.run()
 
-    if sys.argv[-1] == "download":
-        from pl_download.models import DataFileManager, DataFile
-        wave = 0
-        sst = 0
-        wind = 1
-        if wave:
-            DataFileManager.get_latest_wave_watch_files()
-        if sst:
-            DataFileManager.download_osu_roms()
-        if wind:
-            DataFileManager.get_wind_file()
+    parser = argparse.ArgumentParser(description='Easy way to produce plots of\
+    seacast fields.')
 
-    elif sys.argv[-1] == "plot":
-        from pl_download.models import DataFileManager, DataFile
-        from pl_plot.models import OverlayManager
-        from pl_chop.tasks import tile_overlay, tile_wave_watch_overlay
-        from pl_plot.plotter import WindPlotter, Plotter
-        wave = 0
-        sst = 0
-        wind = 1
-        if wave:
-            #DataFileManager.get_latest_wave_watch_files()
-            wave = DataFile.objects.filter(type='WAVE').latest('model_date')
-            tiles = []
-            begin = time.time()
-            #first entry is day-1 at 12pm
-            #need to offset 16 to match with sst plot
-            #NOTE it increments in 1 hour changes
-            tiles += OverlayManager.make_wave_watch_plot(4, 20, wave.id)
-            #tiles += OverlayManager.make_wave_watch_plot(6, 20, wave.id)
-            for t in tiles:
-                tile_wave_watch_overlay(t)
-            finish = time.time()
-            totalTime = (finish - begin)/ 60
-            print "Time taken for Waves = " + str(round(totalTime, 2)) + " minutes"
-        if sst:
-            #sst = DataFileManager.download_osu_roms()
-            sst = DataFile.objects.all().filter(type="NCDF")
-            #plotter = Plotter(sst[0].file.name)
-            #print "Time value ", plotter.get_time_at_oceantime_index(0)
-            tiles = []
-            begin = time.time()
-            tiles += OverlayManager.make_plot(1, 5, sst[2].id)
-            # tiles += OverlayManager.make_plot(2, 3, sst[2].id)
-            # tiles += OverlayManager.make_plot(3, 3, sst[2].id)
-            # tiles += OverlayManager.make_plot(7, 3, sst[2].id)
-            # tiles += OverlayManager.make_plot(8, 3, sst[2].id)
-            # tiles += OverlayManager.make_plot(9, 3, sst[2].id)
-            for t in tiles:
-                tile_overlay(t)
-            finish = time.time()
-            totalTime = (finish - begin)/ 60
-            print "Time taken for SST = " + str(round(totalTime, 2)) + " minutes"
+    task = parser.add_argument_group('Task', 'The task you want to preform.')
+    task.add_argument('task',
+                        help='The manage.py command you want to run. Options are \n' \
+                             "\t 'download' & 'plot'",
+                        type=str)
 
-        if wind:
-            #winds = DataFileManager.get_wind_file()
-            winds = DataFile.objects.filter(type='WIND').latest('model_date')
-            plotter = WindPlotter(winds.file.name)
-            x = 0
-            print "Time value ", plotter.get_time_at_oceantime_index(x)
-            tiles = []
-            begin = time.time()
-            tiles += OverlayManager.make_plot(5, x, winds.id)
-            for t in tiles:
-                tile_overlay(t)
-            finish = time.time()
-            totalTime = (finish - begin)/ 60
-            print "Time taken for Winds = " + str(round(totalTime, 2)) + " minutes"
+    model = parser.add_argument_group('Models', 'Enable models by using these commands')
+    model.add_argument("-r", '--roms',
+                        help='Toggle on OSU ROMS in this task call',
+                        action="store_true")
+    model.add_argument("-w", '--wave',
+                        help='Toggle on OSU WW3 in this task call',
+                        action="store_true")
+    model.add_argument("-n", '--nams',
+                        help='Toggle on NAMS in this task call',
+                        action="store_true")
+    model.add_argument("-p", '--hycom',
+                        help='Toggle on HYCOM in this task call',
+                        action="store_true")
+    model.add_argument("-c", '--ncep',
+                        help='Toggle on NCEP WW3 in this task Call',
+                        action="store_true")
 
-    elif sys.argv[-1] == "plot-all":
-        from pl_download.models import DataFileManager, DataFile
-        from pl_plot.models import OverlayManager as om
-        from pl_chop.tasks import tile_overlay, tile_wave_watch_overlay
-        from pl_plot.plotter import WindPlotter, Plotter
-        from datetime import datetime, timedelta
-        wave = 0
-        sst = 0
-        wind = 1
 
-        if wave:
-            DataFileManager.get_latest_wave_watch_files()
-            print "\n--- Plotting WW3 - Height and Direction ---"
-            wave = DataFile.objects.filter(type='WAVE').latest('model_date')
-            wind_id = wave.id
-            for t in xrange(20, 85, 4):
-                try:
-                    print "Plotting WW3 - File ID:", wind_id, "Time Index:", t
-                    tile_wave_watch_overlay(om.make_wave_watch_plot(4, t, wind_id))
-                    tile_wave_watch_overlay(om.make_wave_watch_plot(6, t, wind_id))
-                    print "plot/tile success"
-                except Exception:
-                    print '-' * 60
-                    traceback.print_exc(file=sys.stdout)
-                    print '-' * 60
-                print
-        if sst:
-            DataFileManager.download_osu_roms()
-            print "\n--- Plotting ROMS Fields - SST, Salinity, SSH ---"
-            sst_files = DataFile.objects.all().filter(type = "NCDF")
-            for file in sst_files:
-                plotter = Plotter(file.file.name)
-                number_of_times = plotter.get_number_of_model_times()
-                wind_id = file.id
-                for t in xrange(number_of_times):
-                    if t % 2 != 0:
-                        try:
-                            print "Plotting ROMS - File ID:", wind_id, "Time Index:", t
-                            tile_overlay(om.make_plot(1, t, wind_id))
-                            tile_overlay(om.make_plot(2, t, wind_id))
-                            tile_overlay(om.make_plot(3, t, wind_id))
-                            tile_overlay(om.make_plot(7, t, wind_id))
-                            tile_overlay(om.make_plot(8, t, wind_id))
-                            tile_overlay(om.make_plot(9, t, wind_id))
-                            print "plot/tile success"
-                        except Exception:
-                            print '-' * 60
-                            traceback.print_exc(file=sys.stdout)
-                            print '-' * 60
-                        print
+    other = parser.add_argument_group('Other')
+    other.add_argument("-T", '--tile',
+                        help='Toggle on to produce tiles in plot',
+                        action="store_true")
+    other.add_argument("-k", '--num',
+                       help='Number of plots to generate in plot',
+                       type=int,
+                       default=DEF_NUM_PLOTS)
+    other.add_argument("-f", '--fullRoms',
+                        help='Run the full number of roms. Default is True',
+                        type=bool,
+                        default=DEF_FULL_ROMS_FLAG)
+    other.add_argument("-i", '--ids',
+                       help='Toggle on to produce tiles in plot',
+                       default=[],
+                       action="append",
+                       dest='ids')
+    other.add_argument("-v", '--verbose',
+                       help='Turn on vebrosity level 0 (default), 1, 2, 3, 9000',
+                       default=0,
+                       type=int)
+    other.add_argument("-d", '--date',
+                       help='today, latest, ',
+                       type=str)
 
-        if wind:
-            print "\n Plotting NAMS - Winds"
-            start = time.time()
-            #DataFileManager.get_wind_file()
-            winds = DataFile.objects.filter(type='WIND').latest('model_date')
-            wind_id = winds.id
-            plotter = WindPlotter(winds.file.name)
-            number_of_times = plotter.get_number_of_model_times()
-            wind_values = plotter.get_wind_indices()
-            begin = wind_values['begin']
-            print "Begin = ", begin
-            swap = wind_values['swap']
-            print "Swap = ", swap
-            three_hour_indices = wind_values['indices']
-            print "Indices = ", three_hour_indices
-            print "Pre Swap"
-            for t in range(begin, swap, 4):
-                print "Plotting and Tiling NAMS - Time: ", plotter.get_time_at_oceantime_index(t)- timedelta(hours=8)
-                tile_overlay(om.make_plot(5, t, wind_id))
-            print "Post Swap"
-            for t in range(swap, number_of_times, 1):
-                if t in three_hour_indices:
-                    print "Plotting and Tiling NAMS - Time: ", plotter.get_time_at_oceantime_index(t)-timedelta(hours=8)
-                    tile_overlay(om.make_plot(5, t, wind_id))
-            print "plot/tile success"
-            end = time.time()
-            total = (end - start)/ 60
-            print "Total time taken for plotting and tiling = " + str(round(total, 2)) + " minutes"
+    args, unknown = parser.parse_known_args()
 
-    elif sys.argv[-1] == "wavedates":
-        print "Wave Watch Times"
-        from datetime import datetime, timedelta
-        from django.utils import timezone
-        import numpy
-        from scipy.io import netcdf
-        from django.conf import settings
-        from pl_download.models import DataFile
-        wave = DataFile.objects.filter(type='WAVE').latest('model_date')
-        wave_name = wave.file.name
-        wave_data = netcdf.netcdf_file(os.path.join(settings.MEDIA_ROOT, settings.WAVE_WATCH_DIR, wave_name), 'r')
-        all_day_times = wave_data.variables['time'][:]
-        basetime = datetime(1970, 1, 1, 0, 0, 0)  # Jan 1, 1970
-        # This is the first forecast: right now it is Noon (UTC) [~5 AM PST] on the day before the file was downloaded
-        forecast_zero = basetime + timedelta(all_day_times[0] / 3600.0 / 24.0, 0, 0)
-        for x in range(0, 84, 1):
-            model_time = timezone.make_aware(forecast_zero + timedelta(hours=x), timezone.utc)
-            print "Model date =", model_time, "at index", x
+    vebrose = args.verbose
 
-    elif sys.argv[-1] == "alexdates":
-        print "Times for Alexander's Model"
-        from datetime import datetime, timedelta
-        from django.utils import timezone
-        import numpy
-        import pytz
-        from scipy.io import netcdf
-        from django.conf import settings
-        from pl_download.models import DataFile
-        sst = DataFile.objects.all().filter(type="NCDF")
-        for x in sst:
-            sst_name = x.file.name
-            print "File Name ", sst_name
-            sst_data = netcdf.netcdf_file(os.path.join(settings.MEDIA_ROOT, settings.NETCDF_STORAGE_DIR, sst_name), 'r')
-            # dst = 0
-            # isdst_now_in = lambda zonename: bool(datetime.now(pytz.timezone(zonename)).dst())
-            # if isdst_now_in("America/Los_Angeles"):
-            #     dst = -1
-            # dst_hours = timedelta(hours=dst)
-            ocean_time_epoch = datetime(day=1, month=1, year=2005, hour=0, minute=0, second=0, tzinfo=timezone.utc)
-            for x in range(0, numpy.shape(sst_data.variables['ocean_time'])[0], 1):
-                seconds_since_epoch = timedelta(seconds=sst_data.variables['ocean_time'][x])
-                check_date = ocean_time_epoch + seconds_since_epoch
-                print "Date = ", check_date, " at index ", x
+    if args.task == "download":
+        print download(roms=args.roms,
+                       wave=args.wave,
+                       wind=args.nams,
+                       hycom=args.hycom,
+                       ncep=args.ncep,
+                       num_dl=args.num)
+        sys.exit()
 
-    elif sys.argv[-1] == "winddates": #use this to view what the timestamps are for each index of the wind model
-        print "Times for the wind model"
-        from pl_plot.plotter import WindPlotter
-        from scipy.io import netcdf
-        from django.conf import settings
-        from pl_download.models import DataFile
-        from datetime import datetime, timedelta
-        from django.utils import timezone
-        # The Wind model uses a dynamic reference date for date calculation
-        # This calculates that date and then uses it to calculate the dates for each index
-        wind_file = DataFile.objects.filter(type='WIND').latest('model_date')
-        wind_name = wind_file.file.name
-        wind_data = netcdf.netcdf_file(os.path.join(settings.MEDIA_ROOT, settings.WIND_DIR, wind_name), 'r')
-        plotter = WindPlotter(wind_file.file.name)
-        indices = plotter.get_number_of_model_times()
-        wind_values=plotter.get_wind_indices()
-        time_val = wind_values['time']
-        reftime_val = wind_values['reftime']
-        begin = wind_values['begin']
-        swap = wind_values['swap']
-        three_hour_indices = wind_values['indices']
-        raw_epoch_date = str(wind_file.model_date)
-        epoch_date = raw_epoch_date.split('-')
-        epoch_year = int(epoch_date[0])
-        epoch_month = int(epoch_date[1])
-        epoch_day = int(epoch_date[2])
-        ocean_time_epoch = datetime(day=epoch_day, month=epoch_month, year=epoch_year, hour=0, minute=0, second=0,
-                                    tzinfo=timezone.utc)
-        # print "UNMODIFIED WIND INDICES "
-        # for x in range (0, indices, 1):
-        #     hours_since_epoch = timedelta(hours=(wind_data.variables[time_val][x] - wind_data.variables[reftime_val][0]))
-        #     print "Unmodified Time ", ocean_time_epoch + hours_since_epoch, " at ", x
+    elif args.task == "plot-all":
+        plot_all(num_plots=args.num,
+                 tile=args.tile,
+                 roms=args.roms,
+                 wave=args.wave,
+                 wind=args.nams,
+                 hycom=args.hycom,
+                 ncep=args.ncep)
+        sys.exit()
 
-        print "MODIFIED WIND INDICES "
-        for x in range(begin, swap, 4):
-            print "Pre Swap Time", plotter.get_time_at_oceantime_index(x)-timedelta(hours=8) , " at ", x
-        for x in range(swap, indices, 1):
-            if x in three_hour_indices:
-                print "Post Swap Time ", plotter.get_time_at_oceantime_index(x)-timedelta(hours=8) , " at ", x
+    elif args.task == "plot":
+        plot(num_plots=args.num,
+             tile=args.tile,
+             roms=args.roms,
+             wave=args.wave,
+             wind=args.nams,
+             hycom=args.hycom,
+             ncep=args.ncep)
+        sys.exit()
 
-    else:
-        from django.core.management import execute_from_command_line
-        execute_from_command_line(sys.argv)
+    elif args.task == "plot-l":
+        plot_latest(num_plots=args.num,
+             tile=args.tile,
+             roms=args.roms,
+             wave=args.wave,
+             wind=args.nams,
+             hycom=args.hycom,
+             ncep=args.ncep,
+             date=args.date)
+        sys.exit()
+
+    elif args.task == 'tile':
+        tile()
+        sys.exit()
+
+    elif args.task == "test":
+        pass
+        sys.exit()
+
+    execute_from_command_line(sys.argv)
