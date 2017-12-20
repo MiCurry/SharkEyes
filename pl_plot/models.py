@@ -114,8 +114,8 @@ class OverlayManager(models.Manager):
                 print "NCEP"
                 plotter = NcepWW3Plotter(datafile.file.name)
                 for t in xrange(plotter.get_number_of_model_times()):
-                    task_list.append(cls.make_plot.subtask(args=(settings.NCEP_WW3_DIR, t, fid), immutable=True))
-                    task_list.append(cls.make_plot.subtask(args=(settings.NCEP_WW3_HI, t, fid), immutable=True))
+                    task_list.append(cls.make_wave_watch_plot.subtask(args=(settings.NCEP_WW3_DIR, t, fid), immutable=True))
+                    task_list.append(cls.make_wave_watch_plot.subtask(args=(settings.NCEP_WW3_HI, t, fid), immutable=True))
 
             # Hycom
             elif datafile.file.name.startswith(settings.HYCOM_DF_FN):
