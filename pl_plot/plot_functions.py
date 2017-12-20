@@ -2,6 +2,8 @@ import numpy
 import scipy
 from scipy import ndimage
 from matplotlib import pyplot, colors
+
+from django.conf import settings
 from pl_download.models import DataFile
 from pl_plot.plotter import WindPlotter
 
@@ -10,6 +12,8 @@ numpy.set_printoptions(threshold=numpy.inf) # This is helpful for testing purpos
 # and you can see each element of the array.
 
 # When you add a new function, add it as a new function definition to fixtures/initial_data.json
+
+VERBOSE = settings.VERBOSE
 
 NUM_COLOR_LEVELS = 80
 NUM_COLOR_LEVELS_FOR_WAVES = 120
@@ -325,7 +329,7 @@ def ww3_height(ax, data_file, bmap, key_ax, forecast_index, downsample_ratio):
     labels = ["%.1f" % num for num in float_labels]
     cbar.ax.xaxis.set_ticks(locations)
     cbar.ax.xaxis.set_ticklabels(labels)
-    cbar.set_label("Wave Height (Meters) - Extended")
+    cbar.set_label("Wave Height (Feet) - Extended")
 
 
 
@@ -652,7 +656,9 @@ def currents_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio)
 # of our models. Because of that we need to interpolate them as seen below.
 #-------------------------------------------------------------------------
 def wind_function(ax, data_file, bmap, time_index, downsample_ratio):
-    print "CREATING A WIND PLOT"
+
+    if VERBOSE > 0:
+        print "CREATING A WIND PLOT"
     # We are now using barbs instead of vectors. We should not need this anymore
     # -------------------------------------------------------------------------
     # tmp = numpy.loadtxt('/opt/sharkeyes/src/latlon.g218')
@@ -697,7 +703,8 @@ def wind_function(ax, data_file, bmap, time_index, downsample_ratio):
     if interpolate == 1:
         # Interpolation process
         # -------------------------------------------------------------------------
-        print "INTERPOLATING"
+        if VERBOSE > 0:
+            print "INTERPOLATING"
 
         # Timestamps for interpolation purposes.
         # -------------------------------------------------------------------------
@@ -749,7 +756,10 @@ def wind_function(ax, data_file, bmap, time_index, downsample_ratio):
 
     # Creates the unchopped png to be tiled
     # -------------------------------------------------------------------------
-    print "Making Unchopped Wind Barb Image"
+
+    if VERBOSE > 0:
+        print "Making Unchopped Wind Barb Image"
+
     bmap.barbs(x[::downsample_ratio, ::downsample_ratio],
                y[::downsample_ratio, ::downsample_ratio],
                wind_u[::downsample_ratio, ::downsample_ratio],
@@ -758,10 +768,10 @@ def wind_function(ax, data_file, bmap, time_index, downsample_ratio):
                length=length, sizes=dict(spacing=0.2, height=0.3))
                #barb_increments=dict(half=.1, full=10, flag=50))
 
-    print "WIND PLOT CREATED"
+    if VERBOSE > 0:
+        print "WIND PLOT CREATED"
 
 def hycom_temp(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
-    verbose = 1
     depth = 0
     min_temp = 34
     max_temp = 65
@@ -781,7 +791,7 @@ def hycom_temp(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
     temps = numpy.ma.masked_array(temps, numpy.isnan(temps))
     temps = vectorized_conversion(temps) # convert to degrees f
 
-    if verbose > 0:
+    if VERBOSE > 0:
         print "lats shape", lats.shape
         print "longs shape", longs.shape
         print "temps shape", temps.shape
@@ -812,7 +822,6 @@ def hycom_temp(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
     cbar.set_label("Fahrenheit - Extended")
 
 def hycom_currents(ax, data_file, bmap, key_ax, time_index, downsample_ratio=1):
-    verbose = 0
     DEPTH = 0
 
     u = data_file.variables['u'][time_index, DEPTH]
@@ -822,7 +831,7 @@ def hycom_currents(ax, data_file, bmap, key_ax, time_index, downsample_ratio=1):
 
     time = data_file.variables['MT']
 
-    if verbose > 0:
+    if VERBOSE > 0:
         print "Time Shape", time.shape
         print "Lats Shape", lats.shape
         print "Longs Shape", longs.shape

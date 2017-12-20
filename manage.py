@@ -47,49 +47,66 @@ def download(roms=False, wave=False,
 
     ids = []
     if roms:
+        print "DL: Downloading roms files"
         roms_ids = []
         roms_ids = DataFileManager.download_osu_roms()
         print("OSU ROM dl ids:", roms_ids)
         ids.append(roms_ids)
 
     if wave:
+        print "DL: Downloading OSU WW3 files"
         wave_ids = []
         wave_ids = DataFileManager.get_latest_wave_watch_files()
         print("OSU WW3 dl ids:", wave_ids)
         ids.append(wave_ids)
 
     if wind:
+        print "DL: Downloading NAM WIND files"
         wind_ids = []
         wind_ids = DataFileManager.get_wind_file()
         print("NAM Wind dl ids:", wind_ids)
         ids.append(wind_ids)
 
     if hycom:
+        print "DL: Downloading HYCOM files"
+        print "DL: Number of downloads specified: ", num_dl
+
         hycom_ids = []
         hycom_ids = DataFileManager.hycom_download(count=num_dl)
-        print("HYCOM dl ids:", hycom_ids)
+        print("DL: HYCOM dl ids:", hycom_ids)
         ids.append(hycom_ids)
 
     if ncep:
+        print "DL: Downloaind NCEP WW3"
         ncep_ids = []
         ncep_ids = DataFileManager.ww3_download()
         print("NCEP dl ids:", ncep_ids)
         ids.append(ncep_ids)
 
-
-
     return ids
 
 
-def tile():
+def tile_set(id_start, id_end):
+    from pl_chop.tasks import tile_overlay
+    # Tile a range of overlays
+
+    ids = range(id_start, id_end, 1)
+
+    print "Tiling ids"
+    for f in ids:
+        tile_overlay(f)
+
+def tile(ids):
     from pl_chop.tasks import tile_overlay
 
-    ids = range(221, 279, 1)
+    if len(ids) == 0:
+        print "TILE: Empty list of IDS quitting"
+        return 0
 
-    if tile:
-        print "Tiling NCEP"
-        for f in ids:
-            tile_overlay(f)
+    print "TILE: Tiling IDS: ", ids
+
+    for f in ids:
+        tile_overlay(f)
 
 def plot(ids,
          num_plots=DEF_NUM_PLOTS, tile=DEF_TILE_FLAG, full_roms=DEF_FULL_ROMS_FLAG,
@@ -102,13 +119,19 @@ def plot(ids,
     or by using one of the functions below which grabs them using the database or via downloading!
     '''
 
+    if len(ids) == 0:
+        print "PLOT: Empty List of IDS exiting"
+        return
+
     from pl_plot.models import OverlayManager as om
     from pl_chop.tasks import tile_overlay
+
+    if verbose > 0:
 
     if roms:
         roms = []
 
-        print "Plotting Roms"
+        print "PLOT: Plotting Roms with file IDS: ", ids
         if len(ids) > 1:
             for id in ids:
                 for i in range(num_plots):
@@ -139,18 +162,16 @@ def plot(ids,
                     roms.append(om.make_plot(settings.OSU_ROMS_SSH, i, id))
 
         if tile:
-            print "Tiling ROMS"
-            for f in roms:
-                tile_overlay(f)
+            print "PLOT: Tiling ROMS"
+            tile(roms)
 
         return
 
     if wave:
         waves = []
 
-
         print ids
-        print "Plotting OSU WW3"
+        print "PLOT: Plotting OSU WW3 with file IDS: ", ids
 
         if not ids:
             print "Empty List of IDS for OSU WW3"
@@ -162,39 +183,36 @@ def plot(ids,
                 waves.append(om.make_wave_watch_plot(settings.OSU_WW3_DIR, i, id))
 
         if tile:
-            print "Tiling OSU WW3"
-            for f in waves:
-                tile_overlay(f)
+            print "PLOT: Tiling waves"
+            tile(waves)
 
         return
 
     if wind:
         winds = []
 
-        print "Plotting NAM Winds"
+        print "PLOT: Plotting NAM Winds with file IDS: ", ids
         for id in ids:
             for i in range(num_plots):
                 winds.append(om.make_plot(settings.NAMS_WIND, i, id))
 
         if tile:
-            print "Tiling NAM Winds"
-            for f in winds:
-                tile_overlay(f)
+            print "PLOT: Tiling NAM Winds"
+            tile(winds)
 
         return
 
     if hycom:
         hycoms = []
 
-        print "Plotting HYCOM"
+        print "PLOT: Plotting HYCOM with file IDS: ", ids
         for id in ids:
             hycoms.append(om.make_plot(settings.HYCOM_SST, 0, id))
             hycoms.append(om.make_plot(settings.HYCOM_SUR_CUR, 0, id))
 
         if tile:
-            print "Tiling HYCOM"
-            for f in hycoms:
-                tile_overlay(f)
+            print "PLOT: Tiling HYCOM"
+            tile(hycoms)
 
         return
 
@@ -202,16 +220,15 @@ def plot(ids,
         nceps = []
 
         print ids
-        print "Plotting NCEP WW3"
+        print "PLOT: Plotting NCEP WW3 with file IDS: ", ids
         for id in ids:
             for i in range(num_plots):
                 nceps.append(om.make_wave_watch_plot(settings.NCEP_WW3_DIR, i, id))
                 nceps.append(om.make_wave_watch_plot(settings.NCEP_WW3_HI, i, id))
 
         if tile:
-            print "Tiling NCEP"
-            for f in nceps:
-                tile_overlay(f)
+            print "PLOT: Tiling NCEP"
+            tile(ncep)
 
         return
 
@@ -346,7 +363,7 @@ def plot_latest(num_plots=DEF_NUM_PLOTS, tile=DEF_TILE_FLAG, full_roms=DEF_FULL_
         if date == "today":
             ids = df.objects.filter(type='HYCOM').get(model_date=today)
         elif date == "latest":
-            ids = dm.get_next_few_datafiles_of_a_type(days=15, type ='HYCOM')
+            ids = dm.get_next_few_datafiles_of_a_type(days=20, type ='HYCOM')
         elif date == "all":
             ids = df.objects.all().filter(type = "HYCOM")
 
@@ -354,24 +371,18 @@ def plot_latest(num_plots=DEF_NUM_PLOTS, tile=DEF_TILE_FLAG, full_roms=DEF_FULL_
 
         plot( ids, hycom=True, num_plots=num_plots, tile=tile )
 
-
     if ncep:
         nceps = []
         ids = []
         if date is "today":
             ids = df.objects.filter(type='NCEP_WW3').get(model_date=today)
         elif date is "latest":
-            ids = dm.get_next_few_datafiles_of_a_type(days=15, type ='NCEP_WW3')
+            ids = dm.get_next_few_datafiles_of_a_type(days=20, type ='NCEP_WW3')
         elif date is "all":
             ids = df.objects.all().filter(type = "NCEP_WW3")
 
-        print ids
-
         ids = [id.id for id in ids] # Unwrap ids
         plot( ids, ncep=True, num_plots=num_plots, tile=tile )
-
-
-
 
 
 if __name__ == "__main__":
@@ -432,7 +443,8 @@ if __name__ == "__main__":
 
     args, unknown = parser.parse_known_args()
 
-    vebrose = args.verbose
+    if args.verbose >= 2:
+        print args
 
     if args.task == "download":
         print download(roms=args.roms,
@@ -475,7 +487,7 @@ if __name__ == "__main__":
         sys.exit()
 
     elif args.task == 'tile':
-        tile()
+        tile_set()
         sys.exit()
 
     elif args.task == "test":

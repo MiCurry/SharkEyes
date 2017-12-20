@@ -14,6 +14,8 @@ import os
 from celery.schedules import crontab
 from datetime import timedelta
 
+VERBOSE = 0
+
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 
 TEST_RUNNER = 'SharkEyesCore.test_runner.CustomTestRunner'
