@@ -126,8 +126,6 @@ def plot(ids,
     from pl_plot.models import OverlayManager as om
     from pl_chop.tasks import tile_overlay
 
-    if verbose > 0:
-
     if roms:
         roms = []
 
