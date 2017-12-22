@@ -388,7 +388,7 @@ class HycomPlotter:
         return model_date
 
     def get_number_of_model_times(self):
-        return 1
+        return 0
 
     def make_plot(self, plot_function, zoom_levels, time_index=0,  downsample_ratio=None):
         fig = pyplot.figure()
