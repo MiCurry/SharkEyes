@@ -103,12 +103,17 @@ class OverlayManager(models.Manager):
 
             # Wind
             elif datafile.file.name.startswith(settings.NAMS_WIND_DF_FN):
-                print "WIND!"
                 plotter = WindPlotter(datafile.file.name)
                 number_of_times = plotter.get_number_of_model_times()
-                for t in xrange(number_of_times):
+                wind_values = plotter.get_wind_indices()
+                begin = wind_values['begin']
+                swap = wind_values['swap']
+                three_hour_indices = wind_values['indices']
+                for t in range(begin, swap, 4):
                     task_list.append(cls.make_plot.subtask(args=(settings.NAMS_WIND, t, fid), immutable=True))
-
+                for t in range(swap, number_of_times, 1):
+                    if t in three_hour_indices:
+                        task_list.append(cls.make_plot.subtask(args=(settings.NAMS_WIND, t, fid), immutable=True))
             # NCEP WW3
             elif datafile.file.name.startswith(settings.NCEP_WW3_DF_FN):
                 print "NCEP"
