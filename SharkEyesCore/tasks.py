@@ -120,9 +120,11 @@ def do_pipeline():
             list_of_chains.append(chain(pt, tile_wave_watch_overlay.s()))
 
     job = group(item for item in list_of_chains)
+    """
     print "PIPELINE: JOBS: "
     for each in job:
         print each
+    """
     result = job.apply_async() # Run the group.
     return result
 
