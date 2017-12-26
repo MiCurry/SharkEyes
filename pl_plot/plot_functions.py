@@ -880,12 +880,12 @@ def hycom_currents(ax, data_file, bmap, key_ax, time_index, downsample_ratio=1):
 
     # Multiplying .5, 1, and 2 by .5144 is converting from knots to m/s
     #-------------------------------------------------------------------------
-    quiverkey = key_ax.quiverkey(overlay, .95, .4, 0.5*.5144, ".5 knots", labelpos='S', labelcolor='white',
-                                 color='white', labelsep=.5, coordinates='axes', label="Extended")
-    quiverkey1 = key_ax.quiverkey(overlay, 3.75, .4, 1*.5144, "1 knot", labelpos='S', labelcolor='white',
-                                  color='white', labelsep=.5, coordinates='axes', label="Extended")
-    quiverkey2 = key_ax.quiverkey(overlay, 6.5, .4, 2*.5144, "2 knots", labelpos='S', labelcolor='white',
-                                  color='white', labelsep=.5, coordinates='axes', label="Extended")
+    quiverkey = key_ax.quiverkey(overlay, .95, .4, 0.5*.5144, "Extended -.5 knots", labelpos='S', labelcolor='white',
+                                 color='white', labelsep=.5, coordinates='axes')
+    quiverkey1 = key_ax.quiverkey(overlay, 3.75, .4, 1*.5144, "Extended - 1 knot", labelpos='S', labelcolor='white',
+                                  color='white', labelsep=.5, coordinates='axes')
+    quiverkey2 = key_ax.quiverkey(overlay, 6.5, .4, 2*.5144, "Extended - 2 knots", labelpos='S', labelcolor='white',
+                                  color='white', labelsep=.5, coordinates='axes')
     key_ax.set_axis_off()
 
 def crop_and_downsample(source_array, downsample_ratio, average=True):
