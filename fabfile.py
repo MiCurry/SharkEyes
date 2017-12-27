@@ -326,6 +326,10 @@ def configure_celery():
     sudo('service celerybeat start')
     sudo('service celeryevcam start')
 
+def configure_logging():
+    sudo('touch /var/log/sharkeyes/log.log')
+    sudo('chmod 770 /var/log/sharkeyes/log.log')
+    sudo('chgrp sharkeyes /var/log/sharkeyes/log.log')
 
 def deploy():
     with cd('/opt/sharkeyes/src/'):
@@ -428,6 +432,8 @@ def provision():
     configure_rabbitmq()
     print "configure celery"
     configure_celery()
+    print "configure logging"
+    configure_logging()
     print "set all to start on startup"
     set_all_to_start_on_startup()
     print "deploy"

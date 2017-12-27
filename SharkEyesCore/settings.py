@@ -11,6 +11,8 @@ from __future__ import absolute_import
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import os
+import logging
+
 from celery.schedules import crontab
 from datetime import timedelta
 
@@ -78,6 +80,12 @@ TEMPLATE_LOADERS = (
 
 #some database
 CONN_MAX_AGE = None
+
+# Logging
+logging.basicConfig(filename='/var/log/sharkeyes/log.log',
+                    format='%(levelname)s %(asctime)s %(message)s (%(filename)s)',
+                    level=logging.DEBUG)
+logging.info('Debug Started and loaded')
 
 # For celery
 BROKER_HOST = "127.0.0.1"
@@ -177,6 +185,7 @@ ZOOM_LEVELS_OTHERS = [(None, None)]
 
 ZOOM_LEVELS_FOR_WAVE_DIR = [('2-8', 20), ('9-10', 15), ('11-12', 5)]
 ZOOM_LEVELS_FOR_WAVE_OTHERS = [(None, None)]
+
 
 
 # import local settings. PyCharm thinks it's unused, but PyCharm is silly.
