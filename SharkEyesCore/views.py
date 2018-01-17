@@ -378,6 +378,8 @@ def right_click_menu(request):
                 month_check = month_check +1
             else:
                 day_check = day_check + 1
+        if month_check < 10:
+            month_check = '0' + str(month_check)  
         if day_check < 10:
             day_check = '0'+ str(day_check)
         seas_file_date = "OSU_ROMS_" + current_year + "-" + str(month_check) + "-" + str(day_check) #This is used to create a string for use in the DB lookup
