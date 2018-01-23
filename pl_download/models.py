@@ -279,7 +279,6 @@ class DataFileManager(models.Manager):
 
         return
 
-
     @staticmethod
     @shared_task(name='pl_download.rtofs_download')
     def rtofs_download(count=None):
@@ -369,129 +368,19 @@ class DataFileManager(models.Manager):
         return ids
 
     @staticmethod
-    def determine_latest_forecast(XML_URL):
-        catalog = etree.parse(XML_URL)
-
-        i = 0
-        for element in catalog.iter():
-            file = element.get('name')
-            if not file:
-                continue
-            elif file.startswith('hycom_glbv'):
-                date = datetime.strptime(file.split('_')[3][0:8], "%Y%m%d")
-
-                if i == 0:
-                    date_s = date
-                else:
-                    if date > date_s:
-                        date_s = date
-
-                i += 1
-
-        access_date = date_s
-        date_string = date_s.strftime("%Y%m%d")
-
-        return access_date, date_string
-
-    @staticmethod
-    def determine_type(fileEnding):
-        if fileEnding == 'ssh.nc':
-            type = 'ssh'
-        if fileEnding == 'ts3z.nc':
-            type = 'temp'
-        if fileEnding == 'uv3z.nc':
-            type = 'cur'
-
-        return type
-
-    @staticmethod
-    def create_url_temp_sal(file, date):
-        # &vertCoord = 0 <- Depth
-
-        top = \
-            'http://ncss.hycom.org/thredds/ncss/GLBv0.08/expt_92.9/forecasts/'\
-            'hycom_glbv_929_2018010912_t000_ts3z.nc?'\
-            '&var=salinity&var=water_temp' \
-            '&north=50&west=228&east=237&south=35' \
-            '&disableProjSubset=on&horizStride=1'\
-            '&time=2018-01-09T12%3A00%3A00Z'\
-            '&vertCoord=0'\
-            '&addLatLon=true&accept=netcdf'
-
-        bot = \
-            'http://ncss.hycom.org/thredds/ncss/GLBv0.08/expt_92.9/forecasts/' \
-            'hycom_glbv_929_2018010912_t000_ts3z.nc?' \
-            'var=salinity_bottom&var=water_temp_bottom' \
-            '&north=50&west=228&east=237&south=35' \
-            '&disableProjSubset=on&horizStride=1' \
-            '&time=2018-01-09T12%3A00%3A00Z' \
-            '&addLatLon=true&accept=netcdf'
-
-        return top, bot
-
-
-    @staticmethod
-    def create_url_ssc(file, date):
-        # Vert Cord = Depth
-        top = \
-            'http://ncss.hycom.org/thredds/ncss/GLBv0.08/expt_92.9/forecasts/' \
-            'hycom_glbv_929_2018010912_t000_uv3z.nc?' \
-            '&var=water_u&var=water_v' \
-            '&north=50&west=228&east=237&south=35' \
-            '&disableProjSubset=on' \
-            '&horizStride=1' \
-            '&time=2018-01-09T12%3A00%3A00Z' \
-            '&vertCoord=0' \
-            '&addLatLon=true&accept=netcdf'
-
-        bot = \
-            'http://ncss.hycom.org/thredds/ncss/GLBv0.08/expt_92.9/forecasts/' \
-            'hycom_glbv_929_2018010912_t000_uv3z.nc?' \
-            'var=water_u_bottom&var=water_v_bottom' \
-            '&north=50&west=228&east=237&south=35' \
-            '&disableProjSubset=on' \
-            '&horizStride=1' \
-            '&time=2018-01-09T12%3A00%3A00Z' \
-            '&addLatLon=true&accept=netcdf'
-
-        return top, bot
-
-    @staticmethod
-    def create_url_ssh(file, date):
-        return \
-            'http://ncss.hycom.org/thredds/ncss/GLBv0.08/expt_92.9/forecasts/' \
-            ''+file+'?' \
-            'var=surf_el' \
-            '&north=50&west=228&east=237&south=35' \
-            '&horizStride=1' \
-            '&time='+date+ \
-            '&addLatLon=true' \
-            '&accept=netcdf'
-
-
-    @staticmethod
-    def create_subset_access_url(file, field, date):
-        """
-
-        :param field: ssh, temp, cur
-        :param date: DateTime
-        :param file: outfile
-        :return: subset access url for given type
-        """
-        verbose = 0
-
-        if verbose > 0:
-            print "Type:", field, type(field)
-            print "Date:", date, type(date)
-            print "File:", file, type(file)
-
-        if field == 'temp':
-            return DataFileManager.create_url_temp_sal(file, date)
-        if field == 'cur':
-            return DataFileManager.create_url_ssc(file, date)
-        if field == 'ssh':
-            return DataFileManager.create_url_ssh(file, date)
-
+    def test_file(file):
+        # Test to see if the file is valid or not
+        try:
+            data_file = netcdf.netcdf_file(
+                os.path.join(
+                    settings.MEDIA_ROOT,
+                    settings.NETCDF_STORAGE_DIR,
+                    file
+                )
+            )
+            return True
+        except Exception:
+            return False
 
 
     @staticmethod
@@ -507,7 +396,7 @@ class DataFileManager(models.Manager):
 
         verbose = 0
 
-        access_date, date_string  = DataFileManager.determine_latest_forecast(XML_URL)
+        access_date, date_string  = determine_latest_forecast(XML_URL)
 
         if verbose > 0:
             print "Access Date:", access_date
@@ -532,9 +421,9 @@ class DataFileManager(models.Manager):
                 if verbose > 0:
                     print "File split", file.split('_')
 
-                field = DataFileManager.determine_type(file.split('_')[5])
+                field = determine_type(file.split('_')[5])
                 access_date, date, tag = create_nomads_time_series_from_file_with_tag(file)
-                url = DataFileManager.create_subset_access_url(file, field, access_date)
+                url = create_subset_access_url(file, field, access_date)
 
                 date_tag = date.strftime('%Y-%m-%d')
 
@@ -542,10 +431,13 @@ class DataFileManager(models.Manager):
                     try: # Top
                         print "Downloading NAVY HYCOM File {0}".format(url[0],)
                         local_filename = "{0}_{1}_{2}_{3}_top.nc".format(settings.HYCOM_DF_FN, date_tag, tag, field)
-                        print local_filename
                         urllib.urlretrieve(url=url[0],
                                            filename=os.path.join(destination_directory, local_filename),
                                            )
+
+                        if not DataFileManager.test_file(local_filename):
+                            print "ERROR DOWNLOADING FILE,", local_filename
+
                         datafile = DataFile(
                             type='HYCOM',
                             download_datetime=timezone.now(),
@@ -553,6 +445,8 @@ class DataFileManager(models.Manager):
                             model_date=date,
                             file=local_filename,
                         )
+
+
                         datafile.save()
                         file_ids.append(datafile.id)
                     except Exception:
@@ -564,6 +458,9 @@ class DataFileManager(models.Manager):
                         urllib.urlretrieve(url=url[1],
                                            filename=os.path.join(destination_directory, local_filename),
                                            )
+                        if not DataFileManager.test_file(local_filename):
+                            print "ERROR DOWNLOADING FILE,", local_filename
+
                         datafile = DataFile(
                             type='HYCOM',
                             download_datetime=timezone.now(),
@@ -583,6 +480,10 @@ class DataFileManager(models.Manager):
                         urllib.urlretrieve(url=url,
                                            filename=os.path.join(destination_directory, local_filename),
                                            )
+
+                        if not DataFileManager.test_file(local_filename):
+                            print "ERROR DOWNLOADING FILE,", local_filename
+
                         datafile = DataFile(
                             type='HYCOM',
                             download_datetime=timezone.now(),
@@ -596,11 +497,11 @@ class DataFileManager(models.Manager):
                         print "Unable to download NAVY HYCOM File from"
                         continue
 
+
+
                 #print "Downloaded NAVY HYCOM File {0}".format(local_filename)
 
         return file_ids
-
-
 
     @staticmethod
     @shared_task(name='pl_download.ww3_download')
@@ -668,8 +569,14 @@ class DataFileManager(models.Manager):
         ftp_dtm = ftp.sendcmd('MDTM' + " /pub/outgoing/ww3data/" + file_name)
         initial_datetime = datetime.strptime(ftp_dtm[4:], "%Y%m%d%H%M%S").strftime("%Y-%m-%d")
 
+        print ftp_dtm
+        print ftp_dtm[4]
+        print initial_datetime
+
         naive_datetime = parser.parse(initial_datetime)
         modified_datetime = timezone.make_aware(naive_datetime, timezone.utc)
+
+        print "Modified datetime", modified_datetime
 
         # Check if we've downloaded it before: does DataFile contain a Wavewatch entry whose model_date matches this one?
         matches_old_file = DataFile.objects.filter(
@@ -680,6 +587,9 @@ class DataFileManager(models.Manager):
             model_date=datetime.date( modified_datetime - timedelta(days=1)),
             type='WAVE'
         )
+
+        print "Matches old file", matches_old_file
+
         if not matches_old_file:
             print "New OSU WW3 File"
 
@@ -847,6 +757,123 @@ class DataFileManager(models.Manager):
             DataFile.delete(filename) # Custom delete method for DataFiles: this deletes the actual files from disk too
 
         return True
+
+
+def create_url_temp_sal(file, date):
+    # &vertCoord = 0 <- Depth
+
+    top = \
+        'http://ncss.hycom.org/thredds/ncss/GLBv0.08/expt_92.9/forecasts/' \
+        ''+file+'?' \
+        '&var=salinity&var=water_temp' \
+        '&north=50&west=228&east=237&south=35' \
+        '&horizStride=1' \
+        '&time='+date+'' \
+        '&vertCoord=0' \
+        '&addLatLon=true&accept=netcdf'
+
+    bot = \
+        'http://ncss.hycom.org/thredds/ncss/GLBv0.08/expt_92.9/forecasts/' \
+        ''+file+'?' \
+        'var=salinity_bottom&var=water_temp_bottom' \
+        '&north=50&west=228&east=237&south=35' \
+        '&horizStride=1' \
+        '&time='+date+'' \
+        '&addLatLon=true&accept=netcdf'
+
+    return top, bot
+
+def create_url_ssc(file, date):
+    # Vert Cord = Depth
+    top = \
+        'http://ncss.hycom.org/thredds/ncss/GLBv0.08/expt_92.9/forecasts/' \
+        ''+file+'?' \
+        '&var=water_u&var=water_v' \
+        '&north=50&west=228&east=237&south=35' \
+        '&horizStride=1' \
+        '&time='+date+'' \
+        '&vertCoord=0' \
+        '&addLatLon=true&accept=netcdf'
+
+    bot = \
+        'http://ncss.hycom.org/thredds/ncss/GLBv0.08/expt_92.9/forecasts/' \
+        ''+file+'?' \
+        'var=water_u_bottom&var=water_v_bottom' \
+        '&north=50&west=228&east=237&south=35' \
+        '&horizStride=1' \
+        '&time='+date+'' \
+        '&addLatLon=true&accept=netcdf'
+
+    return top, bot
+
+def create_url_ssh(file, date):
+    return \
+        'http://ncss.hycom.org/thredds/ncss/GLBv0.08/expt_92.9/forecasts/' \
+        ''+file+'?' \
+        'var=surf_el' \
+        '&north=50&west=228&east=237&south=35' \
+        '&horizStride=1' \
+        '&time='+date+ \
+        '&addLatLon=true' \
+        '&accept=netcdf'
+
+
+def determine_type(fileEnding):
+    if fileEnding == 'ssh.nc':
+        type = 'ssh'
+    if fileEnding == 'ts3z.nc':
+        type = 'temp'
+    if fileEnding == 'uv3z.nc':
+        type = 'cur'
+
+    return type
+
+def determine_latest_forecast(XML_URL):
+    catalog = etree.parse(XML_URL)
+
+    i = 0
+    for element in catalog.iter():
+        file = element.get('name')
+        if not file:
+            continue
+        elif file.startswith('hycom_glbv'):
+            date = datetime.strptime(file.split('_')[3][0:8], "%Y%m%d")
+
+            if i == 0:
+                date_s = date
+            else:
+                if date > date_s:
+                    date_s = date
+
+            i += 1
+
+    access_date = date_s
+    date_string = date_s.strftime("%Y%m%d")
+
+    return access_date, date_string
+
+def create_subset_access_url(file, field, date):
+    """
+
+    :param field: ssh, temp, cur
+    :param date: DateTime
+    :param file: outfile
+    :return: subset access url for given type
+    """
+    verbose = 0
+
+    if verbose > 0:
+        print "Type:", field, type(field)
+        print "Date:", date, type(date)
+        print "File:", file, type(file)
+
+    if field == 'temp':
+        return create_url_temp_sal(file, date)
+    if field == 'cur':
+        return create_url_ssc(file, date)
+    if field == 'ssh':
+        return create_url_ssh(file, date)
+
 
 def create_nomads_time_series_from_file_with_tag(file):
     """ create a nomads date & time access from a file that looks like:

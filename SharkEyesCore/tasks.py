@@ -107,7 +107,7 @@ def do_pipeline():
 
     logging.info('DOWNLOADING HYCOM')
     try: # Try Catches to ensure do_pipeline completes even if a model server cant be reached
-        hycom_files = DataFileManager.hycom_download()
+        hycom_files = DataFileManager.rtofs_download()
     except Exception:
         print '-' * 60
         print "COULD NOT DOWNLOAD HYCOM FILE"

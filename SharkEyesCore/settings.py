@@ -132,12 +132,13 @@ MEDIA_URL = "/media/"
 BASE_NETCDF_URL = "http://ingria.coas.oregonstate.edu/opendap/ORWA/" #OSU_ROMS URL
 WAVE_WATCH_URL = "ftp://cil-www.oce.orst.edu/pub/outgoing/ww3data/"
 FTP_WAVE_WAVE_URL = "cil-wwww.oce.orst.edu"
-HYCOM_URL = "http://nomads.ncep.noaa.gov/pub/data/nccf/com/rtofs/prod/rtofs."
+RTOFS_URL = "http://nomads.ncep.noaa.gov/pub/data/nccf/com/rtofs/prod/rtofs."
+RTOFS_OPENDAP_URL = "http://nomads.ncep.noaa.gov:9090/dods/rtofs/"
 #Not Currently used. Can be used if you need to stream wind data for some reason.
 #WIND_URL = "http://thredds.ucar.edu/thredds/dodsC/grib/NCEP/NAM/CONUS_12km/conduit/Best"
 
 
-SEACAST_DOMAIN = { 'longs' : [-129.0, -123.726199391], 'lats': [40.5840806224, 47.499] }
+SEACAST_DOMAIN = { 'longs' : [-129.0, -123.7261], 'lats': [40.5840, 47.499] }
 OSU_ROMS_DOMAIN = { 'longs' : [-129.0, -123.726199391], 'lats': [40.5840806224, 47.499] }
 OSU_WW3_DOMAIN = { 'longs' : [-129.0, -123.726199391], 'lats': [40.5840806224, 47.499] }
 HYCOM_DOMAIN  = { 'longs' : [], 'lats': [] }
