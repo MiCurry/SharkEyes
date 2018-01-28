@@ -8,37 +8,6 @@ from SharkEyesCore.models import FeedbackHistory
 from SharkEyesCore.models import FeedbackQuestionaire
 import sys , traceback
 
-@shared_task(name='sharkeyescore.do_ww3')
-def do_ww3():
-    """ Download and plot WW3 files"""
-    try: # Try Catches to ensure do_pipeline completes even if a model server cant be reached
-        wave_watch_files = DataFileManager.get_latest_wave_watch_files()
-    except Exception:
-        print '-' * 60
-        print "COULD NOT DOWNLOAD OSU WW3 FILES"
-        traceback.print_exc(file=sys.stdout)
-        print '-' * 60
-
-    plot_task_list = OverlayManager.get_tasks_for_base_plots_for_next_few_days()
-
-    list_of_chains = []
-
-    for pt in plot_task_list:
-        if pt.args[0] != 4 and pt.args[0] != 6:
-            # Chaining passes the result of first function to second function
-            list_of_chains.append(chain(pt, tile_overlay.s()))
-        else:
-            # Use the Wavewatch tiler for Wavewatch files
-            list_of_chains.append(chain(pt, tile_wave_watch_overlay.s()))
-
-    job = group(item for item in list_of_chains)
-    print "PIPELINE: JOBS: "
-    for each in job:
-        print each
-    result = job.apply_async() # Run the group.
-    return result
-
-
 @shared_task(name='sharkeyescore.pipeline')
 def do_pipeline():
 
