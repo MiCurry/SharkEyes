@@ -187,46 +187,32 @@ class DataFileManager(models.Manager):
         naive_datetime = parser.parse(initial_datetime)
         modified_datetime = timezone.make_aware(naive_datetime, timezone.utc)
 
-        # Check if we've downloaded it before: does DataFile contain a Wavewatch entry whose model_date matches this one?
-        matches_old_file = DataFile.objects.filter(
-            #NOTE: this assumes that the file contains one day of hindcasts, so the model date is one day BEHIND
-            # the date on which we download the file.
-            # This is prone to fail. However, when we actually save the record in the database,
-            # THAT model_date is guaranteed to be correct.
-            model_date=datetime.date( modified_datetime - timedelta(days=1)),
-            type='WAVE'
+        print "Dwnloading OSU WW3 File"
+
+        url = urljoin(settings.WAVE_WATCH_URL, file_name)
+        local_filename = "{0}_{1}.nc".format(settings.OSU_WW3_DF_FN, initial_datetime)
+        urllib.urlretrieve(url=url, filename=os.path.join(destination_directory, local_filename))
+
+        file = netcdf_file(os.path.join(settings.MEDIA_ROOT, settings.WAVE_WATCH_DIR, local_filename))
+
+        # The times in the file are UTC in seconds since Jan 1, 1970.
+        all_day_times = file.variables['time'][:]
+        basetime = datetime(1970,1,1,0,0,0)
+        first_forecast_time = basetime + timedelta(all_day_times[0]/3600.0/24.0,0,0)
+
+        datafile = DataFile(
+            type='WAVE',
+            download_datetime=timezone.now(), # This is UTC, as should be all the items saved into a Django database
+            generated_datetime=modified_datetime,
+            model_date = first_forecast_time,
+            file=local_filename,
         )
-        if not matches_old_file:
-            print "New OSU WW3 File"
+        datafile.save()
 
-            url = urljoin(settings.WAVE_WATCH_URL, file_name)
-            local_filename = "{0}_{1}.nc".format(settings.OSU_WW3_DF_FN, initial_datetime)
-            urllib.urlretrieve(url=url, filename=os.path.join(destination_directory, local_filename))
+        new_file_ids.append(datafile.id)
+        ftp.quit()
 
-            file = netcdf_file(os.path.join(settings.MEDIA_ROOT, settings.WAVE_WATCH_DIR, local_filename))
-
-            # The times in the file are UTC in seconds since Jan 1, 1970.
-            all_day_times = file.variables['time'][:]
-            basetime = datetime(1970,1,1,0,0,0)
-            first_forecast_time = basetime + timedelta(all_day_times[0]/3600.0/24.0,0,0)
-
-            datafile = DataFile(
-                type='WAVE',
-                download_datetime=timezone.now(), # This is UTC, as should be all the items saved into a Django database
-                generated_datetime=modified_datetime,
-                model_date = first_forecast_time,
-                file=local_filename,
-            )
-            datafile.save()
-
-            new_file_ids.append(datafile.id)
-            ftp.quit()
-
-            return new_file_ids
-        else:
-            print "No New OSU WW3 Files."
-            ftp.quit()
-            return []
+        return new_file_ids
 
     @staticmethod
     @shared_task(name='pl_download.get_wind_file')
