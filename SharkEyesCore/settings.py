@@ -122,14 +122,25 @@ MEDIA_URL = "/media/"
 BASE_NETCDF_URL = "http://ingria.coas.oregonstate.edu/opendap/ORWA/" #OSU_ROMS URL
 WAVE_WATCH_URL = "ftp://cil-www.oce.orst.edu/pub/outgoing/ww3data/"
 FTP_WAVE_WAVE_URL = "cil-wwww.oce.orst.edu"
+RTOFS_URL = "http://nomads.ncep.noaa.gov/pub/data/nccf/com/rtofs/prod/rtofs."
+RTOFS_OPENDAP_URL = "http://nomads.ncep.noaa.gov:9090/dods/rtofs/"
 #Not Currently used. Can be used if you need to stream wind data for some reason.
 #WIND_URL = "http://thredds.ucar.edu/thredds/dodsC/grib/NCEP/NAM/CONUS_12km/conduit/Best"
+
+
+SEACAST_DOMAIN = { 'longs' : [-129.0, -123.7261], 'lats': [40.5840, 47.499] }
+OSU_ROMS_DOMAIN = { 'longs' : [-129.0, -123.726199391], 'lats': [40.5840806224, 47.499] }
+OSU_WW3_DOMAIN = { 'longs' : [-129.0, -123.726199391], 'lats': [40.5840806224, 47.499] }
+HYCOM_DOMAIN  = { 'longs' : [], 'lats': [] }
+NCEP_WW3_DOMAIN = { 'longs' : [-140, -110], 'lats': [25, 55] }
+NAMS_WIND_DOMAIN = { 'longs' : [], 'lats': [] }
 
 # Model Datafile File Start names
 OSU_ROMS_DF_FN = "OSU_ROMS"
 OSU_WW3_DF_FN = "Outergrid"
 NAMS_WIND_DF_FN = "WIND"
 NCEP_WW3_DF_FN  = "NCEP_WW3"
+HYCOM_DF_FN = "HYCOM"
 
 # Model Definition ID's
 OSU_ROMS_SST = 1
@@ -141,6 +152,42 @@ OSU_WW3_DIR = 6
 OSU_ROMS_BOT_SAL = 7
 OSU_ROMS_BOT_TEMP = 8
 OSU_ROMS_SSH = 9
+NCEP_WW3_DIR = 10
+NCEP_WW3_HI = 11
+HYCOM_SST = 12
+HYCOM_SUR_CUR = 13
+OSU_ROMS_TCLINE = 14
+OSU_ROMS_PCLINE = 15
+NAVY_HYCOM_SST = 16
+NAVY_HYCOM_SUR_CUR = 17
+NAVY_HYCOM_SUR_SAL = 18
+NAVY_HYCOM_SSH = 19
+NAVY_HYCOM_BOT_TEMP = 20
+NAVY_HYCOM_BOT_CUR = 21
+NAVY_HYCOM_BOT_SAL = 22
+
+
+OSU_ROMS = [OSU_ROMS_SST, OSU_ROMS_SUR_SAL,
+            OSU_ROMS_SUR_CUR, OSU_ROMS_BOT_SAL,
+            OSU_ROMS_BOT_TEMP, OSU_ROMS_SSH]
+
+OSU_WW3 = [OSU_WW3_HI, OSU_WW3_DIR]
+
+NCEP_WW3 = [NCEP_WW3_HI, NCEP_WW3_DIR]
+
+HYCOM = [HYCOM_SST, HYCOM_SUR_CUR]
+
+VECTOR_FIELDS = [OSU_ROMS_SUR_CUR, HYCOM_SUR_CUR]
+WAVE_VECTOR_FIELDS = [OSU_WW3_DIR, NCEP_WW3_DIR]
+
+ZOOM_LEVELS_CURRENTS = [('2-7', 8),  ('8-12', 4)]
+ZOOM_LEVELS_WIND = [('1-10', 2), ('11-12', 1)]
+ZOOM_LEVELS_OTHERS = [(None, None)]
+
+ZOOM_LEVELS_FOR_WAVE_DIR = [('2-8', 20), ('9-10', 15), ('11-12', 5)]
+ZOOM_LEVELS_FOR_WAVE_OTHERS = [(None, None)]
+
+
 
 # import local settings. PyCharm thinks it's unused, but PyCharm is silly.
 # noinspection PyUnresolvedReferences
