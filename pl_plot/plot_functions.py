@@ -28,10 +28,25 @@ METERS_TO_FEET = 3.28
 MIN_WAVE_PERIOD = 3
 MAX_WAVE_PERIOD = 26
 
+MIN_TEMP_C_TOP = 0
+MAX_TEMP_C_TOP = 15
+
+MIN_TEMP_F_TOP = 46
+MAX_TEMP_F_TOP = 58
+MIN_TEMP_F_BOT = 32
+MAX_TEMP_F_BOT = 60
+
+MIN_SAL_TOP = 28
+MAX_SAL_TOP = 34
+MIN_SAL_BOT = 32
+MAX_SAL_BOT = 34
+
+
 def get_rho_mask(data_file):
     rho_mask = numpy.logical_not(data_file.variables['mask_rho'][:])
     return rho_mask
 
+""" WAVES """
 def wave_direction_function(ax, data_file, bmap, key_ax, forecast_index, downsample_ratio):
     all_day_height = data_file.variables['HTSGW_surface'][:, :, :]
     all_day_direction = data_file.variables['DIRPW_surface'][:,:,:]
@@ -332,8 +347,7 @@ def ww3_height(ax, data_file, bmap, key_ax, forecast_index, downsample_ratio):
     cbar.set_label("Wave Height (Feet) - Extended")
 
 
-
-
+""" OSU ROMS """
 def sst_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
     def celsius_to_fahrenheit(temp):
         return temp * 1.8 + 32
@@ -365,6 +379,12 @@ def sst_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
     color_levels = []
     for i in xrange(NUM_COLOR_LEVELS+1):
         color_levels.append(min_temp+1 + i * contour_range_inc)
+
+    print "temp.SHAPE:", surface_temp.shape
+    print "lat.SHAPE:", lats.shape
+    print "lon.SHAPE:", longs.shape
+    print "x.SHAPE:", x.shape
+    print "y.SHAPE:", y.shape
 
     bmap.drawmapboundary(linewidth=0.0, ax=ax)
     overlay = bmap.contourf(x, y, surface_temp, color_levels, ax=ax, extend='both', cmap=get_modified_jet_colormap())
@@ -649,6 +669,7 @@ def currents_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio)
     key_ax.set_axis_off()
 
 
+""" WIND """
 # After the 48th time index the NAMS model changes to 3 hour intervals instead of every 4 hours like the rest
 # of our models. Because of this we need to interpolate them as seen below.
 # -------------------------------------------------------------------------
@@ -771,6 +792,7 @@ def wind_function(ax, data_file, bmap, time_index, downsample_ratio):
     if VERBOSE > 0:
         print "WIND PLOT CREATED"
 
+""" RTOFS - NOT IN USE"""
 def hycom_temp(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
     depth = 0
     min_temp = 34
@@ -888,6 +910,225 @@ def hycom_currents(ax, data_file, bmap, key_ax, time_index, downsample_ratio=1):
                                   color='white', labelsep=.5, coordinates='axes')
     key_ax.set_axis_off()
 
+""" NAVY HYCOM PLOT FUNCTIONS"""
+def hycom_sst(ax, data_file, bmap, key_ax, bottom=False):
+    print "HYCOM SST"
+
+    def celsius_to_fahrenheit(temp):
+        return temp * 1.8 + 32
+    temp_conversion = numpy.vectorize(celsius_to_fahrenheit)
+
+    def convert_to_degrees_west(x):
+        y = 180 - x; return -(y + 180)
+    lon_conversion = numpy.vectorize(convert_to_degrees_west)
+
+    """ We got to use the scale factor to convert the compressed data into floats """
+
+    if bottom: # Use the same function for top and bottom woot woot
+        level = 'water_temp_bottom'
+        min_temp = MIN_TEMP_F_BOT
+        max_temp = MAX_TEMP_F_BOT
+        temps = data_file.variables[level][0][:][:].astype(numpy.float)
+    else:
+        level = 'water_temp'
+        min_temp = MIN_TEMP_F_TOP
+        max_temp = MAX_TEMP_F_TOP
+        temps = data_file.variables[level][0][0].astype(numpy.float)
+
+    temps = numpy.ma.masked_where(temps == -30000, temps) # mask values
+    temps = numpy.ma.masked_array(temps, numpy.isnan(temps))
+
+    scale_fac = data_file.variables[level].scale_factor
+    offset = data_file.variables[level].add_offset
+
+    temps = temps * scale_fac + offset # Decompression
+    temps = numpy.ma.array(temp_conversion(temps))
+
+    print "Temps: ", temps.shape
+
+    longs = data_file.variables['lon'][:]
+    lats = data_file.variables['lat'][:]
+    longs = numpy.ma.array(lon_conversion(longs))
+
+    longs, lats = numpy.meshgrid(longs, lats)
+
+    x, y = bmap(longs, lats)
+
+    print "Lat: ", lats.shape
+    print "Lon: ", longs.shape
+    print "Temps: ", temps.shape
+    print "x: ", x.shape
+    print "y: ", y.shape
+
+    contour_range = ((max_temp) - (min_temp))
+    contour_range_inc = float(contour_range)/NUM_COLOR_LEVELS
+    color_levels = []
+    for i in xrange(NUM_COLOR_LEVELS+1):
+        color_levels.append(min_temp+1 + i * contour_range_inc)
+
+    bmap.drawmapboundary(linewidth=0.0, ax=ax)
+    overlay = bmap.contourf(x, y, temps, color_levels, ax=ax, extend='both', cmap=get_modified_jet_colormap())
+
+    # add colorbar.
+    #-------------------------------------------------------------------------
+    cbar = pyplot.colorbar(overlay, orientation='horizontal', cax=key_ax)
+    cbar.ax.tick_params(labelsize=10)
+    cbar.ax.xaxis.label.set_color('white')
+    cbar.ax.xaxis.set_tick_params(labelcolor='white')
+
+    locations = numpy.arange(0, 1.01, 1.0/(NUM_COLOR_LEVELS))[::10]    # we just want every 10th label
+    float_labels = numpy.arange(min_temp, max_temp + 0.01, contour_range_inc)[::10]
+    labels = ["%.1f" % num for num in float_labels]
+    cbar.ax.xaxis.set_ticks(locations)
+    cbar.ax.xaxis.set_ticklabels(labels)
+    cbar.set_label("Fahrenheit - Extended")
+
+def hycom_bot_temp(ax, data_file, bmap, key_ax):
+    hycom_sst(ax, data_file, bmap, key_ax, bottom=True)
+
+def hycom_ssc(ax, data_file, bmap, key_ax, downsample_ratio, bottom=False):
+    def compute_average(array):
+        avg = numpy.average(array)
+        return numpy.nan if avg > 10**3 else avg
+
+    def convert_to_degrees_west(x):
+        y = 180 - x; return -(y + 180)
+    lon_conversion = numpy.vectorize(convert_to_degrees_west)
+
+    # average nearby points to align grid, and add the edge column/row so it's the right size.
+    #-------------------------------------------------------------------------
+
+    if bottom: # Use the same function for top and bottom woot woot
+        level_u = 'water_u_bottom'
+        level_v = 'water_v_bottom'
+        v = data_file.variables[level_v][0][:][:].astype(numpy.float)
+        u = data_file.variables[level_u][0][:][:].astype(numpy.float)
+    else:
+        level_u = 'water_u'
+        level_v = 'water_v'
+        v = data_file.variables[level_v][0][0][:][:].astype(numpy.float)
+        u = data_file.variables[level_u][0][0][:][:].astype(numpy.float)
+
+    lats = data_file.variables['lat'][:]
+    longs = data_file.variables['lon'][:]
+    longs = numpy.ma.array(lon_conversion(longs))
+    longs, lats = numpy.meshgrid(longs, lats)
+
+    u = numpy.ma.masked_where(u == -30000, u) # mask values
+    v = numpy.ma.masked_where(v == -30000, v) # mask values
+    u = numpy.ma.masked_array(u , numpy.isnan(u))
+    v = numpy.ma.masked_array(v , numpy.isnan(v))
+
+    scale_fac_u = data_file.variables[level_u].scale_factor
+    scale_fac_v = data_file.variables[level_v].scale_factor
+    offset_u = data_file.variables[level_u].add_offset
+    offset_v = data_file.variables[level_v].add_offset
+
+    u = u * scale_fac_u + offset_u # Decompression
+    v = v * scale_fac_v + offset_v # Decompression
+
+    print "Downsample Ratio:", downsample_ratio
+
+    u = crop_and_downsample(u, downsample_ratio, False)
+    v = crop_and_downsample(v, downsample_ratio, False)
+
+    longs = crop_and_downsample(longs, downsample_ratio, False)
+    lats = crop_and_downsample(lats, downsample_ratio, False)
+
+
+    x, y = bmap(longs, lats)
+    #x, y = bmap(longs_zoomed, lats_zoomed)
+
+    print "Lats : ", lats.shape
+    print "Longs: ", longs.shape
+    print "u : ", u.shape
+    print "v : ", v.shape
+    print "x : ", x.shape
+    print "y : ", y.shape
+
+    bmap.drawmapboundary(linewidth=0.0, ax=ax)
+
+    overlay = bmap.quiver(x, y, u, v, ax=ax, color='black', units='inches',
+                          scale=10.0, headwidth=2, headlength=3,
+                          headaxislength=2.5, minlength=0.5, minshaft=.9)
+
+    # Multiplying .5, 1, and 2 by .5144 is converting from knots to m/s
+    #-------------------------------------------------------------------------
+    # quiverkey = key_ax.quiverkey(overlay, .95, .4, 0.5*.5144, ".5 knots", labelpos='S', labelcolor='white',
+    #                              color='white', labelsep=.5, coordinates='axes')
+    # quiverkey1 = key_ax.quiverkey(overlay, 3.75, .4, 1*.5144, "1 knot", labelpos='S', labelcolor='white',
+    #                               color='white', labelsep=.5, coordinates='axes')
+    # quiverkey2 = key_ax.quiverkey(overlay, 6.5, .4, 2*.5144, "2 knots", labelpos='S', labelcolor='white',
+    #                               color='white', labelsep=.5, coordinates='axes')
+    textBox = pyplot.text(0, 0, "Right Click or Double Tap to View Values  ", withdash=False,
+                          backgroundcolor='black', color='white', fontsize=17, )
+
+    key_ax.set_axis_off()
+
+def hycom_bot_cur(ax, data_file, bmap, key_ax):
+    hycom_ssc(ax, data_file, bmap, key_ax, bottom=True)
+
+def hycom_sur_sal(ax, data_file, bmap, key_ax, bottom=False ):
+    def convert_to_degrees_west(x):
+        y = 180 - x; return -(y + 180)
+    lon_conversion = numpy.vectorize(convert_to_degrees_west)
+
+    if bottom:
+        level = 'salinity_bottom'
+        min_salt = MIN_SAL_BOT
+        max_salt = MAX_SAL_BOT
+        salt = numpy.ma.array(data_file.variables[level][0][:][:])
+    else:
+        level = 'salinity'
+        min_salt = MIN_SAL_TOP
+        max_salt = MAX_SAL_TOP
+        salt = numpy.ma.array(data_file.variables[level][0][0][:][:])
+
+    scale_fac = data_file.variables[level].scale_factor
+    offset = data_file.variables[level].add_offset
+    salt = salt * scale_fac + offset # Decompression
+
+    longs = data_file.variables['lon'][:]
+    lats = data_file.variables['lat'][:]
+    longs = numpy.ma.array(lon_conversion(longs))
+    longs, lats = numpy.meshgrid(longs, lats)
+    x, y = bmap(longs, lats)
+
+    # calculate and plot colored contours for salinity data
+    # 21 levels, range from one over min to one under max, as the colorbar caps each have their color and will color
+    # out of bounds data with their color.
+    contour_range = ((max_salt) - (min_salt))
+    contour_range_inc = float(contour_range)/NUM_COLOR_LEVELS
+
+    color_levels = []
+    for i in xrange(NUM_COLOR_LEVELS+1):
+        color_levels.append(min_salt+1 + i * contour_range_inc)
+
+    bmap.drawmapboundary(linewidth=0.0, ax=ax)
+    overlay = bmap.contourf(x, y, salt, color_levels, ax=ax, extend='both', cmap=get_modified_jet_colormap())
+
+    # add colorbar.
+    cbar = pyplot.colorbar(overlay, orientation='horizontal', cax=key_ax)
+    cbar.ax.tick_params(labelsize=10)
+    cbar.ax.xaxis.label.set_color('white')
+    cbar.ax.xaxis.set_tick_params(labelcolor='white')
+
+    locations = numpy.arange(0, 1.01, 1.0/(NUM_COLOR_LEVELS))[::10]    # we just want every third label
+    float_labels = numpy.arange(min_salt, max_salt + 0.01, contour_range_inc)[::10]
+    labels = ["%.1f" % num for num in float_labels]
+    cbar.ax.xaxis.set_ticks(locations)
+    cbar.ax.xaxis.set_ticklabels(labels)
+    cbar.set_label("Salinity (PSU)")
+
+def hycom_bot_sal(ax, data_file, bmap, key_ax):
+    hycom_sur_sal(ax, data_file, bmap, key_ax, bottom=True)
+
+def hycom_ssh(ax, data_file, bmap, key_ax, time_index, downsample_ratio=1):
+    pass
+
+
+
+""" HELPER FUNCTIONS """
 def crop_and_downsample(source_array, downsample_ratio, average=True):
     ys, xs = source_array.shape
 
@@ -900,7 +1141,6 @@ def crop_and_downsample(source_array, downsample_ratio, average=True):
     else:
         zoomed_array = cropped_array[::downsample_ratio, ::downsample_ratio]
     return zoomed_array
-
 
 # Wave files are in a different format, so they need a separate downsampling function
 #-------------------------------------------------------------------------

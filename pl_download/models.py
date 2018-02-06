@@ -1,7 +1,11 @@
+import traceback
+
 import os
 import urllib
 import urllib2
 from ftplib import FTP
+
+import sys
 from defusedxml import ElementTree
 from lxml import etree, html
 import requests
@@ -347,7 +351,7 @@ class DataFileManager(models.Manager):
                     print "Model Date: ", model_date
 
                 datafile = DataFile(
-                    type='HYCOM',
+                    type='RTOFS',
                     download_datetime=timezone.now(),
                     generated_datetime=timezone.now(),
                     model_date=model_date,
@@ -430,7 +434,7 @@ class DataFileManager(models.Manager):
                 if len(url) == 2:
                     try: # Top
                         print "Downloading NAVY HYCOM File {0}".format(url[0],)
-                        local_filename = "{0}_{1}_{2}_{3}_top.nc".format(settings.HYCOM_DF_FN, date_tag, tag, field)
+                        local_filename = "{0}_{1}_{2}_{3}_top.nc".format(settings.NAVY_HYCOM_DF_FN, date_tag, tag, field)
                         urllib.urlretrieve(url=url[0],
                                            filename=os.path.join(destination_directory, local_filename),
                                            )
@@ -450,14 +454,16 @@ class DataFileManager(models.Manager):
                         datafile.save()
                         file_ids.append(datafile.id)
                     except Exception:
-                        print "Unable to download NAVY HYCOM File from"
+                        print "Unable to download NAVY HYCOM File - Top"
                         continue
                     try: # Bot
                         print "Downloading NAVY HYCOM File {0}".format(url[1],)
-                        local_filename = "{0}_{1}_{2}_{3}_bot.nc".format(settings.HYCOM_DF_FN, date_tag, tag, field)
+                        local_filename = "{0}_{1}_{2}_{3}_bot.nc".format(settings.NAVY_HYCOM_DF_FN, date_tag, tag, field)
+
+
                         urllib.urlretrieve(url=url[1],
-                                           filename=os.path.join(destination_directory, local_filename),
-                                           )
+                                           filename=os.path.join(destination_directory, local_filename),)
+
                         if not DataFileManager.test_file(local_filename):
                             print "ERROR DOWNLOADING FILE,", local_filename
 
@@ -471,15 +477,15 @@ class DataFileManager(models.Manager):
                         datafile.save()
                         file_ids.append(datafile.id)
                     except Exception:
-                        print "Unable to download NAVY HYCOM File from"
+                        print "Unable to download NAVY HYCOM File from - Bottom"
+                        traceback.print_exc(file=sys.stdout)
                         continue
                 else:
                     try: # SSH should all go here
                         print "Downloading NAVY HYCOM File {0}".format(url,)
-                        local_filename = "{0}_{1}_{2}_{3}.nc".format(settings.HYCOM_DF_FN, date_tag, tag, field)
+                        local_filename = "{0}_{1}_{2}_{3}.nc".format(settings.NAVY_HYCOM_DF_FN, date_tag, tag, field)
                         urllib.urlretrieve(url=url,
-                                           filename=os.path.join(destination_directory, local_filename),
-                                           )
+                                           filename=os.path.join(destination_directory, local_filename),)
 
                         if not DataFileManager.test_file(local_filename):
                             print "ERROR DOWNLOADING FILE,", local_filename
@@ -494,13 +500,10 @@ class DataFileManager(models.Manager):
                         datafile.save()
                         file_ids.append(datafile.id)
                     except Exception:
-                        print "Unable to download NAVY HYCOM File from"
+                        print "Unable to download NAVY HYCOM File Sea Surface Height"
                         continue
 
-
-
-                #print "Downloaded NAVY HYCOM File {0}".format(local_filename)
-
+        print "NAVY HYCOM - COMPLETE"
         return file_ids
 
     @staticmethod
@@ -700,8 +703,10 @@ class DataFileManager(models.Manager):
         return False
 
     @classmethod
-    def get_next_few_days_files_from_db(cls, days=10):
-        """ This function gets the file ID's from the database that do not have plots.
+    def get_next_few_days_files_from_db(cls, days=15):
+        """ SOON TO BE DEBRICATED SEE get_next_few_datafiles_of_a_type
+
+        This function gets the file ID's from the database that do not have plots.
 
         :return: A list of datafiles that haven't had plots generated for them yet
         """
@@ -709,6 +714,9 @@ class DataFileManager(models.Manager):
             model_date__gte=(timezone.now()-timedelta(days=PAST_DAYS_OF_FILES_TO_DISPLAY+1)).date(),
             model_date__lte=(timezone.now()+timedelta(days=days)).date()
         )
+
+        for i in next_few_days_of_files:
+            print i.id
 
         # Select the most recent within each model date and type (ie wave or SST)
         and_the_newest_for_each_model_date = next_few_days_of_files.values('model_date', 'type').annotate(newest_generation_time=Max('generated_datetime'))
@@ -720,19 +728,27 @@ class DataFileManager(models.Manager):
                       generated_datetime=filedata.get('newest_generation_time'))
             q_objects.append(new_q)
 
+        print q_objects
+        for i in q_objects:
+            print i
+
         # assumes you're not re-downloading the same file for the same model and generation dates.
         actual_datafile_objects = DataFile.objects.filter(reduce(OR, q_objects))
+
+        for i in actual_datafile_objects:
+            print i.id
 
         return actual_datafile_objects
 
     @classmethod
-    def get_next_few_datafiles_of_a_type(cls, type, days=10, past_days=0):
+    def get_next_few_datafiles_of_a_type(cls, type, days=15, past_days=PAST_DAYS_OF_FILES_TO_DISPLAY+1):
         datafiles = DataFile.objects.filter(
             model_date__gte=(timezone.now()-timedelta(days=past_days)).date(),
             model_date__lte=(timezone.now()+timedelta(days=days)).date(),
             type=type
         )
-        return datafiles
+
+        return [datafile.id for datafile in datafiles]
 
     @classmethod
     def get_next_few_datafiles_of_hycom_file_ids(cls):
@@ -919,8 +935,10 @@ class DataFile(models.Model):
         ('NCDF', "NetCDF"),
         ('WAVE', "WaveNETCDF"),
         ('WIND', "WindNETCDF"),
+        ('T-CLINE', "Thermocline"),
         ('NCEP_WW3', "NCEP_WW3"),
-        ('HYCOM', "HYCOM_ROMS")
+        ('HYCOM', "HYCOM_ROMS"),
+        ('RTOFS', 'NOAA_RTOFS')
     )
     type = models.CharField(max_length=10, choices=DATA_FILE_TYPES, default='NCDF')
     download_datetime = models.DateTimeField()

@@ -517,3 +517,78 @@ class NcepWW3Plotter:
 
         return plot_filename, key_filename
 
+
+class NavyPlotter:
+    data_file = None
+    zoom_level = None
+    domain = settings.SEACAST_DOMAIN
+
+    def __init__(self, file_name):
+        self.load_file(file_name)
+
+    def load_file(self, file_name):
+        self.data_file = netcdf.netcdf_file(
+            os.path.join(
+                settings.MEDIA_ROOT,
+                settings.NETCDF_STORAGE_DIR,
+                file_name
+            )
+        )
+
+    def get_zoom_level(self, def_id):
+        if def_id in settings.NAVY_HYCOM_CUR:
+            self.zoom_level = settings.ZOOM_LEVELS_CURRENTS
+            return self.zoom_level
+        else:
+            self.zoom_level = settings.ZOOM_LEVELS_OTHERS
+            return self.zoom_level
+
+    def get_time_at_oceantime_index(self, index=None):
+        basetime = self.data_file.variables['time'].units
+        basetime = datetime.strptime(basetime, "hours since %Y-%m-%d 00:00:00")
+        return basetime + timedelta(hours=self.data_file.variables['time'][0])
+
+
+    def get_number_of_model_times(self):
+        return 0
+
+    def make_plot(self, plot_function, zoom_levels, time_index=0,  downsample_ratio=None):
+        fig = pyplot.figure()
+        key_fig = pyplot.figure(facecolor=settings.OVERLAY_KEY_COLOR)
+        ax = fig.add_subplot(111)  # one subplot in the figure
+        key_ax = key_fig.add_axes([0.1, 0.2, 0.6, 0.05]) # this might be bad for when we have other types of plots
+
+        longs = [-129.0, -123.726199391]
+        lats = [40.5840806224, 47.499]
+
+        # window cropped by picking lat and lon corners
+        bmap = Basemap(projection='merc',
+                       resolution='h', area_thresh=1.0,
+                       llcrnrlat=lats[0], urcrnrlat=lats[-1],
+                       llcrnrlon=longs[0], urcrnrlon=longs[-1],
+                       ax=ax, epsg=4326)
+
+        plot_function(ax=ax, data_file=self.data_file, bmap=bmap, key_ax=key_ax, downsample_ratio=downsample_ratio)
+
+        plot_filename = "{0}_{1}.png".format(plot_function.__name__, uuid4())
+        key_filename = "{0}_key_{1}.png".format(plot_function.__name__, uuid4())
+
+
+        if zoom_levels == '8-12':
+            DPI = 1800
+        else:
+            DPI = 800 # Original is 1200 dpi
+
+        fig.savefig(
+            os.path.join(settings.MEDIA_ROOT, settings.UNCHOPPED_STORAGE_DIR, plot_filename),
+            dpi=DPI, bbox_inches='tight', pad_inches=0,
+            transparent=False, frameon=False)
+        pyplot.close(fig)
+
+        key_fig.savefig(
+            os.path.join(settings.MEDIA_ROOT, settings.KEY_STORAGE_DIR, key_filename),
+            dpi=500, bbox_inches='tight', pad_inches=0,
+            transparent=True, facecolor=key_fig.get_facecolor())
+        pyplot.close(key_fig)
+
+        return plot_filename, key_filename

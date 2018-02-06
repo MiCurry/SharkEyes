@@ -11,7 +11,7 @@ from datetime import timedelta
 from celery import group
 from celery import shared_task
 from pl_download.models import DataFile, DataFileManager
-from pl_plot.plotter import Plotter, WaveWatchPlotter, WindPlotter, HycomPlotter, NcepWW3Plotter
+from pl_plot.plotter import Plotter, WaveWatchPlotter, WindPlotter, HycomPlotter, NcepWW3Plotter, NavyPlotter
 from pl_plot import plot_functions
 
 HOW_LONG_TO_KEEP_FILES = settings.HOW_LONG_TO_KEEP_FILES
@@ -122,17 +122,40 @@ class OverlayManager(models.Manager):
                     task_list.append(cls.make_wave_watch_plot.subtask(args=(settings.NCEP_WW3_DIR, t, fid), immutable=True))
                     task_list.append(cls.make_wave_watch_plot.subtask(args=(settings.NCEP_WW3_HI, t, fid), immutable=True))
 
-            # Hycom
-            elif datafile.file.name.startswith(settings.HYCOM_DF_FN):
-                print "HYCOM"
+            # NAVY Hycom
+            elif datafile.file.name.startswith(settings.NAVY_HYCOM_DF_FN):
+                print "NAVY HYCOM"
                 plotter = HycomPlotter(datafile.file.name)
                 t = plotter.get_number_of_model_times()
 
-                task_list.append(cls.make_plot.subtask(args=(settings.HYCOM_SST, t, fid), immutable=True))
-                task_list.append(cls.make_plot.subtask(args=(settings.HYCOM_SUR_CUR, t, fid), immutable=True))
+                # Need to update this to match what each file is saved for
+
+                # Sea Surface Height
+                if datafile.file.name.endswith("ssh.nc"):
+                    #task_list.append(cls.make_plot.subtask(args=(settings.NAVY_HYCOM_SSH, t, fid), immutable=True))
+                    pass
+
+                # Temperature
+                if datafile.file.name.endswith("temp_top.nc"):
+                    task_list.append(cls.make_plot.subtask(args=(settings.NAVY_HYCOM_SST, t, fid), immutable=True))
+                    #task_list.append(cls.make_plot.subtask(args=(settings.NAVY_HYCOM_SUR_SAL, t, fid), immutable=True))
+                if datafile.file.name.endswith("temp_bot.nc"):
+                    #task_list.append(cls.make_plot.subtask(args=(settings.NAVY_HYCOM_BOT_TEMP, t, fid), immutable=True))
+                    #task_list.append(cls.make_plot.subtask(args=(settings.NAVY_HYCOM_BOT_SAL, t, fid), immutable=True))
+                    pass
+
+                # Current
+                if datafile.file.name.endswith("cur_top.nc"):
+                    task_list.append(cls.make_plot.subtask(args=(settings.NAVY_HYCOM_SUR_CUR, t, fid), immutable=True))
+                if datafile.file.name.endswith("cur_bot.nc"):
+                    #task_list.append(cls.make_plot.subtask(args=(settings.NAVY_HYCOM_BOT_CUR, t, fid), immutable=True))
+                    pass
+
+
+
 
             # OSU_ROMS
-            else:
+            elif datafile.file.name.startswith(settings.OSU_ROMS_DF_FN):
                 print "OSU ROMS"
                 plotter = Plotter(datafile.file.name)
                 number_of_times = plotter.get_number_of_model_times()
@@ -149,7 +172,9 @@ class OverlayManager(models.Manager):
                                                                                              settings.OSU_ROMS_BOT_SAL,
                                                                                              settings.OSU_ROMS_BOT_TEMP,
                                                                                              settings.OSU_ROMS_SSH])
-                        # Wavewatch
+            else:
+                print "OverlayManager.get_task_for_base_plots_in_files: NOT A FORECAST I RECOGNIZE"
+
 
         return task_list
 
@@ -157,8 +182,16 @@ class OverlayManager(models.Manager):
     def get_tasks_for_base_plots_for_next_few_days(cls):
         """ Grabs the files ID's of NCDF datafiles that haven't been plotted yet. Use this function
         to generate a list of unchopped plots that haven't been plotted yet. """
-        file_ids = [datafile.id for datafile in DataFileManager.get_next_few_days_files_from_db()]
-        file_ids + DataFileManager.get_next_few_datafiles_of_hycom_file_ids()
+
+        file_ids = []
+        file_ids.append(DataFileManager.get_next_few_datafiles_of_a_type('NCDF')) # OSU ROMS
+        file_ids.append(DataFileManager.get_next_few_datafiles_of_a_type('WAVE')) # OSU WW3
+        file_ids.append(DataFileManager.get_next_few_datafiles_of_a_type('WIND')) # Wind
+        file_ids.append(DataFileManager.get_next_few_datafiles_of_a_type('NCEP')) # NCEP
+        file_ids.append(DataFileManager.get_next_few_datafiles_of_a_type('HYCOM')) # NAVY HYCOM
+
+        file_ids = [item for sublist in file_ids for item in sublist] # Unravel lists of lists
+
         return cls.get_tasks_for_base_plots_in_files(file_ids)
 
     @classmethod
@@ -300,6 +333,14 @@ class OverlayManager(models.Manager):
             else:
                 datafile = DataFile.objects.get(pk=file_id)
             plotter = WindPlotter(datafile.file.name)
+            zoom_levels = plotter.get_zoom_level(overlay__id)
+
+        elif overlay__id in settings.NAVY_HYCOM:
+            if file_id is None:
+                datafile = DataFile.objects.filter(type='HYCOM').latest('model_date')
+            else:
+                datafile = DataFile.objects.get(pk=file_id)
+            plotter = NavyPlotter(datafile.file.name)
             zoom_levels = plotter.get_zoom_level(overlay__id)
 
 
