@@ -539,7 +539,7 @@ class DataFileManager(models.Manager):
         urllib.urlretrieve(url=url, filename=os.path.join(destination_directory, local_filename))
 
         datafile = DataFile(
-            type='NCEP_WW3',
+            type='NCEP',
             download_datetime=timezone.now(),
             generated_datetime=timezone.now(),
             model_date=begin_date,
@@ -936,7 +936,7 @@ class DataFile(models.Model):
         ('WAVE', "WaveNETCDF"),
         ('WIND', "WindNETCDF"),
         ('T-CLINE', "Thermocline"),
-        ('NCEP_WW3', "NCEP_WW3"),
+        ('NCEP', "NCEP_WW3"),
         ('HYCOM', "HYCOM_ROMS"),
         ('RTOFS', 'NOAA_RTOFS')
     )

@@ -319,10 +319,12 @@ class Plotter:
         # we used the dimensions provided by the file itself, but the change in provided data has changed
         # the size of the image.
 
-        # longs = self.data_file.variables['lon_rho'][0, :] # only needed to set up longs
-        # lats = self.data_file.variables['lat_rho'][:, 0] # only needed to set up lats
-        longs = [-129.0, -123.726199391]
-        lats = [40.5840806224, 47.499]
+        longs = self.data_file.variables['lon_rho'][0, :] # only needed to set up longs
+        lats = self.data_file.variables['lat_rho'][:, 0] # only needed to set up lats
+
+        #longs = [-129.0, -123.726199391]
+        #lats = [40.5840806224, 47.499]
+
 
         # Window cropped by picking lat and lon corners
         bmap = Basemap(projection='merc',

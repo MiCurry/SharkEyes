@@ -911,7 +911,7 @@ def hycom_currents(ax, data_file, bmap, key_ax, time_index, downsample_ratio=1):
     key_ax.set_axis_off()
 
 """ NAVY HYCOM PLOT FUNCTIONS"""
-def hycom_sst(ax, data_file, bmap, key_ax, bottom=False):
+def hycom_sst(ax, data_file, bmap, key_ax, bottom=False, downsample_ratio=None):
     print "HYCOM SST"
 
     def celsius_to_fahrenheit(temp):
