@@ -408,6 +408,7 @@ class DataFileManager(models.Manager):
 
         catalog = etree.parse(XML_URL)
         today = datetime.now().today()
+
         export = '929'
 
         file_ids = []
@@ -420,20 +421,30 @@ class DataFileManager(models.Manager):
 
             if not file:
                 continue
-            elif file.startswith('hycom_glbv_'+export+'_'+date_string): # Grab only dates that are the latest
 
+            elif file.startswith('hycom_glbv_'+export+'_'+date_string): # Grab only dates that are the latest
+                ''' Grab infromation of the datafile '''
                 if verbose > 0:
                     print "File split", file.split('_')
 
                 field = determine_type(file.split('_')[5])
                 access_date, date, tag = create_nomads_time_series_from_file_with_tag(file)
+
+                if date < today + timedelta(days = 4):
+                    print "Wrong date!"
+                    continue
+
+                print access_date, date
+
+
                 url = create_subset_access_url(file, field, access_date)
 
                 date_tag = date.strftime('%Y-%m-%d')
 
-                if len(url) == 2:
+                if len(url) == 2: # TEMP and SSC forecasts create two access links for top or bottom
+                    ''' Top '''
                     try: # Top
-                        print "Downloading NAVY HYCOM File {0}".format(url[0],)
+                        #print "Downloading NAVY HYCOM File {0}".format(url[0],)
                         local_filename = "{0}_{1}_{2}_{3}_top.nc".format(settings.NAVY_HYCOM_DF_FN, date_tag, tag, field)
                         urllib.urlretrieve(url=url[0],
                                            filename=os.path.join(destination_directory, local_filename),
@@ -449,15 +460,13 @@ class DataFileManager(models.Manager):
                             model_date=date,
                             file=local_filename,
                         )
-
-
-                        datafile.save()
-                        file_ids.append(datafile.id)
                     except Exception:
                         print "Unable to download NAVY HYCOM File - Top"
                         continue
+
+                    ''' Bottom '''
                     try: # Bot
-                        print "Downloading NAVY HYCOM File {0}".format(url[1],)
+                        #print "Downloading NAVY HYCOM File {0}".format(url[1],)
                         local_filename = "{0}_{1}_{2}_{3}_bot.nc".format(settings.NAVY_HYCOM_DF_FN, date_tag, tag, field)
 
 
@@ -474,15 +483,14 @@ class DataFileManager(models.Manager):
                             model_date=date,
                             file=local_filename,
                         )
-                        datafile.save()
-                        file_ids.append(datafile.id)
                     except Exception:
                         print "Unable to download NAVY HYCOM File from - Bottom"
                         traceback.print_exc(file=sys.stdout)
                         continue
                 else:
+                    ''' SSH '''
                     try: # SSH should all go here
-                        print "Downloading NAVY HYCOM File {0}".format(url,)
+                        #print "Downloading NAVY HYCOM File {0}".format(url,)
                         local_filename = "{0}_{1}_{2}_{3}.nc".format(settings.NAVY_HYCOM_DF_FN, date_tag, tag, field)
                         urllib.urlretrieve(url=url,
                                            filename=os.path.join(destination_directory, local_filename),)
@@ -497,11 +505,23 @@ class DataFileManager(models.Manager):
                             model_date=date,
                             file=local_filename,
                         )
-                        datafile.save()
-                        file_ids.append(datafile.id)
                     except Exception:
                         print "Unable to download NAVY HYCOM File Sea Surface Height"
                         continue
+
+
+                ''' Save Datafile '''
+
+                """
+                
+                if datafile.model_date == datafile in database of model_date and type == NCDF:
+                    then we already have a forecast for this date, so don't download this file.
+               
+                 
+                
+                """
+
+
 
         print "NAVY HYCOM - COMPLETE"
         return file_ids
