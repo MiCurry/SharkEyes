@@ -38,9 +38,31 @@ DEF_FULL_ROMS_FLAG = False # Default Full Roms Flag
 
 verbose = 0
 
-def download(roms=False, wave=False,
-             wind=False, hycom=False,
-             ncep=False,
+def tile_set(id_start, id_end):
+    # Never Needs to be Updated
+    from pl_chop.tasks import tile_overlay
+    # Tile a range of overlays
+
+    ids = range(id_start, id_end, 1)
+
+    print "Tiling ids"
+    for f in ids:
+        tile_overlay(f)
+
+def tile(ids):
+    """ Never Needs to be Updated"""
+    from pl_chop.tasks import tile_overlay
+
+    if len(ids) == 0:
+        print "TILE: Empty list of IDS quitting"
+        return 0
+
+    print "TILE: Tiling IDS: ", ids
+
+    for f in ids:
+        tile_overlay(f)
+
+def download(roms=False, wave=False, wind=False, hycom=False, ncep=False, tcline=False,  navy=False,
              num_dl=None):
 
     from pl_download.models import DataFileManager
@@ -51,7 +73,7 @@ def download(roms=False, wave=False,
         roms_ids = []
         roms_ids = DataFileManager.download_osu_roms()
         print("OSU ROM dl ids:", roms_ids)
-        ids.append(roms_ids)
+        ids.append(roms_ids) # Update to a dictonary
 
     if wave:
         print "DL: Downloading OSU WW3 files"
@@ -72,7 +94,7 @@ def download(roms=False, wave=False,
         print "DL: Number of downloads specified: ", num_dl
 
         hycom_ids = []
-        hycom_ids = DataFileManager.hycom_download(count=num_dl)
+        hycom_ids = DataFileManager.rtofs_download(count=num_dl)
         print("DL: HYCOM dl ids:", hycom_ids)
         ids.append(hycom_ids)
 
@@ -83,41 +105,79 @@ def download(roms=False, wave=False,
         print("NCEP dl ids:", ncep_ids)
         ids.append(ncep_ids)
 
+    if tcline:
+        print "DL: Downloading OSU t-cline"
+        tcline_ids = []
+        tcline_ids = None
+        print("NCEP dl ids:", tcline_ids)
+        ids.append(tcline_ids)
+
+    if navy:
+        print "DL: Downloading Navy Hycom"
+        navy_ids = []
+        navy_ids = DataFileManager.navy_hycom_download()
+        print ("NAVY HYCOM ids: ", navy_ids)
+        ids.append(navy_ids)
+
     return ids
 
 
-def tile_set(id_start, id_end):
-    from pl_chop.tasks import tile_overlay
-    # Tile a range of overlays
 
-    ids = range(id_start, id_end, 1)
+def info(datafile):
+    print "--- ", datafile.type, " DATAFILE --- ", datafile.file.name, " --- ", "DF-ID: ", datafile.id, " --- "
+    print "   MODEL DATE: ", datafile.model_date, " DL DATETIME: ", datafile.download_datetime
+    print ""
 
-    print "Tiling ids"
-    for f in ids:
-        tile_overlay(f)
 
-def tile(ids):
-    from pl_chop.tasks import tile_overlay
 
-    if len(ids) == 0:
-        print "TILE: Empty list of IDS quitting"
+def plot_by_id(ids=None):
+    if ids == None:
+        print "PLOT_BY_ID: NO IDS SUPPLIED ... Quitting"
         return 0
 
-    print "TILE: Tiling IDS: ", ids
+    from pl_download.models import DataFile as df
+    from pl_plot.models import OverlayManager as om
 
-    for f in ids:
-        tile_overlay(f)
+    for id in ids:
+        file = df.objects.get(pk=id)
+        print_file_info(file)
 
-def plot(ids,
+        if file.type == 'NCDF':
+            om.make_plot()
+
+        elif file.type == 'WAVE':
+            om.make_plot()
+
+        elif file.type == 'WIND':
+            om.make_plot()
+
+        elif file.type == 'T-CLINE':
+            om.make_plot()
+
+        elif file.type == 'NCEP_WW3':
+            om.make_plot()
+
+        elif file.type == 'HYCOM':
+            om.make_plot()
+
+        elif file.type == 'RTOFS':
+            om.make_plot()
+
+
+
+
+
+def plot(ids=[],
          num_plots=DEF_NUM_PLOTS, tile=DEF_TILE_FLAG, full_roms=DEF_FULL_ROMS_FLAG,
-         roms=False,
-         wave=False,
-         wind=False,
-         hycom=False,
-         ncep=False):
+         roms=False, wave=False, wind=False, hycom=False, ncep=False, tcline=False, navy=False):
     '''  Just generates plots. You need to pass in the df id to get a plot! Pass it in manually
     or by using one of the functions below which grabs them using the database or via downloading!
     '''
+    print "IDS", ids
+
+    if not ids:
+        print "PLOT: NO IDS SUBMITTED TO BE PLOTTED - exiting"
+        return
 
     if len(ids) == 0:
         print "PLOT: Empty List of IDS exiting"
@@ -230,11 +290,40 @@ def plot(ids,
 
         return
 
+    if tcline:
+        tcline_ids = []
 
+        print ids
+        print "PLOT: Plotting TCLINE with file IDS: ", ids
+        for id in ids:
+            for i in range(num_plots):
+                tcline_ids.append(om.make_plot(settings.OSU_ROMS_TCLINE, i, id))
+
+        if tile:
+            print "PLOT: Tiling tcline"
+            tile(tcline_ids)
+
+        return
+
+    if navy:
+        navy_ids = []
+
+        print ids
+        print "PLOT: Plotting NCEP WW3 with file IDS: ", ids
+        for id in ids:
+            navy_ids.append(om.make_plot(settings.NAVY_HYCOM_SST, 0, id))
+            navy_ids.append(om.make_plot(settings.NAVY_HYCOM_SUR_CUR, 0, id))
+            navy_ids.append(om.make_plot(settings.NAVY_HYCOM_SUR_SAL, 0, id))
+
+
+        if tile:
+            print "PLOT: Tiling NCEP"
+            tile(navy_ids)
+
+        return
 
 def plot_new(num_plots=DEF_NUM_PLOTS, tile=DEF_TILE_FLAG, full_roms=DEF_FULL_ROMS_FLAG,
-             roms=False, wave=False, wind=False,
-             hycom=False, ncep=False):
+             roms=False, wave=False, wind=False, hycom=False, ncep=False, tcline=False):
     # num_plots = The number of plots you want for each file - save time!
     # Download and plot the newset freshest files from ze interwebz
 
@@ -271,9 +360,20 @@ def plot_new(num_plots=DEF_NUM_PLOTS, tile=DEF_TILE_FLAG, full_roms=DEF_FULL_ROM
 
         plot( ids, ncep=True, num_plots=num_plots, tile=tile )
 
+    if tcline:
+        ids = download(tcline=True)
+        tclines = []
+
+        plot( ids, tcline=True, num_plots=num_plots, tile=tile )
+
+    if navy:
+        ids = download(navy=True)
+        navys = []
+
+        plot( ids, navy=True, num_plots=num_plots, tile=tile )
+
 def plot_latest(num_plots=DEF_NUM_PLOTS, tile=DEF_TILE_FLAG, full_roms=DEF_FULL_ROMS_FLAG, date='latest',
-                roms=False, wave=False, wind=False,
-                hycom=False, ncep=False):
+                roms=False, wave=False, wind=False, hycom=False, ncep=False, tcline=False, navy=False):
     # num_plots = The number of plots you want for each file - save time!
     # Pull the latest files from the database and plot those
 
@@ -319,8 +419,7 @@ def plot_latest(num_plots=DEF_NUM_PLOTS, tile=DEF_TILE_FLAG, full_roms=DEF_FULL_
         elif date == "all":
             ids = df.objects.all().filter(type = "NCDF")
 
-        for id in ids:
-            print id.model_date
+        print ids
 
         ids = [id.id for id in ids] # Unwrap ids
 
@@ -382,6 +481,139 @@ def plot_latest(num_plots=DEF_NUM_PLOTS, tile=DEF_TILE_FLAG, full_roms=DEF_FULL_
         ids = [id.id for id in ids] # Unwrap ids
         plot( ids, ncep=True, num_plots=num_plots, tile=tile )
 
+    if tcline:
+        tcline = []
+        ids = []
+        if date is "today":
+            ids = df.objects.filter(type='T-CLINE').get(model_date=today)
+        elif date is "latest":
+            ids = dm.get_next_few_datafiles_of_a_type(days=20, type ='T-CLINE')
+        elif date is "all":
+            ids = df.objects.all().filter(type = "T-CLINE")
+
+        ids = [id.id for id in ids] # Unwrap ids
+        plot( ids, tcline=True, num_plots=num_plots, tile=tile )
+
+    if navy:
+        navys = []
+        ids = []
+        if date is "today":
+            ids = df.objects.filter(type='HYCOM').get(model_date=today)
+        elif date is "latest":
+            ids = dm.get_next_few_datafiles_of_a_type(days=20, type ='HYCOM')
+        elif date is "all":
+            ids = df.objects.all().filter(type = "HYCOM")
+
+        ids = [id.id for id in ids] # Unwrap ids
+        plot( ids, navy=True, num_plots=num_plots, tile=tile )
+    print "MANAGE.PY: FINISH TEST"
+
+
+def list_datafiles_of_a_type(roms=False, wave=False, wind=False, hycom=False, ncep=False, tcline=False, navy=False):
+    from pl_download.models import DataFile
+
+    if roms:
+        df_type = 'NCDF'
+    if wave:
+        df_type = 'WAVE'
+    if wind:
+        df_type = 'WIND'
+    if hycom:
+        df_type = 'HYCOM'
+    if ncep:
+        df_type = 'NCEP'
+    if tcline:
+        df_type = 'tcline'
+    if navy:
+        df_type = 'NAVY'
+
+    entries = DataFile.objects.filter(type=df_type)
+    for entry in entries:
+        info(entry)
+
+def test(ids=None, navy=False, ncep=False):
+    from pl_download.models import DataFile
+    from pl_plot.plotter import NavyPlotter, NcepWW3Plotter
+    from pl_plot.models import OverlayManager as om
+    print ids
+
+    download(navy=True)
+
+
+    if navy:
+        print "NAVY HYCOM TEST"
+        count = 0
+        for id in ids:
+            datafile = DataFile.objects.get(pk=id)
+            if datafile.type != 'HYCOM':
+                continue # Skip over non HYCOM Files
+
+            count += 1
+
+            print "HYCOM TESTING ", count, " FOR FILE: "
+            info(datafile)
+            print "\tTESTING PLOTTER:"
+            plotter = NavyPlotter(datafile.file.name)
+            if plotter:
+                print "\t PLOTTER LOADED SUCCESFULLY"
+            else:
+                print "\t ERROR: UNABLE TO LOAD FILE: ", datafile.file.name
+
+            print "\t NUMBER OF MODEL TIMES: ", plotter.get_number_of_model_times()
+            print "\t OCEAN TIME: ", plotter.get_time_at_oceantime_index()
+
+            print "\t GENERATING PLOT.... "
+            print ""
+
+            if datafile.file.name.endswith("ssh.nc"):
+                om.make_plot(settings.NAVY_HYCOM_SUR_CUR, 0, id)
+            if datafile.file.name.endswith("temp_top.nc"):
+                om.make_plot(settings.NAVY_HYCOM_SST, 0, id)
+            if datafile.file.name.endswith("temp_bot.nc"):
+                om.make_plot(settings.NAVY_HYCOM_BOT_TEMP, 0, id)
+            if datafile.file.name.endswith("cur_top.nc"):
+                om.make_plot(settings.NAVY_HYCOM_SUR_CUR, 0, id)
+            if datafile.file.name.endswith("sal_top.nc"):
+                om.make_plot(settings.NAVY_HYCOM_SUR_SAL, 0, id)
+
+    if ncep:
+        print "NCEP TEST"
+        count = 0
+        for id in ids:
+            datafile = DataFile.objects.get(pk=id)
+            if datafile.type != 'NCEP':
+                continue # Skip over non HYCOM Files
+
+            count += 1
+
+            print "NCEP WW3 TESTING ", count, " FOR FILE: "
+            info(datafile)
+
+            print "   TESTING PLOTTER:"
+            plotter = NcepWW3Plotter(datafile.file.name)
+            if plotter:
+                print "   PLOTTER LOADED SUCCESFULLY"
+            else:
+                print "   ERROR: UNABLE TO LOAD FILE: ", datafile.file.name
+
+            print "\tNUMBER OF MODEL TIMES: ", plotter.get_number_of_model_times()
+            print "\tOCEAN TIMES & TASKS: "
+            list = om.get_tasks_for_base_plots_for_next_few_days()
+            for i in range(plotter.get_number_of_model_times()):
+                print "\t", list[i], "-- time:", plotter.get_oceantime(i)
+
+            print "   GENERATING PLOTS.... "
+            cnt = 0
+            for i in range(plotter.get_number_of_model_times()):
+                print " PLOT: ", cnt, " of", plotter.get_number_of_model_times()
+                om.make_wave_watch_plot(settings.NCEP_WW3_DIR, i, id)
+                cnt += 1
+                print " PLOT: ", cnt, " of", plotter.get_number_of_model_times()
+                om.make_wave_watch_plot(settings.NCEP_WW3_HI, i, id)
+                cnt += 1
+
+    print "TESTING TASK CREATION"
+
 
 if __name__ == "__main__":
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "SharkEyesCore.settings")
@@ -397,6 +629,9 @@ if __name__ == "__main__":
                         type=str)
 
     model = parser.add_argument_group('Models', 'Enable models by using these commands')
+    model.add_argument("-a", '--all',
+                       help='Toggle on all the models',
+                       action='store_true')
     model.add_argument("-r", '--roms',
                         help='Toggle on OSU ROMS in this task call',
                         action="store_true")
@@ -412,30 +647,35 @@ if __name__ == "__main__":
     model.add_argument("-c", '--ncep',
                         help='Toggle on NCEP WW3 in this task Call',
                         action="store_true")
+    model.add_argument("-l", '--cline',
+                       help='Toggle on OSU T/P-CLINE downloads in this task Call',
+                       action="store_true")
+    model.add_argument("-y", '--navy',
+                       help='Toggle on NAVY HYCOM in this task Call',
+                       action="store_true")
 
 
     other = parser.add_argument_group('Other')
     other.add_argument("-T", '--tile',
                         help='Toggle on to produce tiles in plot',
                         action="store_true")
-    other.add_argument("-k", '--num',
+    other.add_argument("-K", '--num',
                        help='Number of plots to generate in plot',
                        type=int,
                        default=DEF_NUM_PLOTS)
-    other.add_argument("-f", '--fullRoms',
+    other.add_argument("-F", '--fullRoms',
                         help='Run the full number of roms. Default is True',
                         type=bool,
                         default=DEF_FULL_ROMS_FLAG)
-    other.add_argument("-i", '--ids',
+    other.add_argument("-I", '--ids',
                        help='Toggle on to produce tiles in plot',
-                       default=[],
-                       action="append",
+                       nargs="+",
                        dest='ids')
-    other.add_argument("-v", '--verbose',
+    other.add_argument("-V", '--verbose',
                        help='Turn on vebrosity level 0 (default), 1, 2, 3, 9000',
                        default=0,
                        type=int)
-    other.add_argument("-d", '--date',
+    other.add_argument("-D", '--date',
                        help='today, latest, ',
                        type=str)
 
@@ -450,7 +690,9 @@ if __name__ == "__main__":
                        wind=args.nams,
                        hycom=args.hycom,
                        ncep=args.ncep,
-                       num_dl=args.num)
+                       num_dl=args.num,
+                       tcline=args.cline,
+                       navy=args.navy)
         sys.exit()
 
     elif args.task == "plot-all":
@@ -460,17 +702,21 @@ if __name__ == "__main__":
                  wave=args.wave,
                  wind=args.nams,
                  hycom=args.hycom,
-                 ncep=args.ncep)
+                 ncep=args.ncep,
+                 tcline=args.cline,
+                 navy=args.navy)
         sys.exit()
 
     elif args.task == "plot":
-        plot(num_plots=args.num,
+        plot(args.ids,
+             num_plots=args.num,
              tile=args.tile,
              roms=args.roms,
              wave=args.wave,
              wind=args.nams,
              hycom=args.hycom,
-             ncep=args.ncep)
+             ncep=args.ncep,
+             tcline=args.cline)
         sys.exit()
 
     elif args.task == "plot-l":
@@ -481,6 +727,8 @@ if __name__ == "__main__":
              wind=args.nams,
              hycom=args.hycom,
              ncep=args.ncep,
+             tcline=args.ncep,
+             navy=args.navy,
              date=args.date)
         sys.exit()
 
@@ -488,8 +736,20 @@ if __name__ == "__main__":
         tile_set()
         sys.exit()
 
-    elif args.task == "test":
-        pass
+    elif args.task == "list":
+        list_datafiles_of_a_type( roms=args.roms,
+                                  wave=args.wave,
+                                  wind=args.nams,
+                                  hycom=args.hycom,
+                                  ncep=args.ncep,
+                                  tcline=args.ncep,
+                                  navy=args.navy,
+                                  )
         sys.exit()
+
+    elif args.task == "test":
+        test(ids=args.ids, navy=args.navy, ncep=args.ncep)
+        sys.exit()
+
 
     execute_from_command_line(sys.argv)

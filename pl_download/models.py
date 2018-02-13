@@ -534,12 +534,15 @@ class DataFileManager(models.Manager):
         :return: id of downloaded datafile
         """
         # TODO: Check to see if the download file already exists?
-        begin_date, end_date = create_nomads_time_series_from_today(start=4, end=8)
+        begin_date, end_date = create_nomads_time_series_from_today(start=4, end=20)
+        begin_date = DataFileManager.get_last_forecast_for_osu_ww3()
 
-
-        begin = str(begin_date) + 'T00%3A00%3A00Z'
+        begin = datetime.strftime(begin_date, '%Y-%m-%d')
+        begin = str(begin) + 'T00%3A00%3A00Z'
         end = str(end_date) + 'T00%3A00%3A00Z'
 
+        print begin
+        print end
 
         url = "http://thredds.ucar.edu/thredds/ncss/grib/NCEP/WW3/Regional_US_West_Coast/Best?" \
               "var=Direction_of_wind_waves_surface&var=" \
@@ -549,7 +552,7 @@ class DataFileManager(models.Manager):
               "Significant_height_of_combined_wind_waves_and_swell_surface&var=Significant_height_of_wind_waves_surface" \
               "&north=50&west=-150&east=-110&south=25&horizStride=1" \
               "&time_start="+begin+"&time_end="+end+"" \
-                                                    "&timeStride=1&vertCoord=&addLatLon=true&accept=netcdf" \
+              "&timeStride=1&vertCoord=&addLatLon=true&accept=netcdf" \
 
         local_filename = "{0}_{1}.nc".format(settings.NCEP_WW3_DF_FN, begin)
         destination_directory = os.path.join(settings.MEDIA_ROOT, settings.WAVE_WATCH_DIR)
