@@ -49,17 +49,23 @@ class WaveWatchPlotter:
             self.zoom_level = settings.ZOOM_LEVELS_FOR_WAVE_OTHERS
             return self.zoom_level
 
+    def get_number_of_model_times(self):
+        return numpy.shape(self.data_file.variables['time'])[0]
+
     def get_oceantime(self, time_index):
         ''' Get the 'applies_at_datetime', the datetime that the forecast that is being request is for.
 
         :param time_index: The index from the start of the models index to be found.
         :return: Timezone aware datetime object with the plotted forecast date and time.
         '''
-        all_day_times = self.data_file.variables['time'][:]
-        basetime = datetime(1970,1,1,0,0,0)  # Jan 1, 1970
-        forecast_zero = basetime + timedelta(all_day_times[0]/3600.0/24.0,0,0)
-        applies_at_datetime = timezone.make_aware(forecast_zero + timedelta(hours=time_index) , timezone.utc)
-        return applies_at_datetime
+        seconds = self.data_file.variables['time'][time_index]
+        epoch = datetime.strptime(self.data_file.variables['time'].units, "seconds since %Y-%m-%d %H:%M:%S.0 0:00")
+        model_date = epoch + timedelta(seconds=seconds) # Values enced as secs since..
+        return model_date
+
+    def get_last_model_time(self):
+        print self.get_number_of_model_times()
+        return self.get_oceantime(self.get_number_of_model_times() - 1)
 
     def make_plot(self, plot_function, forecast_index,storage_dir, generated_datetime, zoom_levels, downsample_ratio=None):
         fig = pyplot.figure()
@@ -279,7 +285,6 @@ class Plotter:
 
     def load_file(self, file_name):
         try:
-            print "File Name", file_name
             self.data_file = netcdf.netcdf_file(
                 os.path.join(
                     settings.MEDIA_ROOT,
@@ -308,6 +313,10 @@ class Plotter:
 
     def get_number_of_model_times(self):
         return numpy.shape(self.data_file.variables['ocean_time'])[0]
+
+    def get_last_model_time(self):
+        return self.get_time_at_oceantime_index(self.get_number_of_model_times() - 1)
+
 
     def make_plot(self, plot_function, zoom_levels, time_index=0,  downsample_ratio=None):
         fig = pyplot.figure()

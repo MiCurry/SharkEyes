@@ -384,7 +384,24 @@ class DataFileManager(models.Manager):
             )
             return True
         except Exception:
+            traceback.print_exc(file=sys.stdout)
             return False
+
+    @staticmethod
+    def get_last_forecast_for_roms(df_type=None):
+        from pl_plot.plotter import Plotter
+
+        latest_roms = DataFile.objects.filter(type='NCDF').order_by('id')[0]
+        plotter = Plotter(latest_roms.file.name)
+        return plotter.get_last_model_time()
+
+    @staticmethod
+    def get_last_forecast_for_osu_ww3(df_type=None):
+        from pl_plot.plotter import WaveWatchPlotter
+
+        latest_roms = DataFile.objects.filter(type='WAVE').order_by('id')[0]
+        plotter = WaveWatchPlotter(latest_roms.file.name)
+        return plotter.get_last_model_time()
 
 
     @staticmethod
@@ -415,6 +432,9 @@ class DataFileManager(models.Manager):
 
         destination_directory = os.path.join(settings.MEDIA_ROOT, settings.NETCDF_STORAGE_DIR)
 
+        # Determine when we should download
+        last_roms_forecast_date = DataFileManager.get_last_forecast_for_roms()
+
         # Download
         for element in catalog.iter():
             file = element.get('name')
@@ -430,97 +450,74 @@ class DataFileManager(models.Manager):
                 field = determine_type(file.split('_')[5])
                 access_date, date, tag = create_nomads_time_series_from_file_with_tag(file)
 
-                if date < today + timedelta(days = 4):
-                    print "Wrong date!"
-                    continue
-
-                print access_date, date
-
-
                 url = create_subset_access_url(file, field, access_date)
 
                 date_tag = date.strftime('%Y-%m-%d')
+                datafile = []
 
                 if len(url) == 2: # TEMP and SSC forecasts create two access links for top or bottom
                     ''' Top '''
-                    try: # Top
-                        #print "Downloading NAVY HYCOM File {0}".format(url[0],)
-                        local_filename = "{0}_{1}_{2}_{3}_top.nc".format(settings.NAVY_HYCOM_DF_FN, date_tag, tag, field)
-                        urllib.urlretrieve(url=url[0],
-                                           filename=os.path.join(destination_directory, local_filename),
-                                           )
+                    local_filename = []
+                    local_filename.append("{0}_{1}_{2}_{3}_top.nc".format(settings.NAVY_HYCOM_DF_FN, date_tag, tag, field))
 
-                        if not DataFileManager.test_file(local_filename):
-                            print "ERROR DOWNLOADING FILE,", local_filename
-
-                        datafile = DataFile(
-                            type='HYCOM',
-                            download_datetime=timezone.now(),
-                            generated_datetime=timezone.now(),
-                            model_date=date,
-                            file=local_filename,
-                        )
-                    except Exception:
-                        print "Unable to download NAVY HYCOM File - Top"
-                        continue
+                    datafile.append(DataFile(
+                        type='HYCOM',
+                        download_datetime=timezone.now(),
+                        generated_datetime=timezone.now(),
+                        model_date=date,
+                        file=local_filename[0],
+                    ))
 
                     ''' Bottom '''
-                    try: # Bot
-                        #print "Downloading NAVY HYCOM File {0}".format(url[1],)
-                        local_filename = "{0}_{1}_{2}_{3}_bot.nc".format(settings.NAVY_HYCOM_DF_FN, date_tag, tag, field)
+                    local_filename.append("{0}_{1}_{2}_{3}_bot.nc".format(settings.NAVY_HYCOM_DF_FN, date_tag, tag, field))
 
-
-                        urllib.urlretrieve(url=url[1],
-                                           filename=os.path.join(destination_directory, local_filename),)
-
-                        if not DataFileManager.test_file(local_filename):
-                            print "ERROR DOWNLOADING FILE,", local_filename
-
-                        datafile = DataFile(
-                            type='HYCOM',
-                            download_datetime=timezone.now(),
-                            generated_datetime=timezone.now(),
-                            model_date=date,
-                            file=local_filename,
-                        )
-                    except Exception:
-                        print "Unable to download NAVY HYCOM File from - Bottom"
-                        traceback.print_exc(file=sys.stdout)
-                        continue
+                    datafile.append(DataFile(
+                        type='HYCOM',
+                        download_datetime=timezone.now(),
+                        generated_datetime=timezone.now(),
+                        model_date=date,
+                        file=local_filename[1],
+                    ))
                 else:
                     ''' SSH '''
-                    try: # SSH should all go here
-                        #print "Downloading NAVY HYCOM File {0}".format(url,)
-                        local_filename = "{0}_{1}_{2}_{3}.nc".format(settings.NAVY_HYCOM_DF_FN, date_tag, tag, field)
-                        urllib.urlretrieve(url=url,
-                                           filename=os.path.join(destination_directory, local_filename),)
+                    local_filename = "{0}_{1}_{2}_{3}.nc".format(settings.NAVY_HYCOM_DF_FN, date_tag, tag, field)
+                    datafile.append(DataFile(
+                        type='HYCOM',
+                        download_datetime=timezone.now(),
+                        generated_datetime=timezone.now(),
+                        model_date=date,
+                        file=local_filename,
+                    ))
 
+                verbose = 0
+
+                if verbose > 0:
+                    print last_roms_forecast_date
+                    print type(last_roms_forecast_date)
+
+                date = timezone.make_aware(date, timezone.utc)
+
+                if date > last_roms_forecast_date:
+                    if len(local_filename) == 2: # Top and Bottom files
+                        for i in range(len(local_filename)):
+                            urllib.urlretrieve(url=url[i],
+                                               filename=os.path.join(destination_directory, local_filename[i]))
+                            if not DataFileManager.test_file(local_filename[i]):
+                                print "ERROR DOWNLOADING FILE,", local_filename[i]
+                    else: # SST
+                        urllib.urlretrieve(url=url,
+                                           filename=os.path.join(destination_directory, local_filename))
                         if not DataFileManager.test_file(local_filename):
                             print "ERROR DOWNLOADING FILE,", local_filename
 
-                        datafile = DataFile(
-                            type='HYCOM',
-                            download_datetime=timezone.now(),
-                            generated_datetime=timezone.now(),
-                            model_date=date,
-                            file=local_filename,
-                        )
-                    except Exception:
-                        print "Unable to download NAVY HYCOM File Sea Surface Height"
-                        continue
+                else:
+                    # Don't download - we already have a forecast for this time
+                    print "NO DOWNLOAD!", date
+                    continue
 
-
-                ''' Save Datafile '''
-
-                """
-                
-                if datafile.model_date == datafile in database of model_date and type == NCDF:
-                    then we already have a forecast for this date, so don't download this file.
-               
-                 
-                
-                """
-
+                for d in datafile:
+                    d.save()
+                    file_ids.append(d.id)
 
 
         print "NAVY HYCOM - COMPLETE"
@@ -538,6 +535,7 @@ class DataFileManager(models.Manager):
         """
         # TODO: Check to see if the download file already exists?
         begin_date, end_date = create_nomads_time_series_from_today(start=4, end=8)
+
 
         begin = str(begin_date) + 'T00%3A00%3A00Z'
         end = str(end_date) + 'T00%3A00%3A00Z'
@@ -943,6 +941,9 @@ def create_nomads_time_series_from_today(start=0, end=4):
     end_date = datetime.now().date() + timedelta( days = end)
 
     return begin_date, end_date
+
+def create_nomads_time_series_from_datetime(datetime):
+    pass
 
 class DataFile(models.Model):
     """ The Model or "Object" that is used by our Web Management Server (Django) to describe our
