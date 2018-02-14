@@ -514,22 +514,40 @@ def list_datafiles_of_a_type(roms=False, wave=False, wind=False, hycom=False, nc
 
     if roms:
         df_type = 'NCDF'
+        entries = DataFile.objects.filter(type=df_type)
+        for entry in entries:
+            info(entry)
     if wave:
         df_type = 'WAVE'
+        entries = DataFile.objects.filter(type=df_type)
+        for entry in entries:
+            info(entry)
     if wind:
         df_type = 'WIND'
+        entries = DataFile.objects.filter(type=df_type)
+        for entry in entries:
+            info(entry)
     if hycom:
         df_type = 'HYCOM'
+        entries = DataFile.objects.filter(type=df_type)
+        for entry in entries:
+            info(entry)
     if ncep:
         df_type = 'NCEP'
+        entries = DataFile.objects.filter(type=df_type)
+        for entry in entries:
+            info(entry)
     if tcline:
         df_type = 'tcline'
+        entries = DataFile.objects.filter(type=df_type)
+        for entry in entries:
+            info(entry)
     if navy:
         df_type = 'NAVY'
+        entries = DataFile.objects.filter(type=df_type)
+        for entry in entries:
+            info(entry)
 
-    entries = DataFile.objects.filter(type=df_type)
-    for entry in entries:
-        info(entry)
 
 def test(ids=None, navy=False, ncep=False):
     from pl_download.models import DataFile
@@ -537,18 +555,17 @@ def test(ids=None, navy=False, ncep=False):
     from pl_plot.models import OverlayManager as om
     print ids
 
-    download(navy=True)
-
 
     if navy:
         print "NAVY HYCOM TEST"
         count = 0
-        for id in ids:
-            datafile = DataFile.objects.get(pk=id)
-            if datafile.type != 'HYCOM':
-                continue # Skip over non HYCOM Files
+        if ids:
+            for id in ids:
+                datafile = DataFile.objects.get(pk=id)
+                if datafile.type != 'HYCOM':
+                    continue # Skip over non HYCOM Files
 
-            count += 1
+                count += 1
 
             print "HYCOM TESTING ", count, " FOR FILE: "
             info(datafile)
