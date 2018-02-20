@@ -99,11 +99,13 @@ TEMPLATE_DIRS = BASE_DIR + '/templates/'
 
 STATIC_URL = '/static/'
 STATIC_ROOT = '/opt/sharkeyes/static/'
+
 STATICFILES_DIRS = (os.path.join(BASE_DIR, 'static_files'), )
 
 OVERLAY_KEY_COLOR = '#00001F'
 
 # other files
+STATIC_DIR = "/opt/sharkeyes/src/static_files/"
 NETCDF_STORAGE_DIR = "netcdf"
 UNCHOPPED_STORAGE_DIR = "unchopped"
 VRT_STORAGE_DIR = "vrt_files"
@@ -127,7 +129,6 @@ RTOFS_OPENDAP_URL = "http://nomads.ncep.noaa.gov:9090/dods/rtofs/"
 #Not Currently used. Can be used if you need to stream wind data for some reason.
 #WIND_URL = "http://thredds.ucar.edu/thredds/dodsC/grib/NCEP/NAM/CONUS_12km/conduit/Best"
 
-
 SEACAST_DOMAIN = { 'longs' : [-129.0, -123.7261], 'lats': [40.5840, 47.499] }
 OSU_ROMS_DOMAIN = { 'longs' : [-129.0, -123.726199391], 'lats': [40.5840806224, 47.499] }
 OSU_WW3_DOMAIN = { 'longs' : [-129.0, -123.726199391], 'lats': [40.5840806224, 47.499] }
@@ -141,6 +142,7 @@ OSU_WW3_DF_FN = "Outergrid"
 NAMS_WIND_DF_FN = "WIND"
 NCEP_WW3_DF_FN  = "NCEP_WW3"
 HYCOM_DF_FN = "HYCOM"
+OSU_TCLINE_DF_FN = "TCLINE"
 
 # Model Definition ID's
 OSU_ROMS_SST = 1
@@ -171,6 +173,8 @@ OSU_ROMS = [OSU_ROMS_SST, OSU_ROMS_SUR_SAL,
             OSU_ROMS_SUR_CUR, OSU_ROMS_BOT_SAL,
             OSU_ROMS_BOT_TEMP, OSU_ROMS_SSH]
 
+OSU_TCLINE = 14
+
 OSU_WW3 = [OSU_WW3_HI, OSU_WW3_DIR]
 
 NCEP_WW3 = [NCEP_WW3_HI, NCEP_WW3_DIR]
@@ -187,7 +191,9 @@ ZOOM_LEVELS_OTHERS = [(None, None)]
 ZOOM_LEVELS_FOR_WAVE_DIR = [('2-8', 20), ('9-10', 15), ('11-12', 5)]
 ZOOM_LEVELS_FOR_WAVE_OTHERS = [(None, None)]
 
-
+# T-Cline Settings
+MIN_TCLINE_DEPTH = -450 # Meters
+MAX_TCLINE_DEPTH = 0 # Meters
 
 # import local settings. PyCharm thinks it's unused, but PyCharm is silly.
 # noinspection PyUnresolvedReferences

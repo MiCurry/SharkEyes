@@ -33,6 +33,7 @@ python_packages = ['numpy==1.8',
                    'pydap',
                    'requests',
                    'lxml',
+                   'xarray'
                    ]
 
 # these aren't used everywhere yet...

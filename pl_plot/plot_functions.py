@@ -2,8 +2,12 @@ import numpy
 import scipy
 from scipy import ndimage
 from matplotlib import pyplot, colors
-from pl_download.models import DataFile
+
 from pl_plot.plotter import WindPlotter
+from pl_download.models import DataFile
+import os
+from scipy.io import netcdf
+from django.conf import settings
 
 numpy.set_printoptions(threshold=numpy.inf) # This is helpful for testing purposes:
 # it sets print options so that when you print a large array, it doesn't get truncated in the middle
@@ -99,7 +103,6 @@ def wave_direction_function(ax, data_file, bmap, key_ax, forecast_index, downsam
     #-------------------------------------------------------------------------
     textBox = pyplot.text(0, 0,"       Wave period average and maximum values ""\n" "Average: " + str(mean_val) + " seconds " "  -  "" Maximum: " + str(max_val) + " seconds", withdash=False, backgroundcolor='black', color='white')
     key_ax.set_axis_off()
-
 
 # Wave Model Data Information:
 # Wave Data comes in 3D arrays (number of forecasts, latitude, longitude)
@@ -202,6 +205,10 @@ def sst_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
     max_temp = 58
 
     x, y = bmap(longs, lats)
+    print "st shape", surface_temp.shape
+    print "x shape", x.shape
+    print "y shape", y.shape
+
 
     # calculate and plot colored contours for TEMPERATURE data
     # 21 levels, range from one over min to one under max, as the colorbar caps each have their color and will color
@@ -498,9 +505,6 @@ def currents_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio)
     key_ax.set_axis_off()
 
 
-# After the 48th time index the NAMS model changes to 3 hour intervals instead of every 4 hours like the rest
-# of our models. Because of this we need to interpolate them as seen below.
-# -------------------------------------------------------------------------
 def wind_function(ax, data_file, bmap, time_index, downsample_ratio):
     print "CREATING A WIND PLOT"
     # We are now using barbs instead of vectors. We should not need this anymore
@@ -610,6 +614,53 @@ def wind_function(ax, data_file, bmap, time_index, downsample_ratio):
 
     print "WIND PLOT CREATED"
 
+
+def t_cline(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
+    def meters_to_feet(height):
+        return height * METERS_TO_FEET
+    vectorized_conversion = numpy.vectorize(meters_to_feet)
+
+    lat_long_data = netcdf.netcdf_file(os.path.join(settings.STATIC_DIR,"latLongs.nc"))
+
+    lats = lat_long_data.variables['lat_rho'][:]
+    longs = lat_long_data.variables['lon_rho'][:]
+    tcline = numpy.ma.array(vectorized_conversion(data_file.z_K.data), mask=numpy.isnan(data_file.z_K.data))
+
+    min_depth = settings.MIN_TCLINE_DEPTH
+    max_depth = settings.MAX_TCLINE_DEPTH
+
+    x, y = bmap(longs, lats)
+
+    contour_range = max_depth - min_depth
+    contour_range_inc = float(contour_range)/NUM_COLOR_LEVELS
+
+    color_levels = []
+
+    for i in xrange(NUM_COLOR_LEVELS+1):
+        color_levels.append(min_depth+1 + i * contour_range_inc)
+
+    bmap.drawmapboundary(linewidth=0.0, ax=ax)
+    overlay = bmap.contourf(x,
+                            y,
+                            tcline,
+                            color_levels,
+                            ax=ax,
+                            extend='both',
+                            cmap=get_modified_jet_colormap())
+
+    cbar = pyplot.colorbar(overlay, orientation='horizontal', cax=key_ax)
+    cbar.ax.tick_params(labelsize=10)
+    cbar.ax.xaxis.label.set_color('white')
+    cbar.ax.xaxis.set_tick_params(labelcolor='white')
+
+    locations = numpy.arange(0, 1.01, 1.0/(NUM_COLOR_LEVELS))[::10]    # we just want every 10th label
+    float_labels = numpy.arange(min_depth, max_depth + 0.01, contour_range_inc)[::10]
+    labels = ["%.1f" % num for num in float_labels]
+    cbar.ax.xaxis.set_ticks(locations)
+    cbar.ax.xaxis.set_ticklabels(labels)
+    cbar.set_label("Feet")
+
+
 def crop_and_downsample(source_array, downsample_ratio, average=True):
     ys, xs = source_array.shape
     #print "shape is ", source_array.shape
@@ -622,7 +673,6 @@ def crop_and_downsample(source_array, downsample_ratio, average=True):
     else:
         zoomed_array = cropped_array[::downsample_ratio, ::downsample_ratio]
     return zoomed_array
-
 
 # Wave files are in a different format, so they need a separate downsampling function
 #-------------------------------------------------------------------------

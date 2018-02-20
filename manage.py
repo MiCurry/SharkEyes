@@ -11,15 +11,18 @@ if __name__ == "__main__":
 
     if sys.argv[-1] == "download":
         from pl_download.models import DataFileManager, DataFile
-        wave = 0
+        wave = 1
         sst = 0
-        wind = 1
+        wind = 0
+        tcline = 0
         if wave:
             DataFileManager.get_latest_wave_watch_files()
         if sst:
             DataFileManager.download_osu_roms()
         if wind:
             DataFileManager.get_wind_file()
+        if tcline:
+            DataFileManager.download_tcline()
 
     elif sys.argv[-1] == "plot":
         from pl_download.models import DataFileManager, DataFile
@@ -29,6 +32,8 @@ if __name__ == "__main__":
         wave = 0
         sst = 0
         wind = 1
+        t_cline = 1
+
         if wave:
             #DataFileManager.get_latest_wave_watch_files()
             wave = DataFile.objects.filter(type='WAVE').latest('model_date')
@@ -45,10 +50,12 @@ if __name__ == "__main__":
             totalTime = (finish - begin)/ 60
             print "Time taken for Waves = " + str(round(totalTime, 2)) + " minutes"
         if sst:
+
             #sst = DataFileManager.download_osu_roms()
             sst = DataFile.objects.all().filter(type="NCDF")
             #plotter = Plotter(sst[0].file.name)
             #print "Time value ", plotter.get_time_at_oceantime_index(0)
+
             tiles = []
             begin = time.time()
             tiles += OverlayManager.make_plot(1, 5, sst[2].id)
@@ -78,26 +85,38 @@ if __name__ == "__main__":
             totalTime = (finish - begin)/ 60
             print "Time taken for Winds = " + str(round(totalTime, 2)) + " minutes"
 
+        if t_cline:
+            #thermo = DataFileManager.download_tcline()
+            thermo = DataFile.objects.filter(type='T-CLINE').latest('model_date')
+            tiles = []
+            begin = time.time()
+            tiles += OverlayManager.make_plot(14, 0, thermo.id)
+            for t in tiles:
+                tile_overlay(t)
+            finish = time.time()
+            totalTime = (finish - begin)/ 60
+            print "Time taken for T-Cline = " + str(round(totalTime, 2)) + " minutes"
+
     elif sys.argv[-1] == "plot-all":
         from pl_download.models import DataFileManager, DataFile
         from pl_plot.models import OverlayManager as om
         from pl_chop.tasks import tile_overlay, tile_wave_watch_overlay
         from pl_plot.plotter import WindPlotter, Plotter
         from datetime import datetime, timedelta
-        wave = 0
+        wave = 1
         sst = 0
-        wind = 1
+        wind = 0
 
         if wave:
             DataFileManager.get_latest_wave_watch_files()
             print "\n--- Plotting WW3 - Height and Direction ---"
             wave = DataFile.objects.filter(type='WAVE').latest('model_date')
             wind_id = wave.id
-            for t in xrange(20, 85, 4):
+            for t in xrange(80, 85, 4):
                 try:
                     print "Plotting WW3 - File ID:", wind_id, "Time Index:", t
                     tile_wave_watch_overlay(om.make_wave_watch_plot(4, t, wind_id))
-                    tile_wave_watch_overlay(om.make_wave_watch_plot(6, t, wind_id))
+                    #tile_wave_watch_overlay(om.make_wave_watch_plot(6, t, wind_id))
                     print "plot/tile success"
                 except Exception:
                     print '-' * 60
@@ -157,90 +176,6 @@ if __name__ == "__main__":
             end = time.time()
             total = (end - start)/ 60
             print "Total time taken for plotting and tiling = " + str(round(total, 2)) + " minutes"
-
-    elif sys.argv[-1] == "wavedates":
-        print "Wave Watch Times"
-        from datetime import datetime, timedelta
-        from django.utils import timezone
-        import numpy
-        from scipy.io import netcdf
-        from django.conf import settings
-        from pl_download.models import DataFile
-        wave = DataFile.objects.filter(type='WAVE').latest('model_date')
-        wave_name = wave.file.name
-        wave_data = netcdf.netcdf_file(os.path.join(settings.MEDIA_ROOT, settings.WAVE_WATCH_DIR, wave_name), 'r')
-        all_day_times = wave_data.variables['time'][:]
-        basetime = datetime(1970, 1, 1, 0, 0, 0)  # Jan 1, 1970
-        # This is the first forecast: right now it is Noon (UTC) [~5 AM PST] on the day before the file was downloaded
-        forecast_zero = basetime + timedelta(all_day_times[0] / 3600.0 / 24.0, 0, 0)
-        for x in range(0, 84, 1):
-            model_time = timezone.make_aware(forecast_zero + timedelta(hours=x), timezone.utc)
-            print "Model date =", model_time, "at index", x
-
-    elif sys.argv[-1] == "alexdates":
-        print "Times for Alexander's Model"
-        from datetime import datetime, timedelta
-        from django.utils import timezone
-        import numpy
-        import pytz
-        from scipy.io import netcdf
-        from django.conf import settings
-        from pl_download.models import DataFile
-        sst = DataFile.objects.all().filter(type="NCDF")
-        for x in sst:
-            sst_name = x.file.name
-            print "File Name ", sst_name
-            sst_data = netcdf.netcdf_file(os.path.join(settings.MEDIA_ROOT, settings.NETCDF_STORAGE_DIR, sst_name), 'r')
-            # dst = 0
-            # isdst_now_in = lambda zonename: bool(datetime.now(pytz.timezone(zonename)).dst())
-            # if isdst_now_in("America/Los_Angeles"):
-            #     dst = -1
-            # dst_hours = timedelta(hours=dst)
-            ocean_time_epoch = datetime(day=1, month=1, year=2005, hour=0, minute=0, second=0, tzinfo=timezone.utc)
-            for x in range(0, numpy.shape(sst_data.variables['ocean_time'])[0], 1):
-                seconds_since_epoch = timedelta(seconds=sst_data.variables['ocean_time'][x])
-                check_date = ocean_time_epoch + seconds_since_epoch
-                print "Date = ", check_date, " at index ", x
-
-    elif sys.argv[-1] == "winddates": #use this to view what the timestamps are for each index of the wind model
-        print "Times for the wind model"
-        from pl_plot.plotter import WindPlotter
-        from scipy.io import netcdf
-        from django.conf import settings
-        from pl_download.models import DataFile
-        from datetime import datetime, timedelta
-        from django.utils import timezone
-        # The Wind model uses a dynamic reference date for date calculation
-        # This calculates that date and then uses it to calculate the dates for each index
-        wind_file = DataFile.objects.filter(type='WIND').latest('model_date')
-        wind_name = wind_file.file.name
-        wind_data = netcdf.netcdf_file(os.path.join(settings.MEDIA_ROOT, settings.WIND_DIR, wind_name), 'r')
-        plotter = WindPlotter(wind_file.file.name)
-        indices = plotter.get_number_of_model_times()
-        wind_values=plotter.get_wind_indices()
-        time_val = wind_values['time']
-        reftime_val = wind_values['reftime']
-        begin = wind_values['begin']
-        swap = wind_values['swap']
-        three_hour_indices = wind_values['indices']
-        raw_epoch_date = str(wind_file.model_date)
-        epoch_date = raw_epoch_date.split('-')
-        epoch_year = int(epoch_date[0])
-        epoch_month = int(epoch_date[1])
-        epoch_day = int(epoch_date[2])
-        ocean_time_epoch = datetime(day=epoch_day, month=epoch_month, year=epoch_year, hour=0, minute=0, second=0,
-                                    tzinfo=timezone.utc)
-        # print "UNMODIFIED WIND INDICES "
-        # for x in range (0, indices, 1):
-        #     hours_since_epoch = timedelta(hours=(wind_data.variables[time_val][x] - wind_data.variables[reftime_val][0]))
-        #     print "Unmodified Time ", ocean_time_epoch + hours_since_epoch, " at ", x
-
-        print "MODIFIED WIND INDICES "
-        for x in range(begin, swap, 4):
-            print "Pre Swap Time", plotter.get_time_at_oceantime_index(x)-timedelta(hours=8) , " at ", x
-        for x in range(swap, indices, 1):
-            if x in three_hour_indices:
-                print "Post Swap Time ", plotter.get_time_at_oceantime_index(x)-timedelta(hours=8) , " at ", x
 
     else:
         from django.core.management import execute_from_command_line

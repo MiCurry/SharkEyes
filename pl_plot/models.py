@@ -11,7 +11,7 @@ from datetime import timedelta
 from celery import group
 from celery import shared_task
 from pl_download.models import DataFile, DataFileManager
-from pl_plot.plotter import Plotter, WaveWatchPlotter, WindPlotter
+from pl_plot.plotter import Plotter, WaveWatchPlotter, WindPlotter, TClinePlotter
 from pl_plot import plot_functions
 
 HOW_LONG_TO_KEEP_FILES = settings.HOW_LONG_TO_KEEP_FILES
@@ -110,9 +110,16 @@ class OverlayManager(models.Manager):
                 three_hour_indices = wind_values['indices']
                 for t in range(begin, swap, 4):
                     task_list.append(cls.make_plot.subtask(args=(settings.NAMS_WIND, t, fid), immutable=True))
+
                 for t in range(swap, number_of_times, 1):
                     if t in three_hour_indices:
                         task_list.append(cls.make_plot.subtask(args=(settings.NAMS_WIND, t, fid), immutable=True))
+
+
+            elif datafile.file.name.startswith(settings.OSU_TCLINE_DF_FN):
+                print "Tcline"
+                task_list.append(cls.make_plot.subtask(args=(settings.OSU_TCLINE, 0, fid), immutable=True))
+
             else:
                 plotter = Plotter(datafile.file.name)
                 number_of_times = plotter.get_number_of_model_times()
@@ -241,57 +248,66 @@ class OverlayManager(models.Manager):
 
     @staticmethod
     @shared_task(name='pl_plot.make_plot')
-    def make_plot(overlay_definition_id, time_index=0, file_id=None):
+    def make_plot(overlay__id, time_index=0, file_id=None):
         """ Creates an unchopped (un-tiled), plain png, plot for the specified file at the
         specified time_index and the specify overlay definition as well as a database entry for
         that unchopped file and a new tile directory for that particular unchopped png image.
 
         Here is a list of the current models that this function is able to plot:
 
-        id  | Name | Model Name | Type
-        --- |------|------------|-----
-         1 | Sea Surface Tempearture | OSU ROMS | Contour
-         2 | Surface Salinity  | OSU ROMS | Contour
-         3 | Sea Surface Currents | OSU ROMS | Vector
-         5 | Sea Surface Winds | NAMS | Vector (Barbs)
-         7 | Bottom Sea Tempearture | OSU ROMS | Contour
-         8 | Bottom Salinity | OSU ROMS | Contour
-         9 | Sea Surface Height | OSU ROMS | Contour
+         id |        Name             | Model Name | Type
+         -- |-------------------------|------------|-----
+         1  | Sea Surface Tempearture | OSU ROMS   | Contour
+         2  | Surface Salinity        | OSU ROMS   | Contour
+         3  | Sea Surface Currents    | OSU ROMS   | Vector
+         5  | Sea Surface Winds       | NAMS       | Vector (Barbs)
+         7  | Bottom Sea Tempearture  | OSU ROMS   | Contour
+         8  | Bottom Salinity         | OSU ROMS   | Contour
+         9  | Sea Surface Height      | OSU ROMS   | Contour
+         12 | HYCOM Sea Surface Temp  | NCEP       | Contour
+         13 | HYCOM Sea Surface Cur   | NCEP       | Vector
 
 
-        :param overlay_definition_id: The definition of the function to be plotted. See the table above.
+        :param overlay__id: The definition of the function to be plotted. See the table above.
         Ensure overlay_definition_id's corrospond to the correct file type.
         :param time_index: The desired time slice of the file given
         :param file_id: The file id according to the database
         :return: The id of the generated overlay
         """
+
         zoom_levels_for_currents = [('2-7', 8),  ('8-12', 4)]
         zoom_levels_for_others = [(None, None)]
         zoom_levels_for_winds = [('1-10', 2), ('11-12', 1)]
         # if file_id is None:
         #     datafile = DataFile.objects.latest('model_date')
 
-        # If plotting winds grab the latest wind file
-        if overlay_definition_id == settings.NAMS_WIND:
-            datafile = DataFile.objects.filter(type='WIND').latest('model_date')
-        else:
-            datafile = DataFile.objects.get(pk=file_id)
+        overlay_definition = OverlayDefinition.objects.get(pk=overlay__id)
 
-        # Wind has its own plotter if plotting winds use WindPlotter
-        if overlay_definition_id == settings.NAMS_WIND:
-            plotter = WindPlotter(datafile.file.name)
-        else:
+        if overlay__id in settings.OSU_ROMS:
+            if file_id is None:
+                datafile = DataFile.objects.filter(type='NCDF').latest('model_date')
+            else:
+                datafile = DataFile.objects.get(pk=file_id)
             plotter = Plotter(datafile.file.name)
             #print "time from models = ", plotter.get_time_at_oceantime_index(time_index)
 
-        overlay_definition = OverlayDefinition.objects.get(pk=overlay_definition_id)
+            zoom_levels = plotter.get_zoom_level(overlay__id)
 
-        if overlay_definition_id == settings.OSU_ROMS_SUR_CUR:
-            zoom_levels = zoom_levels_for_currents
-        elif overlay_definition_id == settings.NAMS_WIND:
-            zoom_levels = zoom_levels_for_winds
-        else:
-            zoom_levels = zoom_levels_for_others
+        elif overlay__id == settings.NAMS_WIND:
+            if file_id is None:
+                datafile = DataFile.objects.filter(type='WIND').latest('model_date')
+            else:
+                datafile = DataFile.objects.get(pk=file_id)
+            plotter = WindPlotter(datafile.file.name)
+            zoom_levels = plotter.get_zoom_level(overlay__id)
+
+        elif overlay__id == settings.OSU_TCLINE:
+            if file_id is None:
+                datafile = DataFile.objects.filter(type='T-CLINE').latest('model_date')
+            else:
+                datafile = DataFile.objects.get(pk=file_id)
+            plotter = TClinePlotter(datafile.file.name)
+            zoom_levels = plotter.get_zoom_level(overlay__id)
 
         tile_dir = "tiles_{0}_{1}".format(overlay_definition.function_name, uuid4())
         overlay_ids = []
@@ -307,7 +323,7 @@ class OverlayManager(models.Manager):
                 file=os.path.join(settings.UNCHOPPED_STORAGE_DIR, plot_filename),
                 key=os.path.join(settings.KEY_STORAGE_DIR, key_filename),
                 created_datetime=timezone.now(),
-                definition_id=overlay_definition_id,
+                definition_id=overlay__id,
                 applies_at_datetime=plotter.get_time_at_oceantime_index(time_index),
                 zoom_levels=zoom_level[0],
                 tile_dir=tile_dir,

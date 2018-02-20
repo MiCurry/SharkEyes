@@ -242,8 +242,10 @@ def get_time_index_wave (wave_data, day, month, year, hour, meridian):
     basetime = datetime(1970, 1, 1, 0, 0, 0)  # Jan 1, 1970
     # This is the first forecast: right now it is Noon (UTC) [~5 AM PST] on the day before the file was downloaded
     forecast_zero = basetime + timedelta(all_day_times[0] / 3600.0 / 24.0, 0, 0)
-    for x in range(0, 84, 1):
+    for x in range(0, np.shape(wave_data.variables['ocean_time'])[0], 1):
         model_time = timezone.make_aware(forecast_zero + timedelta(hours=x), timezone.utc)
+        # print "Input time: ", input_time
+        # print "Model time: ", model_time
         if input_time == model_time:
             return x
 
@@ -284,7 +286,8 @@ def home(request):
     # 7 = Bottom Temperature,
     # 8 = Bottom Salinity,
     # 9 = Sea Surface Height
-    models = [1,3,4,6,5,8,2,7,9]
+    # 14 = Thermocline
+    models = [1,3,4,6,5,8,2,7,9,14]
     fields = []
     for value in models:
         fields.append(OverlayDefinition.objects.get(pk=value))
@@ -350,7 +353,6 @@ def right_click_menu(request):
 
         #Get the wave watch 3 time index
         wave_time_index = get_time_index_wave(wave_data, int(day), int(month), int(current_year), int(hour), meridian)
-
         #Get the wave watch 3 wave height value and period
         wave_height = wave_data.variables['HTSGW_surface'][wave_time_index, wave_lat, wave_lon]
         wave_period = wave_data.variables['PERPW_surface'][wave_time_index, wave_lat, wave_lon]
