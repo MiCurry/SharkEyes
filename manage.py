@@ -108,7 +108,7 @@ if __name__ == "__main__":
         wind = 0
 
         if wave:
-            DataFileManager.get_latest_wave_watch_files()
+            #DataFileManager.get_latest_wave_watch_files()
             print "\n--- Plotting WW3 - Height and Direction ---"
             wave = DataFile.objects.filter(type='WAVE').latest('model_date')
             wind_id = wave.id
