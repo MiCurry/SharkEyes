@@ -340,20 +340,16 @@ def right_click_menu(request):
     #Access Tuba's wave watch model
     if models['wave'] == 1 and wave_lat_lon_check == 0:
     #Wave Watch 3 file access
-        print "Here"
         wave_file = DataFile.objects.filter(type='WAVE').latest('model_date')
         wave_name = wave_file.file.name
         wave_data = netcdf.netcdf_file(os.path.join(settings.MEDIA_ROOT,settings.WAVE_WATCH_DIR,wave_name), 'r')
-        print "Now Here"
         #Get Wave Watch 3 lat lon indices
         wave_index = get_lat_long_index(lat, lon, wave_data, 'wave')
         wave_lat = wave_index[0]
         wave_lon = wave_index[1]
 
         #Get the wave watch 3 time index
-        print "Getting the time"
         wave_time_index = get_time_index_wave(wave_data, int(day), int(month), int(current_year), int(hour), meridian)
-        print "we got the time", wave_time_index
         #Get the wave watch 3 wave height value and period
         wave_height = wave_data.variables['HTSGW_surface'][wave_time_index, wave_lat, wave_lon]
         wave_period = wave_data.variables['PERPW_surface'][wave_time_index, wave_lat, wave_lon]
@@ -381,6 +377,8 @@ def right_click_menu(request):
                 month_check = month_check +1
             else:
                 day_check = day_check + 1
+        if month_check < 10:
+            month_check = '0' + str(month_check)
         if day_check < 10:
             day_check = '0'+ str(day_check)
         seas_file_date = "OSU_ROMS_" + current_year + "-" + str(month_check) + "-" + str(day_check) #This is used to create a string for use in the DB lookup
