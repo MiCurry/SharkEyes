@@ -117,7 +117,9 @@ class OverlayManager(models.Manager):
 
 
             elif datafile.file.name.startswith(settings.OSU_TCLINE_DF_FN):
-                print "Tcline"
+                print "------------------------------------------------------------------"
+                print "ADDING TCLINE TO THE PIPELINE"
+                print "------------------------------------------------------------------"
                 task_list.append(cls.make_plot.subtask(args=(settings.OSU_TCLINE, 0, fid), immutable=True))
 
             else:

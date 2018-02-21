@@ -77,11 +77,12 @@ def do_pipeline():
         traceback.print_exc(file=sys.stdout)
         print '-' * 60
 
+    print "DOWNLOADING TCLINE FILES"
     try: # Try Catches to ensure do_pipeline completes even if a model server cant be reached
         tcline_files = DataFileManager.download_tcline()
     except Exception:
         print '-' * 60
-        print "COULD NOT DOWNLOAD WIND FILE"
+        print "COULD NOT DOWNLOAD TCLINE FILE"
         traceback.print_exc(file=sys.stdout)
         print '-' * 60
     # If no new files were returned, don't plot or tile anything.
