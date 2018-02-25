@@ -392,20 +392,31 @@ class TClinePlotter:
         return self.zoom_level
 
     def get_time_at_oceantime_index(self, index):
-        ocean_time_epoch = datetime(day=1, month=1, year=2005, hour=0, minute=0, second=0, tzinfo=timezone.utc)
-        print "seconds ", self.data_file.ocean_time.data[0]
         date = str(self.data_file.ocean_time.data[0])
         date = date.split("-")
         day = date[2].split("T")
-        if time.localtime().tm_isdst:
-            hour = 11
-        else:
+        hour = 12
+        if index == 0:
+            hour = 0
+        elif index == 1:
+            hour = 4
+        elif index == 2:
+            hour = 8
+        elif index == 3:
             hour = 12
-        ocean_time = datetime(day=int(day[0]), month=int(date[1]), year=int(date[0]), hour=hour)
+        elif index == 4:
+            hour = 16
+        elif index == 5:
+            hour = 20
+        if time.localtime().tm_isdst:
+            dst = -1
+        else:
+            dst = 0
+        ocean_time = datetime(day=int(day[0]), month=int(date[1]), year=int(date[0]), hour=hour + dst)
         return ocean_time
 
     def get_number_of_model_times(self):
-        return 1
+        return 6
 
     def make_plot(self, plot_function, zoom_levels, time_index=0, downsample_ratio=None):
         fig = pyplot.figure()

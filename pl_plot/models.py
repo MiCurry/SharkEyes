@@ -117,11 +117,10 @@ class OverlayManager(models.Manager):
 
 
             elif datafile.file.name.startswith(settings.OSU_TCLINE_DF_FN):
-                print "------------------------------------------------------------------"
-                print "ADDING TCLINE TO THE PIPELINE"
-                print "------------------------------------------------------------------"
-                task_list.append(cls.make_plot.subtask(args=(settings.OSU_TCLINE, 0, fid), immutable=True))
-
+                plotter = TClinePlotter(datafile.file.name)
+                number_of_times = plotter.get_number_of_model_times()
+                for t in range(0, number_of_times, 1):
+                    task_list.append(cls.make_plot.subtask(args=(settings.OSU_TCLINE, t, fid), immutable=True))
             else:
                 plotter = Plotter(datafile.file.name)
                 number_of_times = plotter.get_number_of_model_times()
