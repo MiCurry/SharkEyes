@@ -10,6 +10,7 @@ from defusedxml import ElementTree
 from lxml import etree, html
 import requests
 from uuid import uuid4
+from lxml import etree
 from urlparse import urljoin
 from datetime import datetime, timedelta
 import datetime as dt
@@ -49,7 +50,9 @@ def extract_modified_datetime_from_xml(elem):
     return modified_datetime
 
 
-def get_ingria_xml_tree():
+
+def get_unidata_xml_tree():
+
     # todo: need to handle if the xml file isn't available
     xml_url = urljoin(settings.BASE_NETCDF_URL, CATALOG_XML_NAME)
     catalog_xml = urllib2.urlopen(xml_url)
@@ -67,6 +70,7 @@ class DataFileManager(models.Manager):
 
         :return: ids of downloaded files
         """
+
         if not DataFileManager.is_new_file_to_download():
             print "No New SST Files Available."
             return []
@@ -84,7 +88,7 @@ class DataFileManager(models.Manager):
         print "\t" + str(days_to_retrieve[3])
 
         files_to_retrieve = []
-        tree = get_ingria_xml_tree()    # yes, we just did this to see if there's a new file. refactor later.
+        tree = get_unidata_xml_tree()    # yes, we just did this to see if there's a new file. refactor later.
         tags = tree.iter(XML_NAMESPACE + 'dataset')
 
         for elem in tags:
@@ -135,7 +139,6 @@ class DataFileManager(models.Manager):
         if verbose > 0:
             print "OSU_ROMS DOWNLOAD"
 
-        local_filename = ""
         destination_directory = os.path.join(settings.MEDIA_ROOT, settings.NETCDF_STORAGE_DIR)
         BASE_URL = "http://wilson.coas.oregonstate.edu:8080/thredds/fileServer/NANOOS/OCOS_Files/"
         XML_URL = 'http://wilson.coas.oregonstate.edu:8080/thredds/catalog/NANOOS/OCOS_Files/catalog.xml'
@@ -600,51 +603,32 @@ class DataFileManager(models.Manager):
         naive_datetime = parser.parse(initial_datetime)
         modified_datetime = timezone.make_aware(naive_datetime, timezone.utc)
 
-        print "Modified datetime", modified_datetime
+        print "Dwnloading OSU WW3 File"
 
-        # Check if we've downloaded it before: does DataFile contain a Wavewatch entry whose model_date matches this one?
-        matches_old_file = DataFile.objects.filter(
-            #NOTE: this assumes that the file contains one day of hindcasts, so the model date is one day BEHIND
-            # the date on which we download the file.
-            # This is prone to fail. However, when we actually save the record in the database,
-            # THAT model_date is guaranteed to be correct.
-            model_date=datetime.date( modified_datetime - timedelta(days=1)),
-            type='WAVE'
+        url = urljoin(settings.WAVE_WATCH_URL, file_name)
+        local_filename = "{0}_{1}.nc".format(settings.OSU_WW3_DF_FN, initial_datetime)
+        urllib.urlretrieve(url=url, filename=os.path.join(destination_directory, local_filename))
+
+        file = netcdf_file(os.path.join(settings.MEDIA_ROOT, settings.WAVE_WATCH_DIR, local_filename))
+
+        # The times in the file are UTC in seconds since Jan 1, 1970.
+        all_day_times = file.variables['time'][:]
+        basetime = datetime(1970,1,1,0,0,0)
+        first_forecast_time = basetime + timedelta(all_day_times[0]/3600.0/24.0,0,0)
+
+        datafile = DataFile(
+            type='WAVE',
+            download_datetime=timezone.now(), # This is UTC, as should be all the items saved into a Django database
+            generated_datetime=modified_datetime,
+            model_date = first_forecast_time,
+            file=local_filename,
         )
+        datafile.save()
 
-        print "Matches old file", matches_old_file
+        new_file_ids.append(datafile.id)
+        ftp.quit()
 
-        if not matches_old_file:
-            print "New OSU WW3 File"
-
-            url = urljoin(settings.WAVE_WATCH_URL, file_name)
-            local_filename = "{0}_{1}.nc".format(settings.OSU_WW3_DF_FN, initial_datetime)
-            urllib.urlretrieve(url=url, filename=os.path.join(destination_directory, local_filename))
-
-            file = netcdf_file(os.path.join(settings.MEDIA_ROOT, settings.WAVE_WATCH_DIR, local_filename))
-
-            # The times in the file are UTC in seconds since Jan 1, 1970.
-            all_day_times = file.variables['time'][:]
-            basetime = datetime(1970,1,1,0,0,0)
-            first_forecast_time = basetime + timedelta(all_day_times[0]/3600.0/24.0,0,0)
-
-            datafile = DataFile(
-                type='WAVE',
-                download_datetime=timezone.now(), # This is UTC, as should be all the items saved into a Django database
-                generated_datetime=modified_datetime,
-                model_date = first_forecast_time,
-                file=local_filename,
-            )
-            datafile.save()
-
-            new_file_ids.append(datafile.id)
-            ftp.quit()
-
-            return new_file_ids
-        else:
-            print "No New OSU WW3 Files."
-            ftp.quit()
-            return []
+        return new_file_ids
 
     @staticmethod
     @shared_task(name='pl_download.get_wind_file')
@@ -697,25 +681,77 @@ class DataFileManager(models.Manager):
             print "No new wind files "
             return []
 
+    @staticmethod
+    @shared_task(name='pl_download.download_tcline')
+    def download_tcline():
+        startswith = "Tcline_d_davg_"
+        destination_directory = os.path.join(settings.MEDIA_ROOT, settings.NETCDF_STORAGE_DIR)
+        print destination_directory
+        BASE_URL = "http://wilson.coas.oregonstate.edu:8080/thredds/fileServer/NANOOS/OCOS_TCline/"
+        XML_URL = 'http://wilson.coas.oregonstate.edu:8080/thredds/catalog/NANOOS/OCOS_TCline/catalog.xml'
+
+        catalog = etree.parse(XML_URL)
+
+        file_ids = []
+
+        for element in catalog.iter():
+            file = element.get('name')
+
+            if not file:
+                continue
+            elif file.startswith(startswith):
+                datestring = file.split('_')[-1]
+                file_date = datetime.strptime(datestring, "%d-%b-%Y.nc").date()
+
+                url = BASE_URL + file
+                local_filename = "{0}_{1}.nc".format(settings.OSU_TCLINE_DF_FN, file_date)
+
+                try:
+                    print "Downloading OSU T-cline File {0}".format(url,)
+                    urllib.urlretrieve(url=url, filename=os.path.join(destination_directory, local_filename))
+                    datafile = DataFile(
+                        type='T-CLINE',
+                        download_datetime=timezone.now(),
+                        generated_datetime=timezone.now(),
+                        model_date=file_date,
+                        file=local_filename,
+                    )
+                    datafile.save()
+                    file_ids.append(datafile.id)
+
+                except Exception:
+                    print "Unable to download OSU ROMS File from wilson.coas.oregonstat.edu"
+                    continue
+
+                print "Downloaded t-cline File from Wilson{0}".format(local_filename)
+
+        return file_ids
+
     @classmethod
-    def is_new_file_to_download(cls):
+    def is_new_file_to_download(cls, model):
         """ DEPRECATED: Determine if there is a new file to download. Used by fetch_new_file and uses
         the old download location """
         three_days_ago = timezone.now().date()-timedelta(days=3)
         today = timezone.now().date()
 
-        recent_netcdf_files = DataFile.objects.filter(type="NCDF", model_date__range=[three_days_ago, today])
+        if model == "tcline":
+            recent_netcdf_files = DataFile.objects.filter(type="T-CLINE", model_date__range=[three_days_ago, today])
+            model_start = 'Tcline'
+        else:
+            recent_netcdf_files = DataFile.objects.filter(type="NCDF", model_date__range=[three_days_ago, today])
+            model_start = 'ocean_his'
+
 
         if not recent_netcdf_files:
             return True
 
         local_file_modified_datetime = recent_netcdf_files.latest('generated_datetime').generated_datetime
 
-        tree = get_ingria_xml_tree()
+        tree = get_unidata_xml_tree()
         tags = tree.iter(XML_NAMESPACE + 'dataset')
 
         for elem in tags:
-            if not elem.get('name').startswith('ocean_his'):
+            if not elem.get('name').startswith(model_start):
                 continue
             server_file_modified_datetime = extract_modified_datetime_from_xml(elem)
             if server_file_modified_datetime.date() > local_file_modified_datetime.date():

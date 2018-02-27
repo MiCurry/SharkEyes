@@ -128,11 +128,19 @@ def do_pipeline():
     logging.info('NCEP DOWNLOADED SUCCESFULLY')
 
 
+    print "DOWNLOADING TCLINE FILES"
+    try: # Try Catches to ensure do_pipeline completes even if a model server cant be reached
+        tcline_files = DataFileManager.download_tcline()
+    except Exception:
+        print '-' * 60
+        print "COULD NOT DOWNLOAD TCLINE FILE"
+        traceback.print_exc(file=sys.stdout)
+        print '-' * 60
     # If no new files were returned, don't plot or tile anything.
     try:
         #This try catch is also for the wave watch timeout bug
         if not wave_watch_files and not sst_files and not wind_files \
-                and not ncep_files and not hycom_files:
+                and not ncep_files and not hycom_files and not tcline_files:
             print "No New Files Available, Quitting."
             return None
     except Exception:

@@ -11,7 +11,10 @@ from datetime import timedelta
 from celery import group
 from celery import shared_task
 from pl_download.models import DataFile, DataFileManager
-from pl_plot.plotter import Plotter, WaveWatchPlotter, WindPlotter, HycomPlotter, NcepWW3Plotter, NavyPlotter
+from pl_plot.plotter import Plotter, TClinePlotter
+from pl_plot.plotter import HycomPlotter, NavyPlotter
+from pl_plot.plotter import WaveWatchPlotter, NcepWW3Plotter
+from pl_plot.plotter import WindPlotter
 from pl_plot import plot_functions
 
 HOW_LONG_TO_KEEP_FILES = settings.HOW_LONG_TO_KEEP_FILES
@@ -91,6 +94,7 @@ class OverlayManager(models.Manager):
 
         for fid in file_ids:
             datafile = DataFile.objects.get(pk=fid)
+            # OSU WW3
             if datafile.file.name.startswith(settings.OSU_WW3_DF_FN):
                 # The unchopped file's index starts at noon: index = 0 and progresses throgh 85 forecasts, one per hour,
                 # for the next 85 hours.
@@ -111,9 +115,11 @@ class OverlayManager(models.Manager):
                 three_hour_indices = wind_values['indices']
                 for t in range(begin, swap, 4):
                     task_list.append(cls.make_plot.subtask(args=(settings.NAMS_WIND, t, fid), immutable=True))
+
                 for t in range(swap, number_of_times, 1):
                     if t in three_hour_indices:
                         task_list.append(cls.make_plot.subtask(args=(settings.NAMS_WIND, t, fid), immutable=True))
+
             # NCEP WW3
             elif datafile.file.name.startswith(settings.NCEP_WW3_DF_FN):
                 print "NCEP"
@@ -127,35 +133,25 @@ class OverlayManager(models.Manager):
                 plotter = HycomPlotter(datafile.file.name)
                 t = plotter.get_number_of_model_times()
 
-                # Need to update this to match what each file is saved for
-
-                # Sea Surface Height
-                if datafile.file.name.endswith("ssh.nc"):
+                # TODO: Need to update this to match what each file is saved for
+                if datafile.file.name.endswith("ssh.nc"): # Sea Surface Height
                     #task_list.append(cls.make_plot.subtask(args=(settings.NAVY_HYCOM_SSH, t, fid), immutable=True))
                     pass
-
-                # Temperature
-                if datafile.file.name.endswith("temp_top.nc"):
+                if datafile.file.name.endswith("temp_top.nc"): # Temperature Top
                     task_list.append(cls.make_plot.subtask(args=(settings.NAVY_HYCOM_SST, t, fid), immutable=True))
                     #task_list.append(cls.make_plot.subtask(args=(settings.NAVY_HYCOM_SUR_SAL, t, fid), immutable=True))
-                if datafile.file.name.endswith("temp_bot.nc"):
+                if datafile.file.name.endswith("temp_bot.nc"): # Temperature Bot
                     #task_list.append(cls.make_plot.subtask(args=(settings.NAVY_HYCOM_BOT_TEMP, t, fid), immutable=True))
                     #task_list.append(cls.make_plot.subtask(args=(settings.NAVY_HYCOM_BOT_SAL, t, fid), immutable=True))
                     pass
-
-                # Current
-                if datafile.file.name.endswith("cur_top.nc"):
+                if datafile.file.name.endswith("cur_top.nc"): # Current Top
                     task_list.append(cls.make_plot.subtask(args=(settings.NAVY_HYCOM_SUR_CUR, t, fid), immutable=True))
-                if datafile.file.name.endswith("cur_bot.nc"):
+                if datafile.file.name.endswith("cur_bot.nc"): # Current Bot
                     #task_list.append(cls.make_plot.subtask(args=(settings.NAVY_HYCOM_BOT_CUR, t, fid), immutable=True))
                     pass
 
-
-
-
             # OSU_ROMS
             elif datafile.file.name.startswith(settings.OSU_ROMS_DF_FN):
-                print "OSU ROMS"
                 plotter = Plotter(datafile.file.name)
                 number_of_times = plotter.get_number_of_model_times()
 
@@ -171,9 +167,14 @@ class OverlayManager(models.Manager):
                                                                                              settings.OSU_ROMS_BOT_SAL,
                                                                                              settings.OSU_ROMS_BOT_TEMP,
                                                                                              settings.OSU_ROMS_SSH])
+            # OSU T-Cline
+            elif datafile.file.name.startswith(settings.OSU_TCLINE_DF_FN):
+                plotter = TClinePlotter(datafile.file.name)
+                number_of_times = plotter.get_number_of_model_times()
+                for t in range(0, number_of_times, 1):
+                    task_list.append(cls.make_plot.subtask(args=(settings.OSU_TCLINE, t, fid), immutable=True))
             else:
                 print "OverlayManager.get_task_for_base_plots_in_files: NOT A FORECAST I RECOGNIZE"
-
 
         return task_list
 
@@ -184,6 +185,7 @@ class OverlayManager(models.Manager):
 
         file_ids = []
         file_ids.append(DataFileManager.get_next_few_datafiles_of_a_type('NCDF')) # OSU ROMS
+        file_ids.append(DataFileManager.get_next_few_datafiles_of_a_type('T-CLINE')) # NAVY HYCOM
         file_ids.append(DataFileManager.get_next_few_datafiles_of_a_type('WAVE')) # OSU WW3
         file_ids.append(DataFileManager.get_next_few_datafiles_of_a_type('WIND')) # Wind
         file_ids.append(DataFileManager.get_next_few_datafiles_of_a_type('NCEP')) # NCEP
@@ -325,7 +327,6 @@ class OverlayManager(models.Manager):
             plotter = HycomPlotter(datafile.file.name)
             zoom_levels = plotter.get_zoom_level(overlay__id)
 
-
         elif overlay__id == settings.NAMS_WIND:
             if file_id is None:
                 datafile = DataFile.objects.filter(type='WIND').latest('model_date')
@@ -340,6 +341,14 @@ class OverlayManager(models.Manager):
             else:
                 datafile = DataFile.objects.get(pk=file_id)
             plotter = NavyPlotter(datafile.file.name)
+            zoom_levels = plotter.get_zoom_level(overlay__id)
+
+        elif overlay__id == settings.OSU_TCLINE:
+            if file_id is None:
+                datafile = DataFile.objects.filter(type='T-CLINE').latest('model_date')
+            else:
+                datafile = DataFile.objects.get(pk=file_id)
+            plotter = TClinePlotter(datafile.file.name)
             zoom_levels = plotter.get_zoom_level(overlay__id)
 
 

@@ -242,7 +242,7 @@ def get_time_index_wave (wave_data, day, month, year, hour, meridian):
     basetime = datetime(1970, 1, 1, 0, 0, 0)  # Jan 1, 1970
     # This is the first forecast: right now it is Noon (UTC) [~5 AM PST] on the day before the file was downloaded
     forecast_zero = basetime + timedelta(all_day_times[0] / 3600.0 / 24.0, 0, 0)
-    for x in range(0, 84, 1):
+    for x in range(0, np.shape(wave_data.variables['time'][:])[0], 1):
         model_time = timezone.make_aware(forecast_zero + timedelta(hours=x), timezone.utc)
         if input_time == model_time:
             return x
@@ -296,7 +296,10 @@ def home(request):
               settings.OSU_WW3_DIR,
               settings.OSU_ROMS_BOT_SAL,
               settings.OSU_ROMS_BOT_TEMP,
-              settings.OSU_ROMS_SSH]
+              settings.OSU_ROMS_SSH,
+              settings.OSU_ROMS_TCLINE]
+    # 14 = Thermocline
+    models = [1,3,4,6,5,8,2,7,9,14]
     fields = []
 
     for value in models:
@@ -362,7 +365,6 @@ def right_click_menu(request):
         wave_file = DataFile.objects.filter(type='WAVE').latest('model_date')
         wave_name = wave_file.file.name
         wave_data = netcdf.netcdf_file(os.path.join(settings.MEDIA_ROOT,settings.WAVE_WATCH_DIR,wave_name), 'r')
-
         #Get Wave Watch 3 lat lon indices
         wave_index = get_lat_long_index(lat, lon, wave_data, 'wave')
         wave_lat = wave_index[0]
@@ -370,7 +372,6 @@ def right_click_menu(request):
 
         #Get the wave watch 3 time index
         wave_time_index = get_time_index_wave(wave_data, int(day), int(month), int(current_year), int(hour), meridian)
-
         #Get the wave watch 3 wave height value and period
         wave_height = wave_data.variables['HTSGW_surface'][wave_time_index, wave_lat, wave_lon]
         wave_period = wave_data.variables['PERPW_surface'][wave_time_index, wave_lat, wave_lon]
@@ -398,6 +399,8 @@ def right_click_menu(request):
                 month_check = month_check +1
             else:
                 day_check = day_check + 1
+        if month_check < 10:
+            month_check = '0' + str(month_check)
         if day_check < 10:
             day_check = '0'+ str(day_check)
         seas_file_date = "OSU_ROMS_" + current_year + "-" + str(month_check) + "-" + str(day_check) #This is used to create a string for use in the DB lookup
