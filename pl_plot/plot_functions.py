@@ -1111,7 +1111,7 @@ def hycom_ssc(ax, data_file, bmap, key_ax, downsample_ratio, bottom=False):
     #                               color='white', labelsep=.5, coordinates='axes')
     # quiverkey2 = key_ax.quiverkey(overlay, 6.5, .4, 2*.5144, "2 knots", labelpos='S', labelcolor='white',
     #                               color='white', labelsep=.5, coordinates='axes')
-    textBox = pyplot.text(0, 0, "Right Click or Double Tap to View Values  ", withdash=False,
+    textBox = pyplot.text(0, 0, "Extended - Right Click or Double Tap to View Values  ", withdash=False,
                           backgroundcolor='black', color='white', fontsize=17, )
 
     key_ax.set_axis_off()
@@ -1164,7 +1164,7 @@ def hycom_sur_sal(ax, data_file, bmap, key_ax, bottom=False ):
     labels = ["%.1f" % num for num in float_labels]
     cbar.ax.xaxis.set_ticks(locations)
     cbar.ax.xaxis.set_ticklabels(labels)
-    cbar.set_label("Salinity (PSU)")
+    cbar.set_label("Extended - Salinity (PSU)")
 
 def hycom_bot_sal(ax, data_file, bmap, key_ax):
     hycom_sur_sal(ax, data_file, bmap, key_ax, bottom=True)
