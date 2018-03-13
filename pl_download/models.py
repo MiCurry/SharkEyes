@@ -19,7 +19,6 @@ from operator import __or__ as OR
 from scipy.io import netcdf_file
 from scipy.io import netcdf
 import pydap.client
-from pydap.responses.netcdf import save
 
 from celery import shared_task
 from django.utils import timezone
