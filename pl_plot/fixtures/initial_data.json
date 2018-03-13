@@ -170,7 +170,7 @@
 
     {
         "model": "pl_plot.overlaydefinition",
-                "pk": 14,
+        "pk": 14,
         "fields": {
             "display_name_long": "Thermocline",
             "is_base": true,
