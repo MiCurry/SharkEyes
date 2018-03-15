@@ -797,10 +797,9 @@ class DataFileManager(models.Manager):
         return actual_datafile_objects
 
     @classmethod
-    def get_next_few_datafiles_of_a_type(cls, type, days=15, past_days=PAST_DAYS_OF_FILES_TO_DISPLAY+1):
+    def get_next_few_datafiles_of_a_type(cls, type, past_days=PAST_DAYS_OF_FILES_TO_DISPLAY+1):
         datafiles = DataFile.objects.filter(
             model_date__gte=(timezone.now()-timedelta(days=past_days)).date(),
-            model_date__lte=(timezone.now()+timedelta(days=days)).date(),
             type=type
         )
 

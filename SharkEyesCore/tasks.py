@@ -12,6 +12,41 @@ from pl_chop.tasks import tile_wave_watch_overlay
 from SharkEyesCore.models import FeedbackHistory
 from SharkEyesCore.models import FeedbackQuestionaire
 
+
+@shared_task(name='get_and_apply_new_jobs')
+def get_and_apply_new_jobs():
+    """ Gets tasks from the OverlayManager and applies jobs that haven't been run,
+    similar to do_pipeline, but doesn't download any new files.
+    :return: Celery Result
+    """
+    # Get the list of plotting tasks based on the files we just downloaded.
+    logging.info('get_and_apply_new_jobs')
+    logging.info('GENERATING TASK LIST')
+    plot_task_list = OverlayManager.get_tasks_for_base_plots_for_next_few_days()
+
+    list_of_chains = []
+
+    for pt in plot_task_list:
+        if pt.args[0] != 4 and pt.args[0] != 6:
+            # Chaining passes the result of first function to second function
+            list_of_chains.append(chain(pt, tile_overlay.s()))
+        else:
+            # Use the Wavewatch tiler for Wavewatch files
+            list_of_chains.append(chain(pt, tile_wave_watch_overlay.s()))
+    logging.info('TASK LIST GENERATED')
+
+    job = group(item for item in list_of_chains)
+
+    print "PIPELINE: JOBS: "
+    for each in job:
+        print each
+
+    logging.info('APPLY JOBS')
+    result = job.apply_async() # Run the group.
+    logging.info('JOBS APPLIED')
+    return result
+
+
 @shared_task(name='sharkeyescore.pipeline')
 def do_pipeline():
 
@@ -105,12 +140,12 @@ def do_pipeline():
         print '-' * 60
     logging.info('NAM WINDS DOWNLOADED SUCCESFULLY')
 
-    logging.info('DOWNLOADING HYCOM')
+    logging.info('DOWNLOADING NAVY HYCOM')
     try: # Try Catches to ensure do_pipeline completes even if a model server cant be reached
-        hycom_files = DataFileManager.rtofs_download()
+        hycom_files = DataFileManager.navy_hycom_download()
     except Exception:
         print '-' * 60
-        print "COULD NOT DOWNLOAD HYCOM FILE"
+        print "COULD NOT DOWNLOAD NAVY HYCOM FILE"
         logging.error('ERROR DOWNLOADING HYCOM')
         traceback.print_exc(file=sys.stdout)
         print '-' * 60
@@ -127,7 +162,6 @@ def do_pipeline():
         print '-' * 60
     logging.info('NCEP DOWNLOADED SUCCESFULLY')
 
-
     print "DOWNLOADING TCLINE FILES"
     try: # Try Catches to ensure do_pipeline completes even if a model server cant be reached
         tcline_files = DataFileManager.download_tcline()
@@ -136,6 +170,7 @@ def do_pipeline():
         print "COULD NOT DOWNLOAD TCLINE FILE"
         traceback.print_exc(file=sys.stdout)
         print '-' * 60
+
     # If no new files were returned, don't plot or tile anything.
     try:
         #This try catch is also for the wave watch timeout bug
