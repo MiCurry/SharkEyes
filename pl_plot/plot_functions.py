@@ -658,7 +658,6 @@ def t_cline(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
     labels = ["%.1f" % num for num in float_labels]
     cbar.ax.xaxis.set_ticks(locations)
     cbar.ax.xaxis.set_ticklabels(labels)
-    d = u"\u00b0"
     cbar.set_label("Depth in Feet where the water is 2 deg F cooler than the surface")
 
 
