@@ -1032,7 +1032,6 @@ def hycom_sst(ax, data_file, bmap, key_ax, bottom=False, downsample_ratio=None):
     labels = ["%.1f" % num for num in float_labels]
     cbar.ax.xaxis.set_ticks(locations)
     cbar.ax.xaxis.set_ticklabels(labels)
-    d = u"\u00b0"
     cbar.set_label("Fahrenheit - Extended")
 
 def hycom_bot_temp(ax, data_file, bmap, key_ax):
