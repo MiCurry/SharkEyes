@@ -393,6 +393,8 @@ class DataFileManager(models.Manager):
     def get_last_forecast_for_roms(df_type=None):
         from pl_plot.plotter import Plotter
 
+        #Todo: Check to see if there is at least one rom file
+
         latest_roms = DataFile.objects.filter(type='NCDF').order_by('id')[0]
         plotter = Plotter(latest_roms.file.name)
         return plotter.get_last_model_time()
@@ -400,6 +402,8 @@ class DataFileManager(models.Manager):
     @staticmethod
     def get_last_forecast_for_osu_ww3(df_type=None):
         from pl_plot.plotter import WaveWatchPlotter
+
+        #Todo: Check to see if there is at least one OSU WW3 file
 
         latest_roms = DataFile.objects.filter(type='WAVE').order_by('id')[0]
         plotter = WaveWatchPlotter(latest_roms.file.name)
@@ -417,7 +421,7 @@ class DataFileManager(models.Manager):
         BASE_URL = 'http://tds.hycom.org/thredds/catalog/GLBv0.08/expt_92.9/forecasts/catalog.html'
         XML_URL = 'http://tds.hycom.org/thredds/catalog/GLBv0.08/expt_92.9/forecasts/catalog.xml'
 
-        verbose = 0
+        verbose = 1
 
         access_date, date_string  = determine_latest_forecast(XML_URL)
 
@@ -500,6 +504,7 @@ class DataFileManager(models.Manager):
                 date = timezone.make_aware(date, timezone.utc)
 
                 if date > last_roms_forecast_date:
+                    print "Downloading A Hycom File..."
                     if len(local_filename) == 2: # Top and Bottom files
                         for i in range(len(local_filename)):
                             urllib.urlretrieve(url=url[i],
@@ -900,7 +905,38 @@ def determine_type(fileEnding):
     return type
 
 def determine_latest_forecast(XML_URL):
+    """ A mess of a function. The navy's posts has the last few days of its forecast genreations
+    on its site, so we need to find the latest one and use that. However, sometimes the latest one
+    doesn't have the full number of forecast.
+
+    So in this function we find the dates that are aviable to choose from. Then starting from the
+    most recent day we check to see which date has the longest set of full forecasts (tag > 180).
+
+    :param XML_URL:
+    :return:
+    """
     catalog = etree.parse(XML_URL)
+    avaliable_dates = []
+    export = '929'
+
+    def parse_catalog(dates):
+        for element in catalog.iter():
+            file = element.get('name')
+
+            if not file:
+                continue
+
+            elif file.startswith('hycom_glbv_'+export+'_'+dates.strftime("%Y%m%d")): # Grab only dates that are the latest
+                ''' Grab infromation of the datafile '''
+
+                _, _, tag = create_nomads_time_series_from_file_with_tag(file)
+
+                if int(tag[1:]) >= 180:
+                    return dates
+                else:
+                    continue
+        else:
+            return False
 
     i = 0
     for element in catalog.iter():
@@ -914,9 +950,21 @@ def determine_latest_forecast(XML_URL):
                 date_s = date
             else:
                 if date > date_s:
+                    avaliable_dates.append(date)
                     date_s = date
 
             i += 1
+
+    avaliable_dates = sorted(avaliable_dates, reverse=True)
+
+    # Find the latest date with the fullest forecast
+    date_s = False
+    for dates in avaliable_dates:
+        # Now Search through each date and see what the last tag is
+        date_s = parse_catalog(dates)
+        if date_s is not False:
+            break
+
 
     access_date = date_s
     date_string = date_s.strftime("%Y%m%d")

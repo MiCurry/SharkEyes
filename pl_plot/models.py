@@ -320,6 +320,7 @@ class OverlayManager(models.Manager):
             zoom_levels = plotter.get_zoom_level(overlay__id)
 
         elif overlay__id in settings.HYCOM:
+            print "RTOFS HYCOM"
             if file_id is None:
                 datafile = DataFile.objects.filter(type='HYCOM').latest('model_date')
             else:
@@ -336,6 +337,7 @@ class OverlayManager(models.Manager):
             zoom_levels = plotter.get_zoom_level(overlay__id)
 
         elif overlay__id in settings.NAVY_HYCOM:
+            print "NAVY HYCOM"
             if file_id is None:
                 datafile = DataFile.objects.filter(type='HYCOM').latest('model_date')
             else:
