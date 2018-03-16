@@ -6,7 +6,7 @@ from uuid import uuid4
 from scipy.io import netcdf
 import xarray as xr
 import numpy
-
+import pytz
 import time
 from matplotlib import pyplot
 from mpl_toolkits.basemap import Basemap
@@ -484,6 +484,10 @@ class TClinePlotter:
         date = date.split("-")
         day = date[2].split("T")
         hour = 12
+        dst = 0
+        isdst_now_in = lambda zonename: bool(datetime.now(pytz.timezone(zonename)).dst())
+        if isdst_now_in("America/Los_Angeles"):
+            dst = 1
         if index == 0:
             hour = 0
         elif index == 1:
@@ -496,10 +500,6 @@ class TClinePlotter:
             hour = 16
         elif index == 5:
             hour = 20
-        if time.localtime().tm_isdst:
-            dst = -1
-        else:
-            dst = 0
         ocean_time = datetime(day=int(day[0]), month=int(date[1]), year=int(date[0]), hour=hour + dst)
         return ocean_time
 
