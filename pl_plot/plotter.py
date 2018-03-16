@@ -600,7 +600,8 @@ class NcepWW3Plotter:
     def get_number_of_model_times(self):
         return numpy.shape(self.data_file.variables['reftime'])[0]
 
-    def make_plot(self, plot_function, forecast_index,storage_dir, generated_datetime, zoom_levels, downsample_ratio=None):
+    def make_plot(self, plot_function, forecast_index, storage_dir, generated_datetime, zoom_levels,
+                  downsample_ratio=None):
         fig = pyplot.figure()
         key_fig = pyplot.figure(facecolor=settings.OVERLAY_KEY_COLOR)
 
