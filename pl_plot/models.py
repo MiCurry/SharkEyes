@@ -60,11 +60,39 @@ class OverlayManager(models.Manager):
         # know what dates to look for
         dates = Overlay.objects.filter(applies_at_datetime__gte=timezone.now()-timedelta(days=PAST_DAYS_OF_FILES_TO_DISPLAY),
                                        applies_at_datetime__lte=timezone.now()+timedelta(days=11),
-                                       is_tiled=True
+                                       is_tiled=True,
+                                       is_extend=False
                                        ).values_list('applies_at_datetime', flat=True).distinct()
 
+        return cls.grab_tiled_overlays_from_dates(dates, display, models)
+
+    @classmethod
+    def get_next_few_days_of_tiled_overlays_for_extended_forecasts(cls, type, models):
+        extend_date = None
+        if type == 'WAVE':
+            extend_date = DataFileManager.get_last_forecast_for_osu_ww3()
+            ids = [settings.OSU_WW3_HI, settings.OSU_WW3_DIR]
+        elif type == 'NCDF':
+            extend_date = DataFileManager.get_last_forecast_for_roms()
+            ids = [settings.OSU_ROMS_SST, settings.OSU_ROMS_SUR_CUR]
+
+        dates = []
+        # know what dates to look for
+        for id in ids:
+            dates = Overlay.objects.filter(applies_at_datetime__gte=extend_date,
+                                           applies_at_datetime__lte=timezone.now()+timedelta(days=50),
+                                           is_tiled=True,
+                                           is_extend=True,
+                                           definition_id=id
+                                           ).values_list('applies_at_datetime', flat=True).distinct()
+
+        return cls.grab_tiled_overlays_from_dates(dates, models)
+
+    @classmethod
+    def grab_tiled_overlays_from_dates(cls, dates, models):
+        display = Overlay.objects.none()
         for d in dates:
-            over = Overlay.objects.filter(applies_at_datetime = d, is_tiled=True)
+            over = Overlay.objects.filter(applies_at_datetime=d, is_tiled=True)
             for m in models:
                 tile = over.filter(definition_id=m)
                 gen = tile.aggregate(Max('created_datetime'))['created_datetime__max']
@@ -75,6 +103,8 @@ class OverlayManager(models.Manager):
                     add = tile.filter(created_datetime__gte=gen)
                     display = display | add
         return display
+
+
 
     @classmethod
     def make_all_base_plots_for_next_few_days(cls):
@@ -221,6 +251,7 @@ class OverlayManager(models.Manager):
         :return: A list of the generated Overaly ID's
         """
         overlay_ids = []
+        extend_bool = False
 
 
         """ For vector fields we need to produce plots at different 'zoom levels' so when users zoom in 
@@ -240,6 +271,7 @@ class OverlayManager(models.Manager):
                 datafile = DataFile.objects.get(pk=file_id)
             plotter = NcepWW3Plotter(datafile.file.name)
             zoom_levels = plotter.get_zoom_level(overlay_id)
+            extend_bool = True
 
 
         generated_datetime = DataFile.objects.get(pk=file_id).generated_datetime.date().strftime('%m_%d_%Y')
@@ -276,6 +308,7 @@ class OverlayManager(models.Manager):
                 tile_dir = tile_dir,
                 zoom_levels = zoom_level[0],
                 is_tiled = False,
+                is_extend= extend_bool,
                 definition_id=overlay_id,
             )
             overlay.save()
@@ -311,6 +344,7 @@ class OverlayManager(models.Manager):
         :return: The id of the generated overlay
         """
 
+        extend_bool = False
         overlay_definition = OverlayDefinition.objects.get(pk=overlay__id)
 
         if overlay__id in settings.OSU_ROMS:
@@ -346,6 +380,7 @@ class OverlayManager(models.Manager):
                 datafile = DataFile.objects.get(pk=file_id)
             plotter = NavyPlotter(datafile.file.name)
             zoom_levels = plotter.get_zoom_level(overlay__id)
+            extend_bool = True
 
         elif overlay__id == settings.OSU_TCLINE:
             if file_id is None:
@@ -385,7 +420,8 @@ class OverlayManager(models.Manager):
                 applies_at_datetime=plotter.get_time_at_oceantime_index(time_index),
                 zoom_levels=zoom_level[0],
                 tile_dir=tile_dir,
-                is_tiled=False
+                is_tiled=False,
+                is_extend=extend_bool
             )
             overlay.save()
             overlay_ids.append(overlay.id)
@@ -412,6 +448,7 @@ class Overlay(models.Model):
     applies_at_datetime = models.DateTimeField(null=False)
     zoom_levels = models.CharField(max_length=50, null=True)
     is_tiled = models.BooleanField(default=False)
+    is_extend = models.BooleanField(default=False)
 
 
     def delete(self,*args,**kwargs):
