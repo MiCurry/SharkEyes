@@ -297,6 +297,7 @@ def home(request):
               settings.OSU_ROMS_BOT_SAL,
               settings.OSU_ROMS_BOT_TEMP,
               settings.OSU_ROMS_SSH,
+              settings.OSU_ROMS_TCLINE,
               ]
     # 14 = Thermocline
     #models = [1,3,4,6,5,8,2,7,9,]
