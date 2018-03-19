@@ -64,7 +64,7 @@ class OverlayManager(models.Manager):
                                        is_extend=False
                                        ).values_list('applies_at_datetime', flat=True).distinct()
 
-        return cls.grab_tiled_overlays_from_dates(dates, display, models)
+        return cls.grab_tiled_overlays_from_dates(dates, models)
 
     @classmethod
     def get_next_few_days_of_tiled_overlays_for_extended_forecasts(cls, type, models):

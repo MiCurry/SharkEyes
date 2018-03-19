@@ -304,10 +304,11 @@ def home(request):
     fields = get_list_of_overlay_definitions(models)
 
     base_overlays = OverlayManager.get_next_few_days_of_tiled_overlays(models)
-    extended_overlays = OverlayManager.get_next_few_days_of_tiled_overlays_for_extended_forecasts('WAVE', models)
-    extended_overlays = OverlayManager.get_next_few_days_of_tiled_overlays_for_extended_forecasts('NCDF', models)
 
-    overlays = base_overlays + extended_overlays
+    ww3_extended_overlays = OverlayManager.get_next_few_days_of_tiled_overlays_for_extended_forecasts('WAVE', models)
+    roms_extended_overlays = OverlayManager.get_next_few_days_of_tiled_overlays_for_extended_forecasts('NCDF', models)
+
+    overlays = base_overlays + ww3_extended_overlays + roms_extended_overlays
 
     datetimes = overlays.values_list('applies_at_datetime', flat=True).distinct().order_by('applies_at_datetime')
     context = {'overlays': overlays, 'defs': fields, 'times':datetimes }
