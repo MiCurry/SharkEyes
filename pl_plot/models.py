@@ -185,7 +185,7 @@ class OverlayManager(models.Manager):
 
         file_ids = []
         file_ids.append(DataFileManager.get_next_few_datafiles_of_a_type('NCDF')) # OSU ROMS
-        file_ids.append(DataFileManager.get_next_few_datafiles_of_a_type('T-CLINE')) # NAVY HYCOM
+        file_ids.append(DataFileManager.get_next_few_datafiles_of_a_type('T-CLINE')) # T-Cline
         file_ids.append(DataFileManager.get_next_few_datafiles_of_a_type('WAVE')) # OSU WW3
         file_ids.append(DataFileManager.get_next_few_datafiles_of_a_type('WIND')) # Wind
         file_ids.append(DataFileManager.get_next_few_datafiles_of_a_type('NCEP')) # NCEP
