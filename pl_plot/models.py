@@ -80,19 +80,18 @@ class OverlayManager(models.Manager):
         # know what dates to look for
         for id in ids:
             dates = Overlay.objects.filter(applies_at_datetime__gte=extend_date,
-                                           applies_at_datetime__lte=timezone.now()+timedelta(days=50),
                                            is_tiled=True,
                                            is_extend=True,
                                            definition_id=id
                                            ).values_list('applies_at_datetime', flat=True).distinct()
 
-        return cls.grab_tiled_overlays_from_dates(dates, models)
+        return cls.grab_tiled_overlays_from_dates(dates, models, extend_bool=True)
 
     @classmethod
-    def grab_tiled_overlays_from_dates(cls, dates, models):
+    def grab_tiled_overlays_from_dates(cls, dates, models, extend_bool=False):
         display = Overlay.objects.none()
         for d in dates:
-            over = Overlay.objects.filter(applies_at_datetime=d, is_tiled=True)
+            over = Overlay.objects.filter(applies_at_datetime=d, is_tiled=True, is_extend=extend_bool)
             for m in models:
                 tile = over.filter(definition_id=m)
                 gen = tile.aggregate(Max('created_datetime'))['created_datetime__max']

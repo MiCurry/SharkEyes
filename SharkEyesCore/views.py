@@ -299,16 +299,22 @@ def home(request):
               settings.OSU_ROMS_SSH,
               settings.OSU_ROMS_TCLINE,
               ]
+
+    extended_models = [settings.OSU_ROMS_SST,
+                       settings.OSU_ROMS_SUR_CUR,
+                       settings.OSU_WW3_HI,
+                       settings.OSU_WW3_DIR]
+
     # 14 = Thermocline
     #models = [1,3,4,6,5,8,2,7,9,]
     fields = get_list_of_overlay_definitions(models)
 
     base_overlays = OverlayManager.get_next_few_days_of_tiled_overlays(models)
 
-    ww3_extended_overlays = OverlayManager.get_next_few_days_of_tiled_overlays_for_extended_forecasts('WAVE', models)
-    roms_extended_overlays = OverlayManager.get_next_few_days_of_tiled_overlays_for_extended_forecasts('NCDF', models)
+    ww3_extended_overlays = OverlayManager.get_next_few_days_of_tiled_overlays_for_extended_forecasts('WAVE', extended_models)
+    roms_extended_overlays = OverlayManager.get_next_few_days_of_tiled_overlays_for_extended_forecasts('NCDF', extended_models)
 
-    overlays = base_overlays | ww3_extended_overlays | roms_extended_overlays
+    overlays = base_overlays | ww3_extended_overlays | roms_extended_overlays # Union of all three querysets - '|' represents the union
 
     datetimes = overlays.values_list('applies_at_datetime', flat=True).distinct().order_by('applies_at_datetime')
     context = {'overlays': overlays, 'defs': fields, 'times':datetimes }
