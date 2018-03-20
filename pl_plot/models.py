@@ -71,10 +71,10 @@ class OverlayManager(models.Manager):
         extend_date = None
         if type == 'WAVE':
             extend_date = DataFileManager.get_last_forecast_for_osu_ww3()
-            ids = [settings.OSU_WW3_HI, settings.OSU_WW3_DIR]
+            ids = [settings.NCEP_WW3_HI, settings.NCEP_WW3_DIR]
         elif type == 'NCDF':
             extend_date = DataFileManager.get_last_forecast_for_roms()
-            ids = [settings.OSU_ROMS_SST, settings.OSU_ROMS_SUR_CUR]
+            ids = [settings.NAVY_HYCOM_SST, settings.NAVY_HYCOM_SUR_CUR]
 
         dates = []
         # know what dates to look for
