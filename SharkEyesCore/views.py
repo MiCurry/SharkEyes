@@ -308,9 +308,14 @@ def home(request):
     ww3_extended_overlays = OverlayManager.get_next_few_days_of_tiled_overlays_for_extended_forecasts('WAVE', models)
     roms_extended_overlays = OverlayManager.get_next_few_days_of_tiled_overlays_for_extended_forecasts('NCDF', models)
 
-    overlays = base_overlays + ww3_extended_overlays + roms_extended_overlays
+    from itertools import chain
+    overlays = list(chain(base_overlays.values_list('applies_at_datetime', flat=True).distinct().order_by('applies_at_datetime'),
+                          ww3_extended_overlays.values_list('applies_at_datetime', flat=True).distinct().order_by('applies_at_datetime'),
+                          roms_extended_overlays.values_list('applies_at_datetime', flat=True).distinct().order_by('applies_at_datetime')))
 
-    datetimes = overlays.values_list('applies_at_datetime', flat=True).distinct().order_by('applies_at_datetime')
+
+    datetimes = overlays
+    print type(datetimes)
     context = {'overlays': overlays, 'defs': fields, 'times':datetimes }
     """
     overlays - overlays_view_data: Django Overlay Objects
