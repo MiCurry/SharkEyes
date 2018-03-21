@@ -71,10 +71,10 @@ class OverlayManager(models.Manager):
         extend_date = None
         if type == 'WAVE':
             extend_date = DataFileManager.get_last_forecast_for_osu_ww3()
-            ids = [settings.NCEP_WW3_HI, settings.NCEP_WW3_DIR]
+            ids = [settings.OSU_WW3_HI, settings.OSU_WW3_DIR]
         elif type == 'NCDF':
             extend_date = DataFileManager.get_last_forecast_for_roms()
-            ids = [settings.NAVY_HYCOM_SST, settings.NAVY_HYCOM_SUR_CUR]
+            ids = [settings.OSU_ROMS_SST, settings.OSU_ROMS_SUR_CUR]
 
         dates = []
         # know what dates to look for
@@ -84,6 +84,8 @@ class OverlayManager(models.Manager):
                                            is_extend=True,
                                            definition_id=id
                                            ).values_list('applies_at_datetime', flat=True).distinct()
+
+        
 
         return cls.grab_tiled_overlays_from_dates(dates, models, extend_bool=True)
 
