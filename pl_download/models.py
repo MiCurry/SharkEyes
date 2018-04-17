@@ -394,7 +394,7 @@ class DataFileManager(models.Manager):
         from pl_plot.plotter import Plotter
 
         #Todo: Check to see if there is at least one rom file
-
+        #Todo: Intorduce error checking here
 
         latest_roms = DataFile.objects.filter(type='NCDF').order_by('model_date').reverse()[0]
         plotter = Plotter(latest_roms.file.name)
@@ -405,6 +405,7 @@ class DataFileManager(models.Manager):
         from pl_plot.plotter import WaveWatchPlotter
 
         #Todo: Check to see if there is at least one OSU WW3 file
+        #Todo: Introduce error checking here
 
         latest_roms = DataFile.objects.filter(type='WAVE').order_by('model_date').reverse()[0]
         plotter = WaveWatchPlotter(latest_roms.file.name)
