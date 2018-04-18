@@ -109,11 +109,13 @@ TEMPLATE_DIRS = BASE_DIR + '/templates/'
 
 STATIC_URL = '/static/'
 STATIC_ROOT = '/opt/sharkeyes/static/'
+
 STATICFILES_DIRS = (os.path.join(BASE_DIR, 'static_files'), )
 
 OVERLAY_KEY_COLOR = '#00001F'
 
 # other files
+STATIC_DIR = "/opt/sharkeyes/src/static_files/"
 NETCDF_STORAGE_DIR = "netcdf"
 UNCHOPPED_STORAGE_DIR = "unchopped"
 VRT_STORAGE_DIR = "vrt_files"
@@ -132,12 +134,12 @@ MEDIA_URL = "/media/"
 BASE_NETCDF_URL = "http://ingria.coas.oregonstate.edu/opendap/ORWA/" #OSU_ROMS URL
 WAVE_WATCH_URL = "ftp://cil-www.oce.orst.edu/pub/outgoing/ww3data/"
 FTP_WAVE_WAVE_URL = "cil-wwww.oce.orst.edu"
-HYCOM_URL = "http://nomads.ncep.noaa.gov/pub/data/nccf/com/rtofs/prod/rtofs."
+RTOFS_URL = "http://nomads.ncep.noaa.gov/pub/data/nccf/com/rtofs/prod/rtofs."
+RTOFS_OPENDAP_URL = "http://nomads.ncep.noaa.gov:9090/dods/rtofs/"
 #Not Currently used. Can be used if you need to stream wind data for some reason.
 #WIND_URL = "http://thredds.ucar.edu/thredds/dodsC/grib/NCEP/NAM/CONUS_12km/conduit/Best"
 
-
-SEACAST_DOMAIN = { 'longs' : [-129.0, -123.726199391], 'lats': [40.5840806224, 47.499] }
+SEACAST_DOMAIN = { 'longs' : [-129.0, -123.7261], 'lats': [40.5840, 47.499] }
 OSU_ROMS_DOMAIN = { 'longs' : [-129.0, -123.726199391], 'lats': [40.5840806224, 47.499] }
 OSU_WW3_DOMAIN = { 'longs' : [-129.0, -123.726199391], 'lats': [40.5840806224, 47.499] }
 HYCOM_DOMAIN  = { 'longs' : [], 'lats': [] }
@@ -150,6 +152,8 @@ OSU_WW3_DF_FN = "Outergrid"
 NAMS_WIND_DF_FN = "WIND"
 NCEP_WW3_DF_FN  = "NCEP_WW3"
 HYCOM_DF_FN = "HYCOM"
+NAVY_HYCOM_DF_FN = "NVY_HYCOM"
+OSU_TCLINE_DF_FN = "TCLINE"
 
 # Model Definition ID's
 OSU_ROMS_SST = 1
@@ -163,17 +167,36 @@ OSU_ROMS_BOT_TEMP = 8
 OSU_ROMS_SSH = 9
 NCEP_WW3_DIR = 10
 NCEP_WW3_HI = 11
-HYCOM_SST = 12
-HYCOM_SUR_CUR = 13
+HYCOM_SST = 12 # RTOFS - Not Used - needs to be renamed
+HYCOM_SUR_CUR = 13 # RTOFS - Not Used - needs to be renamed
+OSU_ROMS_TCLINE = 14
+OSU_ROMS_PCLINE = 15
+NAVY_HYCOM_SST = 16
+NAVY_HYCOM_SUR_CUR = 17
+NAVY_HYCOM_SUR_SAL = 18
+NAVY_HYCOM_SSH = 19
+NAVY_HYCOM_BOT_TEMP = 20
+NAVY_HYCOM_BOT_CUR = 21
+NAVY_HYCOM_BOT_SAL = 22
 
 OSU_ROMS = [OSU_ROMS_SST, OSU_ROMS_SUR_SAL,
             OSU_ROMS_SUR_CUR, OSU_ROMS_BOT_SAL,
             OSU_ROMS_BOT_TEMP, OSU_ROMS_SSH]
 
+OSU_TCLINE = 14
+
 OSU_WW3 = [OSU_WW3_HI, OSU_WW3_DIR]
 
 NCEP_WW3 = [NCEP_WW3_HI, NCEP_WW3_DIR]
 
+HYCOM = [HYCOM_SST, HYCOM_SUR_CUR] # Rename
+
+NAVY_HYCOM = [NAVY_HYCOM_SST, NAVY_HYCOM_SUR_CUR,
+              NAVY_HYCOM_SUR_SAL, NAVY_HYCOM_SSH,
+              NAVY_HYCOM_BOT_TEMP, NAVY_HYCOM_BOT_CUR,
+              NAVY_HYCOM_BOT_SAL]
+
+NAVY_HYCOM_CUR = [NAVY_HYCOM_SUR_CUR, NAVY_HYCOM_BOT_CUR]
 HYCOM = [HYCOM_SST, HYCOM_SUR_CUR]
 
 VECTOR_FIELDS = [OSU_ROMS_SUR_CUR, HYCOM_SUR_CUR]
@@ -186,7 +209,11 @@ ZOOM_LEVELS_OTHERS = [(None, None)]
 ZOOM_LEVELS_FOR_WAVE_DIR = [('2-8', 20), ('9-10', 15), ('11-12', 5)]
 ZOOM_LEVELS_FOR_WAVE_OTHERS = [(None, None)]
 
+# T-Cline Settings
+MIN_TCLINE_DEPTH = -450 # Meters
+MAX_TCLINE_DEPTH = 0 # Meters
 
+EXTEND = False
 
 # import local settings. PyCharm thinks it's unused, but PyCharm is silly.
 # noinspection PyUnresolvedReferences

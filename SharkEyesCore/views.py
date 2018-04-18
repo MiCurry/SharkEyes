@@ -1,14 +1,15 @@
-from django.shortcuts import render
-from pl_plot.models import OverlayManager, OverlayDefinition
-from pl_download.models import DataFile
-from scipy.io import netcdf
-import numpy as np
-from django.conf import settings
 import os
 from datetime import datetime, timedelta
 import pytz
 import json
 import logging
+import re
+from itertools import chain
+from scipy.io import netcdf
+import numpy as np
+
+from mpl_toolkits.basemap import Basemap
+from django.shortcuts import render
 from django.db import connection
 from django.db import IntegrityError
 from django.views.decorators.csrf import csrf_exempt
@@ -18,9 +19,10 @@ from django.template import Library
 from django.template.defaultfilters import stringfilter
 from django.utils.html import conditional_escape
 from django.utils.safestring import mark_safe
-from mpl_toolkits.basemap import Basemap
-import re
+from django.conf import settings
 
+from pl_plot.models import OverlayManager, OverlayDefinition
+from pl_download.models import DataFile
 # Django likes to remove whitespace from HTML strings. Use spacify("string with space") to preserve whitespace
 register = Library()
 @stringfilter
@@ -242,7 +244,7 @@ def get_time_index_wave (wave_data, day, month, year, hour, meridian):
     basetime = datetime(1970, 1, 1, 0, 0, 0)  # Jan 1, 1970
     # This is the first forecast: right now it is Noon (UTC) [~5 AM PST] on the day before the file was downloaded
     forecast_zero = basetime + timedelta(all_day_times[0] / 3600.0 / 24.0, 0, 0)
-    for x in range(0, 84, 1):
+    for x in range(0, np.shape(wave_data.variables['time'][:])[0], 1):
         model_time = timezone.make_aware(forecast_zero + timedelta(hours=x), timezone.utc)
         if input_time == model_time:
             return x
@@ -272,6 +274,28 @@ def get_models(keys):
             models['seas'] = 1
     return models
 
+def get_extended_overlays(extend):
+    if not extend:
+        return []
+
+    models = [settings.OSU_ROMS_SST,
+              settings.OSU_ROMS_SUR_CUR,
+              settings.NCEP_WW3_HI,
+              settings.NCEP_WW3_DIR,
+              settings.NAMS_WIND,
+              settings.OSU_ROMS_BOT_TEMP,
+              settings.OSU_ROMS_SUR_SAL,
+              settings.OSU_ROMS_BOT_SAL,
+              settings.OSU_ROMS_SSH,
+              settings.OSU_ROMS_TCLINE]
+
+
+    ww3_extended_overlays = OverlayManager.get_next_few_days_of_tiled_overlays_for_extended_forecasts('WAVE', models)
+    roms_extended_overlays = OverlayManager.get_next_few_days_of_tiled_overlays_for_extended_forecasts('NCDF', models)
+    
+    return list(chain(ww3_extended_overlays.values_list('applies_at_datetime', flat=True).distinct().order_by('applies_at_datetime'),
+                roms_extended_overlays.values_list('applies_at_datetime', flat=True).distinct().order_by('applies_at_datetime')))
+
 #This is where we associate the Javascript variables (overlays, defs etc) with the Django objects from the database.
 def home(request):
     #Models determines which models are displayed on the website. They will appear in the order provided by models[]. Change this order to change the order of the buttons and which buttons appear.
@@ -288,22 +312,31 @@ def home(request):
     # 11 =
     # 12 =
     # 13 =
-    models = [settings.OSU_ROMS_SST,
-              settings.OSU_ROMS_SUR_SAL,
-              settings.OSU_ROMS_SUR_CUR,
-              settings.OSU_WW3_HI,
-              settings.NAMS_WIND,
-              settings.OSU_WW3_DIR,
-              settings.OSU_ROMS_BOT_SAL,
-              settings.OSU_ROMS_BOT_TEMP,
-              settings.OSU_ROMS_SSH]
-    fields = []
 
-    for value in models:
-        fields.append(OverlayDefinition.objects.get(pk=value))
-    overlays_view_data = OverlayManager.get_next_few_days_of_tiled_overlays(models)
-    datetimes = overlays_view_data.values_list('applies_at_datetime', flat=True).distinct().order_by('applies_at_datetime')
-    context = {'overlays': overlays_view_data, 'defs': fields, 'times':datetimes }
+
+    models = [settings.OSU_ROMS_SST,
+              settings.OSU_ROMS_SUR_CUR,
+              settings.NCEP_WW3_HI,
+              settings.NCEP_WW3_DIR,
+              settings.NAMS_WIND,
+              settings.OSU_ROMS_BOT_TEMP,
+              settings.OSU_ROMS_SUR_SAL,
+              settings.OSU_ROMS_BOT_SAL,
+              settings.OSU_ROMS_SSH,
+              settings.OSU_ROMS_TCLINE]
+    #models = [1,3,4,6,5,8,2,7,9,]
+    fields = get_list_of_overlay_definitions(models)
+
+    base_overlays = OverlayManager.get_next_few_days_of_tiled_overlays(models)
+
+    extended_overlays = get_extended_overlays(False)
+
+    overlays = list(chain(base_overlays.values_list('applies_at_datetime', flat=True).distinct().order_by('applies_at_datetime'),
+                          extended_overlays))
+
+    datetimes = overlays
+    print type(datetimes)
+    context = {'overlays': overlays, 'defs': fields, 'times':datetimes }
     """
     overlays - overlays_view_data: Django Overlay Objects
     def - fields : Definition of forecasts to be used on the website
@@ -312,6 +345,16 @@ def home(request):
     """
 
     return render(request, 'index.html', context)
+
+def get_list_of_overlay_definitions(models):
+    """
+    :param models: List of models definition ids ie: model = [seetings.OSU_ROMS_SST, settings.OSU_ROMS_SUR_SAL ...]
+    :return: Obejct of fields
+    """
+    fields = []
+    for value in models:
+        fields.append(OverlayDefinition.objects.get(pk=value))
+    return fields
 
 def oops(request):
     return render(request, 'oops.html')
@@ -362,7 +405,6 @@ def right_click_menu(request):
         wave_file = DataFile.objects.filter(type='WAVE').latest('model_date')
         wave_name = wave_file.file.name
         wave_data = netcdf.netcdf_file(os.path.join(settings.MEDIA_ROOT,settings.WAVE_WATCH_DIR,wave_name), 'r')
-
         #Get Wave Watch 3 lat lon indices
         wave_index = get_lat_long_index(lat, lon, wave_data, 'wave')
         wave_lat = wave_index[0]
@@ -370,7 +412,6 @@ def right_click_menu(request):
 
         #Get the wave watch 3 time index
         wave_time_index = get_time_index_wave(wave_data, int(day), int(month), int(current_year), int(hour), meridian)
-
         #Get the wave watch 3 wave height value and period
         wave_height = wave_data.variables['HTSGW_surface'][wave_time_index, wave_lat, wave_lon]
         wave_period = wave_data.variables['PERPW_surface'][wave_time_index, wave_lat, wave_lon]
@@ -398,6 +439,8 @@ def right_click_menu(request):
                 month_check = month_check +1
             else:
                 day_check = day_check + 1
+        if month_check < 10:
+            month_check = '0' + str(month_check)
         if day_check < 10:
             day_check = '0'+ str(day_check)
         seas_file_date = "OSU_ROMS_" + current_year + "-" + str(month_check) + "-" + str(day_check) #This is used to create a string for use in the DB lookup

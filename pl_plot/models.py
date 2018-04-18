@@ -11,7 +11,10 @@ from datetime import timedelta
 from celery import group
 from celery import shared_task
 from pl_download.models import DataFile, DataFileManager
-from pl_plot.plotter import Plotter, WaveWatchPlotter, WindPlotter, HycomPlotter, NcepWW3Plotter
+from pl_plot.plotter import Plotter, TClinePlotter
+from pl_plot.plotter import HycomPlotter, NavyPlotter
+from pl_plot.plotter import WaveWatchPlotter, NcepWW3Plotter
+from pl_plot.plotter import WindPlotter
 from pl_plot import plot_functions
 
 HOW_LONG_TO_KEEP_FILES = settings.HOW_LONG_TO_KEEP_FILES
@@ -57,11 +60,39 @@ class OverlayManager(models.Manager):
         # know what dates to look for
         dates = Overlay.objects.filter(applies_at_datetime__gte=timezone.now()-timedelta(days=PAST_DAYS_OF_FILES_TO_DISPLAY),
                                        applies_at_datetime__lte=timezone.now()+timedelta(days=11),
-                                       is_tiled=True
+                                       is_tiled=True,
+                                       is_extend=False
                                        ).values_list('applies_at_datetime', flat=True).distinct()
 
+        return cls.grab_tiled_overlays_from_dates(dates, models)
+
+    @classmethod
+    def get_next_few_days_of_tiled_overlays_for_extended_forecasts(cls, type, models):
+        extend_date = None
+        if type == 'WAVE':
+            extend_date = DataFileManager.get_last_forecast_for_osu_ww3()
+            ids = [settings.OSU_WW3_HI, settings.OSU_WW3_DIR]
+        elif type == 'NCDF':
+            extend_date = DataFileManager.get_last_forecast_for_roms()
+            ids = [settings.OSU_ROMS_SST, settings.OSU_ROMS_SUR_CUR]
+
+        dates = []
+        # know what dates to look for
+        for id in ids:
+            dates = Overlay.objects.filter(applies_at_datetime__gte=extend_date,
+                                           applies_at_datetime__lte=timezone.now()+timedelta(days=50),
+                                           is_tiled=True,
+                                           is_extend=True,
+                                           definition_id=id
+                                           ).values_list('applies_at_datetime', flat=True).distinct()
+
+        return cls.grab_tiled_overlays_from_dates(dates, models)
+
+    @classmethod
+    def grab_tiled_overlays_from_dates(cls, dates, models):
+        display = Overlay.objects.none()
         for d in dates:
-            over = Overlay.objects.filter(applies_at_datetime = d, is_tiled=True)
+            over = Overlay.objects.filter(applies_at_datetime=d, is_tiled=True)
             for m in models:
                 tile = over.filter(definition_id=m)
                 gen = tile.aggregate(Max('created_datetime'))['created_datetime__max']
@@ -72,6 +103,8 @@ class OverlayManager(models.Manager):
                     add = tile.filter(created_datetime__gte=gen)
                     display = display | add
         return display
+
+
 
     @classmethod
     def make_all_base_plots_for_next_few_days(cls):
@@ -91,6 +124,7 @@ class OverlayManager(models.Manager):
 
         for fid in file_ids:
             datafile = DataFile.objects.get(pk=fid)
+            # OSU WW3
             if datafile.file.name.startswith(settings.OSU_WW3_DF_FN):
                 # The unchopped file's index starts at noon: index = 0 and progresses throgh 85 forecasts, one per hour,
                 # for the next 85 hours.
@@ -111,9 +145,11 @@ class OverlayManager(models.Manager):
                 three_hour_indices = wind_values['indices']
                 for t in range(begin, swap, 4):
                     task_list.append(cls.make_plot.subtask(args=(settings.NAMS_WIND, t, fid), immutable=True))
+
                 for t in range(swap, number_of_times, 1):
                     if t in three_hour_indices:
                         task_list.append(cls.make_plot.subtask(args=(settings.NAMS_WIND, t, fid), immutable=True))
+
             # NCEP WW3
             elif datafile.file.name.startswith(settings.NCEP_WW3_DF_FN):
                 print "NCEP"
@@ -122,18 +158,30 @@ class OverlayManager(models.Manager):
                     task_list.append(cls.make_wave_watch_plot.subtask(args=(settings.NCEP_WW3_DIR, t, fid), immutable=True))
                     task_list.append(cls.make_wave_watch_plot.subtask(args=(settings.NCEP_WW3_HI, t, fid), immutable=True))
 
-            # Hycom
-            elif datafile.file.name.startswith(settings.HYCOM_DF_FN):
-                print "HYCOM"
+            # NAVY Hycom
+            elif datafile.file.name.startswith(settings.NAVY_HYCOM_DF_FN):
                 plotter = HycomPlotter(datafile.file.name)
                 t = plotter.get_number_of_model_times()
 
-                task_list.append(cls.make_plot.subtask(args=(settings.HYCOM_SST, t, fid), immutable=True))
-                task_list.append(cls.make_plot.subtask(args=(settings.HYCOM_SUR_CUR, t, fid), immutable=True))
+                # TODO: Need to update this to match what each file is saved for
+                if datafile.file.name.endswith("ssh.nc"): # Sea Surface Height
+                    #task_list.append(cls.make_plot.subtask(args=(settings.NAVY_HYCOM_SSH, t, fid), immutable=True))
+                    pass
+                if datafile.file.name.endswith("temp_top.nc"): # Temperature Top
+                    task_list.append(cls.make_plot.subtask(args=(settings.NAVY_HYCOM_SST, t, fid), immutable=True))
+                    #task_list.append(cls.make_plot.subtask(args=(settings.NAVY_HYCOM_SUR_SAL, t, fid), immutable=True))
+                if datafile.file.name.endswith("temp_bot.nc"): # Temperature Bot
+                    #task_list.append(cls.make_plot.subtask(args=(settings.NAVY_HYCOM_BOT_TEMP, t, fid), immutable=True))
+                    #task_list.append(cls.make_plot.subtask(args=(settings.NAVY_HYCOM_BOT_SAL, t, fid), immutable=True))
+                    pass
+                if datafile.file.name.endswith("cur_top.nc"): # Current Top
+                    task_list.append(cls.make_plot.subtask(args=(settings.NAVY_HYCOM_SUR_CUR, t, fid), immutable=True))
+                if datafile.file.name.endswith("cur_bot.nc"): # Current Bot
+                    #task_list.append(cls.make_plot.subtask(args=(settings.NAVY_HYCOM_BOT_CUR, t, fid), immutable=True))
+                    pass
 
             # OSU_ROMS
-            else:
-                print "OSU ROMS"
+            elif datafile.file.name.startswith(settings.OSU_ROMS_DF_FN):
                 plotter = Plotter(datafile.file.name)
                 number_of_times = plotter.get_number_of_model_times()
 
@@ -149,7 +197,14 @@ class OverlayManager(models.Manager):
                                                                                              settings.OSU_ROMS_BOT_SAL,
                                                                                              settings.OSU_ROMS_BOT_TEMP,
                                                                                              settings.OSU_ROMS_SSH])
-                        # Wavewatch
+            # OSU T-Cline
+            elif datafile.file.name.startswith(settings.OSU_TCLINE_DF_FN):
+                plotter = TClinePlotter(datafile.file.name)
+                number_of_times = plotter.get_number_of_model_times()
+                for t in range(0, number_of_times, 1):
+                    task_list.append(cls.make_plot.subtask(args=(settings.OSU_TCLINE, t, fid), immutable=True))
+            else:
+                print "OverlayManager.get_task_for_base_plots_in_files: NOT A FORECAST I RECOGNIZE"
 
         return task_list
 
@@ -157,8 +212,17 @@ class OverlayManager(models.Manager):
     def get_tasks_for_base_plots_for_next_few_days(cls):
         """ Grabs the files ID's of NCDF datafiles that haven't been plotted yet. Use this function
         to generate a list of unchopped plots that haven't been plotted yet. """
-        file_ids = [datafile.id for datafile in DataFileManager.get_next_few_days_files_from_db()]
-        file_ids + DataFileManager.get_next_few_datafiles_of_hycom_file_ids()
+
+        file_ids = []
+        file_ids.append(DataFileManager.get_next_few_datafiles_of_a_type('NCDF')) # OSU ROMS
+        file_ids.append(DataFileManager.get_next_few_datafiles_of_a_type('T-CLINE')) # T-Cline
+        file_ids.append(DataFileManager.get_next_few_datafiles_of_a_type('WAVE')) # OSU WW3
+        file_ids.append(DataFileManager.get_next_few_datafiles_of_a_type('WIND')) # Wind
+        file_ids.append(DataFileManager.get_next_few_datafiles_of_a_type('NCEP')) # NCEP
+        file_ids.append(DataFileManager.get_next_few_datafiles_of_a_type('HYCOM')) # NAVY HYCOM
+
+        file_ids = [item for sublist in file_ids for item in sublist] # Unravel lists of lists
+
         return cls.get_tasks_for_base_plots_in_files(file_ids)
 
     @classmethod
@@ -187,6 +251,7 @@ class OverlayManager(models.Manager):
         :return: A list of the generated Overaly ID's
         """
         overlay_ids = []
+        extend_bool = False
 
 
         """ For vector fields we need to produce plots at different 'zoom levels' so when users zoom in 
@@ -206,6 +271,7 @@ class OverlayManager(models.Manager):
                 datafile = DataFile.objects.get(pk=file_id)
             plotter = NcepWW3Plotter(datafile.file.name)
             zoom_levels = plotter.get_zoom_level(overlay_id)
+            extend_bool = True
 
 
         generated_datetime = DataFile.objects.get(pk=file_id).generated_datetime.date().strftime('%m_%d_%Y')
@@ -221,16 +287,21 @@ class OverlayManager(models.Manager):
                                                             generated_datetime=generated_datetime, downsample_ratio=zoom_level[1],
                                                             zoom_levels=zoom_level[0])
 
+
+
             ''' Here we are changing the overlay_id number of forecasted models to be that of the corresponding
                 base foreacast overlay_id.
                 
                 That way when SharkEyesCore.views creates the list of overlays, it grabs the base forecast and
                 appends the extended one to the end as if the extended forecasts were part of the base forecast. '''
             # Extended Forecasts
-            if overlay_id == settings.NCEP_WW3_DIR:
-                overlay_id = settings.OSU_WW3_DIR
-            if overlay_id == settings.NCEP_WW3_HI:
-                overlay_id = settings.OSU_WW3_HI
+            if settings.EXTEND:
+                if overlay_id == settings.NCEP_WW3_DIR:
+                    overlay_id = settings.OSU_WW3_DIR
+                if overlay_id == settings.NCEP_WW3_HI:
+                    overlay_id = settings.OSU_WW3_HI
+            if not settings.EXTEND:
+                extend_bool = False
 
             overlay = Overlay(
                 file=os.path.join(settings.UNCHOPPED_STORAGE_DIR, plot_filename),
@@ -240,6 +311,7 @@ class OverlayManager(models.Manager):
                 tile_dir = tile_dir,
                 zoom_levels = zoom_level[0],
                 is_tiled = False,
+                is_extend= extend_bool,
                 definition_id=overlay_id,
             )
             overlay.save()
@@ -275,6 +347,7 @@ class OverlayManager(models.Manager):
         :return: The id of the generated overlay
         """
 
+        extend_bool = False
         overlay_definition = OverlayDefinition.objects.get(pk=overlay__id)
 
         if overlay__id in settings.OSU_ROMS:
@@ -286,6 +359,7 @@ class OverlayManager(models.Manager):
             zoom_levels = plotter.get_zoom_level(overlay__id)
 
         elif overlay__id in settings.HYCOM:
+            print "RTOFS HYCOM"
             if file_id is None:
                 datafile = DataFile.objects.filter(type='HYCOM').latest('model_date')
             else:
@@ -293,13 +367,30 @@ class OverlayManager(models.Manager):
             plotter = HycomPlotter(datafile.file.name)
             zoom_levels = plotter.get_zoom_level(overlay__id)
 
-
         elif overlay__id == settings.NAMS_WIND:
             if file_id is None:
                 datafile = DataFile.objects.filter(type='WIND').latest('model_date')
             else:
                 datafile = DataFile.objects.get(pk=file_id)
             plotter = WindPlotter(datafile.file.name)
+            zoom_levels = plotter.get_zoom_level(overlay__id)
+
+        elif overlay__id in settings.NAVY_HYCOM:
+            print "NAVY HYCOM"
+            if file_id is None:
+                datafile = DataFile.objects.filter(type='HYCOM').latest('model_date')
+            else:
+                datafile = DataFile.objects.get(pk=file_id)
+            plotter = NavyPlotter(datafile.file.name)
+            zoom_levels = plotter.get_zoom_level(overlay__id)
+            extend_bool = True
+
+        elif overlay__id == settings.OSU_TCLINE:
+            if file_id is None:
+                datafile = DataFile.objects.filter(type='T-CLINE').latest('model_date')
+            else:
+                datafile = DataFile.objects.get(pk=file_id)
+            plotter = TClinePlotter(datafile.file.name)
             zoom_levels = plotter.get_zoom_level(overlay__id)
 
 
@@ -319,10 +410,11 @@ class OverlayManager(models.Manager):
                 That way when SharkEyesCore.views creates the list of overlays, it grabs the base forecast and
                 appends the extended one to the end as if the extended forecasts were part of the base forecast. '''
             # Extended Forecasts
-            if overlay__id == settings.HYCOM_SST:
-                overlay__id = settings.OSU_ROMS_SST
-            elif overlay__id == settings.HYCOM_SUR_CUR:
-                overlay__id = settings.OSU_ROMS_SUR_CUR
+            if settings.EXTEND:
+                if overlay__id == settings.NAVY_HYCOM_SST:
+                    overlay__id = settings.OSU_ROMS_SST
+                elif overlay__id == settings.NAVY_HYCOM_SUR_CUR:
+                    overlay__id = settings.OSU_ROMS_SUR_CUR
 
             overlay = Overlay(
                 file=os.path.join(settings.UNCHOPPED_STORAGE_DIR, plot_filename),
@@ -332,7 +424,8 @@ class OverlayManager(models.Manager):
                 applies_at_datetime=plotter.get_time_at_oceantime_index(time_index),
                 zoom_levels=zoom_level[0],
                 tile_dir=tile_dir,
-                is_tiled=False
+                is_tiled=False,
+                is_extend=extend_bool
             )
             overlay.save()
             overlay_ids.append(overlay.id)
@@ -359,6 +452,7 @@ class Overlay(models.Model):
     applies_at_datetime = models.DateTimeField(null=False)
     zoom_levels = models.CharField(max_length=50, null=True)
     is_tiled = models.BooleanField(default=False)
+    is_extend = models.BooleanField(default=False)
 
 
     def delete(self,*args,**kwargs):
