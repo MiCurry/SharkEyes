@@ -295,10 +295,13 @@ class OverlayManager(models.Manager):
                 That way when SharkEyesCore.views creates the list of overlays, it grabs the base forecast and
                 appends the extended one to the end as if the extended forecasts were part of the base forecast. '''
             # Extended Forecasts
-            if overlay_id == settings.NCEP_WW3_DIR:
-                overlay_id = settings.OSU_WW3_DIR
-            if overlay_id == settings.NCEP_WW3_HI:
-                overlay_id = settings.OSU_WW3_HI
+            if settings.EXTEND:
+                if overlay_id == settings.NCEP_WW3_DIR:
+                    overlay_id = settings.OSU_WW3_DIR
+                if overlay_id == settings.NCEP_WW3_HI:
+                    overlay_id = settings.OSU_WW3_HI
+            if not settings.EXTEND:
+                extend_bool = False
 
             overlay = Overlay(
                 file=os.path.join(settings.UNCHOPPED_STORAGE_DIR, plot_filename),
@@ -407,10 +410,11 @@ class OverlayManager(models.Manager):
                 That way when SharkEyesCore.views creates the list of overlays, it grabs the base forecast and
                 appends the extended one to the end as if the extended forecasts were part of the base forecast. '''
             # Extended Forecasts
-            if overlay__id == settings.NAVY_HYCOM_SST:
-                overlay__id = settings.OSU_ROMS_SST
-            elif overlay__id == settings.NAVY_HYCOM_SUR_CUR:
-                overlay__id = settings.OSU_ROMS_SUR_CUR
+            if settings.EXTEND:
+                if overlay__id == settings.NAVY_HYCOM_SST:
+                    overlay__id = settings.OSU_ROMS_SST
+                elif overlay__id == settings.NAVY_HYCOM_SUR_CUR:
+                    overlay__id = settings.OSU_ROMS_SUR_CUR
 
             overlay = Overlay(
                 file=os.path.join(settings.UNCHOPPED_STORAGE_DIR, plot_filename),

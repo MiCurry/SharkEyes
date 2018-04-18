@@ -107,7 +107,7 @@ def do_pipeline():
     print "DOWNLOADING OSU WW3 FILES"
     logging.info('DOWNLOADING OSU WW3')
     try: # Try Catches to ensure do_pipeline completes even if a model server cant be reached
-        wave_watch_files = DataFileManager.get_latest_wave_watch_files()
+        wave_watch_files = DataFileManager.ww3_download()
     except Exception:
         print '-' * 60
         print "COULD NOT DOWNLOAD OSU WW3 FILES"
