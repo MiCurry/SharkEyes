@@ -284,17 +284,11 @@ def home(request):
     # 7 = Bottom Temperature,
     # 8 = Bottom Salinity,
     # 9 = Sea Surface Height
-    # 14 = Thermocline
-    models = [settings.OSU_ROMS_SST,
-              settings.OSU_ROMS_SUR_CUR,
-              settings.OSU_WW3_HI,
-              settings.OSU_WW3_DIR,
-              settings.NAMS_WIND,
-              settings.OSU_ROMS_BOT_TEMP,
-              settings.OSU_ROMS_SUR_SAL,
-              settings.OSU_ROMS_BOT_SAL,
-              settings.OSU_ROMS_SSH,
-              settings.OSU_ROMS_TCLINE]
+    # 10 =
+    # 11 =
+    # 12 =
+    # 13 =
+
 
     models = [settings.OSU_ROMS_SST,
               settings.OSU_ROMS_SUR_CUR,
@@ -306,13 +300,42 @@ def home(request):
               settings.OSU_ROMS_BOT_SAL,
               settings.OSU_ROMS_SSH,
               settings.OSU_ROMS_TCLINE]
+    #models = [1,3,4,6,5,8,2,7,9,]
+    fields = get_list_of_overlay_definitions(models)
+
+    base_overlays = OverlayManager.get_next_few_days_of_tiled_overlays(models)
+
+    ww3_extended_overlays = OverlayManager.get_next_few_days_of_tiled_overlays_for_extended_forecasts('WAVE', models)
+    roms_extended_overlays = OverlayManager.get_next_few_days_of_tiled_overlays_for_extended_forecasts('NCDF', models)
+
+    from itertools import chain
+    overlays = list(chain(base_overlays.values_list('applies_at_datetime', flat=True).distinct().order_by('applies_at_datetime'),
+                          ww3_extended_overlays.values_list('applies_at_datetime', flat=True).distinct().order_by('applies_at_datetime'),
+                          roms_extended_overlays.values_list('applies_at_datetime', flat=True).distinct().order_by('applies_at_datetime')))
+
+
+    datetimes = overlays
+    print type(datetimes)
+    context = {'overlays': overlays, 'defs': fields, 'times':datetimes }
+    """
+    overlays - overlays_view_data: Django Overlay Objects
+    def - fields : Definition of forecasts to be used on the website
+    times - datetimes : 
+    
+    """
+
+    return render(request, 'index.html', context)
+
+def get_list_of_overlay_definitions(models):
+    """
+    :param models: List of models definition ids ie: model = [seetings.OSU_ROMS_SST, settings.OSU_ROMS_SUR_SAL ...]
+    :return: Obejct of fields
+    """
+>>>>>>> extend
     fields = []
     for value in models:
         fields.append(OverlayDefinition.objects.get(pk=value))
-    overlays_view_data = OverlayManager.get_next_few_days_of_tiled_overlays(models)
-    datetimes = overlays_view_data.values_list('applies_at_datetime', flat=True).distinct().order_by('applies_at_datetime')
-    context = {'overlays': overlays_view_data, 'defs': fields, 'times':datetimes }
-    return render(request, 'index.html', context)
+    return fields
 
 def oops(request):
     return render(request, 'oops.html')
