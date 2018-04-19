@@ -542,7 +542,7 @@ class DataFileManager(models.Manager):
         """
         # TODO: Check to see if the download file already exists?
         begin_date, end_date = create_nomads_time_series_from_today(start=4, end=20)
-        begin_date = DataFileManager.get_last_forecast_for_osu_ww3()
+        #begin_date = DataFileManager.get_last_forecast_for_osu_ww3()
 
         begin = datetime.strftime(begin_date, '%Y-%m-%d')
         begin = str(begin) + 'T00%3A00%3A00Z'

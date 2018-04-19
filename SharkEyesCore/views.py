@@ -324,25 +324,13 @@ def home(request):
               settings.OSU_ROMS_BOT_SAL,
               settings.OSU_ROMS_SSH,
               settings.OSU_ROMS_TCLINE]
-    #models = [1,3,4,6,5,8,2,7,9,]
-    fields = get_list_of_overlay_definitions(models)
-
-    base_overlays = OverlayManager.get_next_few_days_of_tiled_overlays(models)
-
-    extended_overlays = get_extended_overlays(False)
-
-    overlays = list(chain(base_overlays.values_list('applies_at_datetime', flat=True).distinct().order_by('applies_at_datetime'),
-                          extended_overlays))
-
-    datetimes = overlays
-    print type(datetimes)
-    context = {'overlays': overlays, 'defs': fields, 'times':datetimes }
-    """
-    overlays - overlays_view_data: Django Overlay Objects
-    def - fields : Definition of forecasts to be used on the website
-    times - datetimes : 
-    
-    """
+    fields = []
+    for value in models:
+        fields.append(OverlayDefinition.objects.get(pk=value))
+    overlays_view_data = OverlayManager.get_next_few_days_of_tiled_overlays(models)
+    datetimes = overlays_view_data.values_list('applies_at_datetime',
+                                               flat=True).distinct().order_by('applies_at_datetime')
+    context = {'overlays': overlays_view_data, 'defs': fields, 'times': datetimes}
 
     return render(request, 'index.html', context)
 
