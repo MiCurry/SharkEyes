@@ -4,6 +4,7 @@ import shutil
 import traceback
 from uuid import uuid4
 from scipy.io import netcdf
+from netCDF4 import Dataset
 import xarray as xr
 import numpy
 import pytz
@@ -13,7 +14,7 @@ from mpl_toolkits.basemap import Basemap
 from pl_download.models import DataFile
 from django.utils import timezone
 from django.conf import settings
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
 
 """ The plotter file contains Plotters for models that help with plot generation
  Instantiated with model DataFile, Plotters allow retuines to access and read the datafiles properties.
@@ -574,6 +575,18 @@ class NcepWW3Plotter:
             )
         )
 
+    def write_file(self, file_name):
+        self.data_file = Dataset(
+            os.path.join(
+                settings.MEDIA_ROOT,
+                settings.WAVE_WATCH_DIR,
+                file_name
+            ), 'r+'
+        )
+
+    def close_file(self):
+        self.data_file.close()
+        return
 
     def get_zoom_level(self, def_id):
         print "Plotter.get_zoom_level - def_id: {0}".format(def_id)
