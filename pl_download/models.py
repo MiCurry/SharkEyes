@@ -6,6 +6,9 @@ import urllib2
 from ftplib import FTP
 
 import sys
+
+import numpy
+from netCDF4 import Dataset, num2date, date2num
 from defusedxml import ElementTree
 from lxml import etree, html
 import requests
@@ -541,15 +544,12 @@ class DataFileManager(models.Manager):
         :return: id of downloaded datafile
         """
         # TODO: Check to see if the download file already exists?
-        begin_date, end_date = create_nomads_time_series_from_today(start=4, end=20)
+        begin_date, end_date = create_nomads_time_series_from_today(start=0, end=20)
         #begin_date = DataFileManager.get_last_forecast_for_osu_ww3()
 
         begin = datetime.strftime(begin_date, '%Y-%m-%d')
         begin = str(begin) + 'T00%3A00%3A00Z'
         end = str(end_date) + 'T00%3A00%3A00Z'
-
-        print begin
-        print end
 
         url = "http://thredds.ucar.edu/thredds/ncss/grib/NCEP/WW3/Regional_US_West_Coast/Best?" \
               "var=Direction_of_wind_waves_surface&var=" \
@@ -564,7 +564,72 @@ class DataFileManager(models.Manager):
         local_filename = "{0}_{1}.nc".format(settings.NCEP_WW3_DF_FN, begin)
         destination_directory = os.path.join(settings.MEDIA_ROOT, settings.WAVE_WATCH_DIR)
 
+        # Retrieve datafile from the server
         urllib.urlretrieve(url=url, filename=os.path.join(destination_directory, local_filename))
+
+        from pl_plot.plotter import NcepWW3Plotter
+
+        """ UCAR NCEP WW3 comes with times: 00:00, 04:00 etc every four hours. Seacast
+        uses 01:00, 05:00, so we need to interpolate to these time zones.
+        
+        To do this we are going to do the interpolation when we download the file, and then
+        we will save the NetCDF file with these interpolated values and new time stamp!"""
+
+        plotter = NcepWW3Plotter(local_filename)
+
+        height = "Significant_height_of_combined_wind_waves_and_swell_surface"
+        direction = "Primary_wave_direction_surface"
+        period = "Primary_wave_mean_period_surface"
+
+        # Original values
+        times = plotter.data_file.variables['time']
+        heights = plotter.data_file.variables[height][:, :, :]
+        directions = plotter.data_file.variables[direction][:, :, :]
+        periods = plotter.data_file.variables[period][:, :, :]
+
+        lons = plotter.data_file.variables['lon']
+        lats = plotter.data_file.variables['lat']
+
+        # Create the new 'time' variable, which is a list of hours since
+        # df.variables['time'].units, to match the time series we want
+        basetime = get_datetime_from_units_since(plotter.data_file.variables['time'].units)
+        basetime = basetime + timedelta(hours=1)
+        ts1 = times # Orginal Times
+        dates = [basetime + n * timedelta(hours=4) for n in range(times.shape[0])]
+        # Handy dandy NetCDF4 function to convert datetime to hours using the units found in the datafile! Neat!
+        ts2 = date2num(dates[:], units=times.units, calendar=times.calendar)
+
+        for i in range(len(ts2)): # Now just bump up their times
+            ts2[i] += times[0]
+
+        """ Good ole interpolation """
+
+        heights_int = numpy.empty([ts2.shape[0], lats.shape[0], lons.shape[0]]) # Array to be filled
+        period_int = numpy.empty([ts2.shape[0], lats.shape[0], lons.shape[0]]) # Ditto
+        direction_int = numpy.empty([ts2.shape[0], lats.shape[0], lons.shape[0]]) # Ditto
+
+        ts1 = map(int, ts1) # Else we get an error
+        ts2 = map(int, ts2) # Else we get an error
+
+        for i in range(lats.shape[0]):
+            for j in range(lons.shape[0]):
+                """ For each lat and lon across t, time, interpolate from ts1, orginal timestamp,
+                the the new timestamp, ts2.
+                """
+                heights_int[:, i, j] = numpy.interp(ts2, ts1, heights[:, i, j]) # Heights interpolated
+                period_int[:, i, j] = numpy.interp(ts2, ts1, periods[:, i, j])
+                direction_int[:, i, j] = numpy.interp(ts2, ts1, directions[:, i, j])
+
+        plotter.close_file() # Close readonly Datafile
+        plotter.write_file(local_filename) # Open datafile for writing
+
+        # Write values
+        plotter.data_file.variables['time'][:] = ts2
+        plotter.data_file.variables[height][:, :, :] = heights_int
+        plotter.data_file.variables[period][:, :, :] = period_int
+        plotter.data_file.variables[direction][:, :, :] = direction_int
+
+        plotter.close_file() # Close rw datafile
 
         datafile = DataFile(
             type='NCEP',
@@ -573,7 +638,7 @@ class DataFileManager(models.Manager):
             model_date=begin_date,
             file=local_filename,
         )
-        datafile.save()
+        datafile.save() # S-S-Save that datafile entry!
 
         return datafile.id
 
@@ -1029,6 +1094,16 @@ def create_nomads_time_series_from_today(start=0, end=4):
 
 def create_nomads_time_series_from_datetime(datetime):
     pass
+
+def get_datetime_from_units_since(units_since):
+    """
+    This probably wont work with every model, so just check and make sure before use.
+
+    :param unit_since: String "units since ...."
+    :return:  datetime object with date in that string
+    """
+    date = datetime.strptime(units_since, "Hour since %Y-%m-%dT00:00:00Z")
+    return date
 
 class DataFile(models.Model):
     """ The Model or "Object" that is used by our Web Management Server (Django) to describe our
