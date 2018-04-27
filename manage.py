@@ -122,10 +122,23 @@ def download(roms=False, wave=False, wind=False, hycom=False, ncep=False, tcline
     return ids
 
 
-def info(datafile):
-    print "--- ", datafile.type, " DATAFILE --- ", datafile.file.name, " --- ", "DF-ID: ", datafile.id, " --- "
-    print "   MODEL DATE: ", datafile.model_date, " DL DATETIME: ", datafile.download_datetime
-    print ""
+def info(object):
+    from pl_download.models import DataFile
+    from pl_plot.models import Overlay
+
+    if type(object) == DataFile:
+        print "--- ", object.type, " DATAFILE --- ", object.file.name, " --- ", "DF-ID: ", object.id, " --- "
+        print "   MODEL DATE: ", object.model_date, " DL DATETIME: ", object.download_datetime
+        print ""
+
+
+    if type(object) == Overlay:
+        print "--- Overlay Defintion: ", object.definition, " --- OVERLAY ID", object.id
+        print " FILE: ", object.file.name
+        print " CREATED DATETIME: ", object.created_datetime, " APPLIES AT: ", object.applies_at_datetime
+        print " IS TILED: ", object.is_tiled, " IS EXTEND: ", object.is_extend
+        print " ZOOM LEVEL: ", object.zoom_levels
+        print ""
 
 def plot_by_id(ids=None):
     if ids == None:
@@ -137,7 +150,7 @@ def plot_by_id(ids=None):
 
     for id in ids:
         file = df.objects.get(pk=id)
-        print_file_info(file)
+        info(file)
 
         if file.type == 'NCDF':
             om.make_plot()
@@ -502,44 +515,54 @@ def plot_latest(num_plots=DEF_NUM_PLOTS, tile=DEF_TILE_FLAG, full_roms=DEF_FULL_
     print "MANAGE.PY: FINISH TEST"
 
 
-def list_datafiles_of_a_type(roms=False, wave=False, wind=False, hycom=False, ncep=False, tcline=False, navy=False):
+def list_function(table='datafiles', roms=False, wave=False, wind=False, hycom=False, ncep=False, tcline=False, navy=False):
+    from pl_plot.models import Overlay
     from pl_download.models import DataFile
 
-    if roms:
-        df_type = 'NCDF'
-        entries = DataFile.objects.filter(type=df_type)
-        for entry in entries:
-            info(entry)
-    if wave:
-        df_type = 'WAVE'
-        entries = DataFile.objects.filter(type=df_type)
-        for entry in entries:
-            info(entry)
-    if wind:
-        df_type = 'WIND'
-        entries = DataFile.objects.filter(type=df_type)
-        for entry in entries:
-            info(entry)
-    if hycom:
-        df_type = 'HYCOM'
-        entries = DataFile.objects.filter(type=df_type)
-        for entry in entries:
-            info(entry)
-    if ncep:
-        df_type = 'NCEP'
-        entries = DataFile.objects.filter(type=df_type)
-        for entry in entries:
-            info(entry)
-    if tcline:
-        df_type = 'tcline'
-        entries = DataFile.objects.filter(type=df_type)
-        for entry in entries:
-            info(entry)
-    if navy:
-        df_type = 'NAVY'
-        entries = DataFile.objects.filter(type=df_type)
-        for entry in entries:
-            info(entry)
+    if table == 'datafiles' or table == 'all':
+        if roms:
+            df_type = 'NCDF'
+            entries = DataFile.objects.filter(type=df_type)
+            for entry in entries:
+                info(entry)
+        if wave:
+            df_type = 'WAVE'
+            entries = DataFile.objects.filter(type=df_type)
+            for entry in entries:
+                info(entry)
+        if wind:
+            df_type = 'WIND'
+            entries = DataFile.objects.filter(type=df_type)
+            for entry in entries:
+                info(entry)
+        if hycom:
+            df_type = 'HYCOM'
+            entries = DataFile.objects.filter(type=df_type)
+            for entry in entries:
+                info(entry)
+        if ncep:
+            df_type = 'NCEP'
+            entries = DataFile.objects.filter(type=df_type)
+            for entry in entries:
+                info(entry)
+        if tcline:
+            df_type = 'tcline'
+            entries = DataFile.objects.filter(type=df_type)
+            for entry in entries:
+                info(entry)
+        if navy:
+            df_type = 'NAVY'
+            entries = DataFile.objects.filter(type=df_type)
+            for entry in entries:
+                info(entry)
+    elif table == 'overlays' or table == 'all': # List overlays
+        from django.db.models import Q
+        if ncep:
+            overlays = Overlay.objects.filter(Q(definition_id=settings.NCEP_WW3_DIR)
+                                               | Q(definition_id=settings.NCEP_WW3_HI))
+            for overlay in overlays:
+                info(overlay)
+
 
 
 def test(ids=None, navy=False, ncep=False):
@@ -746,15 +769,28 @@ if __name__ == "__main__":
         tile_set()
         sys.exit()
 
-    elif args.task == "list":
-        list_datafiles_of_a_type( roms=args.roms,
-                                  wave=args.wave,
-                                  wind=args.nams,
-                                  hycom=args.hycom,
-                                  ncep=args.ncep,
-                                  tcline=args.ncep,
-                                  navy=args.navy,
-                                  )
+    elif args.task == "datafiles":
+        list_function(table='datafiles',
+                      roms=args.roms,
+                      wave=args.wave,
+                      wind=args.nams,
+                      hycom=args.hycom,
+                      ncep=args.ncep,
+                      tcline=args.ncep,
+                      navy=args.navy,
+                      )
+        sys.exit()
+
+    elif args.task == "overlays":
+        list_function(table='overlays',
+                      roms=args.roms,
+                      wave=args.wave,
+                      wind=args.nams,
+                      hycom=args.hycom,
+                      ncep=args.ncep,
+                      tcline=args.ncep,
+                      navy=args.navy,
+                      )
         sys.exit()
 
     elif args.task == "test":

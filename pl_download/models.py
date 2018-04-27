@@ -543,6 +543,9 @@ class DataFileManager(models.Manager):
 
         :return: id of downloaded datafile
         """
+
+        print "Downlaoding NCEP WW3 from UNIDATA.....",
+
         # TODO: Check to see if the download file already exists?
         begin_date, end_date = create_nomads_time_series_from_today(start=0, end=20)
         #begin_date = DataFileManager.get_last_forecast_for_osu_ww3()
@@ -593,14 +596,17 @@ class DataFileManager(models.Manager):
         # Create the new 'time' variable, which is a list of hours since
         # df.variables['time'].units, to match the time series we want
         basetime = get_datetime_from_units_since(plotter.data_file.variables['time'].units)
-        basetime = basetime + timedelta(hours=1)
         ts1 = times # Orginal Times
         dates = [basetime + n * timedelta(hours=4) for n in range(times.shape[0])]
         # Handy dandy NetCDF4 function to convert datetime to hours using the units found in the datafile! Neat!
+
         ts2 = date2num(dates[:], units=times.units, calendar=times.calendar)
 
         for i in range(len(ts2)): # Now just bump up their times
             ts2[i] += times[0]
+
+        for i in ts2:
+            print num2date(i, units=times.units, calendar=times.calendar)
 
         """ Good ole interpolation """
 
@@ -610,6 +616,8 @@ class DataFileManager(models.Manager):
 
         ts1 = map(int, ts1) # Else we get an error
         ts2 = map(int, ts2) # Else we get an error
+
+        print "interpolating...",
 
         for i in range(lats.shape[0]):
             for j in range(lons.shape[0]):
@@ -621,6 +629,8 @@ class DataFileManager(models.Manager):
                 direction_int[:, i, j] = numpy.interp(ts2, ts1, directions[:, i, j])
 
         plotter.close_file() # Close readonly Datafile
+        print "saving interpolated values..."
+
         plotter.write_file(local_filename) # Open datafile for writing
 
         # Write values
