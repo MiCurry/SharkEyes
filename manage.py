@@ -215,15 +215,16 @@ def plot(ids=[],
                         print "PLOT: OSU ROMS SSH - timeslice: ", i
                         roms.append(om.make_plot(settings.OSU_ROMS_SSH, i, id))
         else:
-            for i in range(num_plots):
-                roms.append(om.make_plot(settings.OSU_ROMS_SST, i, id))
-                roms.append(om.make_plot(settings.OSU_ROMS_SUR_CUR, i, id))
+            for id in ids:
+                for i in range(num_plots):
+                    roms.append(om.make_plot(settings.OSU_ROMS_SST, i, id))
+                    roms.append(om.make_plot(settings.OSU_ROMS_SUR_CUR, i, id))
 
-                if full_roms:
-                    roms.append(om.make_plot(settings.OSU_ROMS_SUR_SAL, i, id))
-                    roms.append(om.make_plot(settings.OSU_ROMS_BOT_SAL, i, id))
-                    roms.append(om.make_plot(settings.OSU_ROMS_BOT_TEMP, i, id))
-                    roms.append(om.make_plot(settings.OSU_ROMS_SSH, i, id))
+                    if full_roms:
+                        roms.append(om.make_plot(settings.OSU_ROMS_SUR_SAL, i, id))
+                        roms.append(om.make_plot(settings.OSU_ROMS_BOT_SAL, i, id))
+                        roms.append(om.make_plot(settings.OSU_ROMS_BOT_TEMP, i, id))
+                        roms.append(om.make_plot(settings.OSU_ROMS_SSH, i, id))
 
         if tile_flag:
             print "PLOT: Tiling ROMS"
