@@ -54,17 +54,18 @@ class OverlayManager(models.Manager):
         return ids_of_these
 
     @classmethod
-    def get_next_few_days_of_tiled_overlays(cls, models=[1]):
+    def get_next_few_days_of_tiled_overlays(cls, models, tiled=True, extend=False, future_files=11, past_files=PAST_DAYS_OF_FILES_TO_DISPLAY):
         """ Gets the next few days of tiled overlays to be displayed on the website. """
         display = Overlay.objects.none()
+
         # know what dates to look for
-        dates = Overlay.objects.filter(applies_at_datetime__gte=timezone.now()-timedelta(days=PAST_DAYS_OF_FILES_TO_DISPLAY),
-                                       applies_at_datetime__lte=timezone.now()+timedelta(days=11),
-                                       is_tiled=True,
-                                       is_extend=False
+        dates = Overlay.objects.filter(applies_at_datetime__gte=timezone.now()-timedelta(days=past_files),
+                                       applies_at_datetime__lte=timezone.now()+timedelta(days=future_files),
+                                       is_tiled=tiled,
+                                       is_extend=extend,
                                        ).values_list('applies_at_datetime', flat=True).distinct()
 
-        return cls.grab_tiled_overlays_from_dates(dates, models)
+        return cls.grab_tiled_overlays_from_dates(dates, models, tiled=tiled)
 
     @classmethod
     def get_next_few_days_of_tiled_overlays_for_extended_forecasts(cls, type, models):
@@ -89,10 +90,10 @@ class OverlayManager(models.Manager):
         return cls.grab_tiled_overlays_from_dates(dates, models)
 
     @classmethod
-    def grab_tiled_overlays_from_dates(cls, dates, models):
+    def grab_tiled_overlays_from_dates(cls, dates, models, tiled=True):
         display = Overlay.objects.none()
         for d in dates:
-            over = Overlay.objects.filter(applies_at_datetime=d, is_tiled=True)
+            over = Overlay.objects.filter(applies_at_datetime=d, is_tiled=tiled)
             for m in models:
                 tile = over.filter(definition_id=m)
                 gen = tile.aggregate(Max('created_datetime'))['created_datetime__max']

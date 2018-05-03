@@ -596,17 +596,15 @@ class DataFileManager(models.Manager):
         # Create the new 'time' variable, which is a list of hours since
         # df.variables['time'].units, to match the time series we want
         basetime = get_datetime_from_units_since(plotter.data_file.variables['time'].units)
-        ts1 = times # Orginal Times
-        dates = [basetime + n * timedelta(hours=4) for n in range(times.shape[0])]
-        # Handy dandy NetCDF4 function to convert datetime to hours using the units found in the datafile! Neat!
+        ts1 = times; ts1 = map(float, ts1) # Orginal times converted from type netcdf variable else we get an error
+
+        dates = [(basetime + n * timedelta(hours=4)) for n in range(times.shape[0])]
 
         ts2 = date2num(dates[:], units=times.units, calendar=times.calendar)
 
-        for i in range(len(ts2)): # Now just bump up their times
-            ts2[i] += times[0]
+        for i in range(len(ts2)):
+            ts2[i] += times[0] # Now bump up the times to be equal with what we desire
 
-        for i in ts2:
-            print num2date(i, units=times.units, calendar=times.calendar)
 
         """ Good ole interpolation """
 
@@ -614,8 +612,8 @@ class DataFileManager(models.Manager):
         period_int = numpy.empty([ts2.shape[0], lats.shape[0], lons.shape[0]]) # Ditto
         direction_int = numpy.empty([ts2.shape[0], lats.shape[0], lons.shape[0]]) # Ditto
 
-        ts1 = map(int, ts1) # Else we get an error
-        ts2 = map(int, ts2) # Else we get an error
+        ts1 = map(float, ts1) # Else we get an error
+        ts2 = map(float, ts2) # Else we get an error
 
         print "interpolating...",
 
