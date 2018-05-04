@@ -607,7 +607,7 @@ class NcepWW3Plotter:
         times = self.data_file.variables['time']
         basetime = self.data_file.variables['time'].units
         basetime = datetime.strptime(basetime, "Hour since %Y-%m-%dT00:00:00Z")
-        applies_at_datetime = timezone.make_aware(basetime + timedelta(hours=times[time_index]) , timezone.utc)
+        applies_at_datetime = basetime + timedelta(hours=times[time_index])
         return applies_at_datetime
 
     def get_number_of_model_times(self):
