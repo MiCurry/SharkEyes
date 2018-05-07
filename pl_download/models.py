@@ -603,7 +603,7 @@ class DataFileManager(models.Manager):
         ts2 = date2num(dates[:], units=times.units, calendar=times.calendar)
 
         for i in range(len(ts2)):
-            ts2[i] += times[0] # Now bump up the times to be equal with what we desire
+            ts2[i] += times[0] + 1 # Now bump up the times to be equal with what we desire
 
 
         """ Good ole interpolation """
@@ -1097,6 +1097,8 @@ def create_nomads_time_series_from_today(start=0, end=4):
     """
     begin_date = datetime.now().date() + timedelta( days = start )
     end_date = datetime.now().date() + timedelta( days = end)
+
+
 
     return begin_date, end_date
 
