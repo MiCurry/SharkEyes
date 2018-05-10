@@ -1,14 +1,15 @@
-from django.shortcuts import render
-from pl_plot.models import OverlayManager, OverlayDefinition
-from pl_download.models import DataFile
-from scipy.io import netcdf
-import numpy as np
-from django.conf import settings
 import os
 from datetime import datetime, timedelta
 import pytz
 import json
 import logging
+import re
+from itertools import chain
+from scipy.io import netcdf
+import numpy as np
+
+from mpl_toolkits.basemap import Basemap
+from django.shortcuts import render
 from django.db import connection
 from django.db import IntegrityError
 from django.views.decorators.csrf import csrf_exempt
@@ -18,9 +19,10 @@ from django.template import Library
 from django.template.defaultfilters import stringfilter
 from django.utils.html import conditional_escape
 from django.utils.safestring import mark_safe
-from mpl_toolkits.basemap import Basemap
-import re
+from django.conf import settings
 
+from pl_plot.models import OverlayManager, OverlayDefinition
+from pl_download.models import DataFile
 # Django likes to remove whitespace from HTML strings. Use spacify("string with space") to preserve whitespace
 register = Library()
 @stringfilter
@@ -272,6 +274,28 @@ def get_models(keys):
             models['seas'] = 1
     return models
 
+def get_extended_overlays(extend):
+    if not extend:
+        return []
+
+    models = [settings.OSU_ROMS_SST,
+              settings.OSU_ROMS_SUR_CUR,
+              settings.NCEP_WW3_HI,
+              settings.NCEP_WW3_DIR,
+              settings.NAMS_WIND,
+              settings.OSU_ROMS_BOT_TEMP,
+              settings.OSU_ROMS_SUR_SAL,
+              settings.OSU_ROMS_BOT_SAL,
+              settings.OSU_ROMS_SSH,
+              settings.OSU_ROMS_TCLINE]
+
+
+    ww3_extended_overlays = OverlayManager.get_next_few_days_of_tiled_overlays_for_extended_forecasts('WAVE', models)
+    roms_extended_overlays = OverlayManager.get_next_few_days_of_tiled_overlays_for_extended_forecasts('NCDF', models)
+    
+    return list(chain(ww3_extended_overlays.values_list('applies_at_datetime', flat=True).distinct().order_by('applies_at_datetime'),
+                roms_extended_overlays.values_list('applies_at_datetime', flat=True).distinct().order_by('applies_at_datetime')))
+
 #This is where we associate the Javascript variables (overlays, defs etc) with the Django objects from the database.
 def home(request):
     #Models determines which models are displayed on the website. They will appear in the order provided by models[]. Change this order to change the order of the buttons and which buttons appear.
@@ -284,15 +308,41 @@ def home(request):
     # 7 = Bottom Temperature,
     # 8 = Bottom Salinity,
     # 9 = Sea Surface Height
-    # 14 = Thermocline
-    models = [1,3,4,6,5,8,2,7,9,14]
+    # 10 =
+    # 11 =
+    # 12 =
+    # 13 =
+
+
+    models = [settings.OSU_ROMS_SST,
+              settings.OSU_ROMS_SUR_CUR,
+              settings.NCEP_WW3_HI,
+              settings.NCEP_WW3_DIR,
+              settings.NAMS_WIND,
+              settings.OSU_ROMS_BOT_TEMP,
+              settings.OSU_ROMS_SUR_SAL,
+              settings.OSU_ROMS_BOT_SAL,
+              settings.OSU_ROMS_SSH,
+              settings.OSU_ROMS_TCLINE]
     fields = []
     for value in models:
         fields.append(OverlayDefinition.objects.get(pk=value))
     overlays_view_data = OverlayManager.get_next_few_days_of_tiled_overlays(models)
-    datetimes = overlays_view_data.values_list('applies_at_datetime', flat=True).distinct().order_by('applies_at_datetime')
-    context = {'overlays': overlays_view_data, 'defs': fields, 'times':datetimes }
+    datetimes = overlays_view_data.values_list('applies_at_datetime',
+                                               flat=True).distinct().order_by('applies_at_datetime')
+    context = {'overlays': overlays_view_data, 'defs': fields, 'times': datetimes}
+
     return render(request, 'index.html', context)
+
+def get_list_of_overlay_definitions(models):
+    """
+    :param models: List of models definition ids ie: model = [seetings.OSU_ROMS_SST, settings.OSU_ROMS_SUR_SAL ...]
+    :return: Obejct of fields
+    """
+    fields = []
+    for value in models:
+        fields.append(OverlayDefinition.objects.get(pk=value))
+    return fields
 
 def oops(request):
     return render(request, 'oops.html')
