@@ -309,6 +309,8 @@ def ww3_height(ax, data_file, bmap, key_ax, forecast_index, downsample_ratio):
     def meters_to_feet(height):
         return height * METERS_TO_FEET
 
+    vectorized_conversion = numpy.vectorize(meters_to_feet)
+
     """ longitude comes in degrees east and because we coded the bmap latitude and longitude
     in degrees west we need to covert to degrees west. """
     def convert_to_degrees_west(x):
@@ -328,6 +330,7 @@ def ww3_height(ax, data_file, bmap, key_ax, forecast_index, downsample_ratio):
 
     heights = data_file.variables[height][forecast_index, :, :]
     heights = numpy.ma.masked_array(heights, numpy.isnan(heights))
+    heights = vectorized_conversion(heights)
 
     lons = data_file.variables['lon']
     lats = data_file.variables['lat']
