@@ -394,6 +394,9 @@ class DataFileManager(models.Manager):
 
     @staticmethod
     def get_last_forecast_for_roms(df_type=None):
+        # Because we are extending the two day roms forecast, just grab the last available forecast.
+        # This will also allow the NAVY forecast to 'takeover' the OSU ROMS forecast if the OSU ROMS forecast
+        # isn't available.
         from pl_plot.plotter import Plotter
 
         #Todo: Check to see if there is at least one rom file
@@ -405,6 +408,7 @@ class DataFileManager(models.Manager):
 
     @staticmethod
     def get_last_forecast_for_osu_ww3(df_type=None):
+        # Not used since OSU WW3 is no longer available
         from pl_plot.plotter import WaveWatchPlotter
 
         #Todo: Check to see if there is at least one OSU WW3 file
@@ -417,123 +421,112 @@ class DataFileManager(models.Manager):
 
     @staticmethod
     @shared_task(name='pl_download.navy_hycom_download')
-    def navy_hycom_download():
+    def navy_hycom_download(level='top'):
 
-        # SST - Sea Surface Temp & Salnity
-        # UV - Sea Surface Currents
-        # SSH - Sea Surface Height
+        # TODO: Interpolate
 
-        BASE_URL = 'http://tds.hycom.org/thredds/catalog/GLBv0.08/expt_92.9/forecasts/catalog.html'
-        XML_URL = 'http://tds.hycom.org/thredds/catalog/GLBv0.08/expt_92.9/forecasts/catalog.xml'
+        top = 0.0
+        bot = 2500.0
+        vert_coord= str(top)
 
-        verbose = 1
+        time_start_dt = DataFileManager.get_last_forecast_for_roms()
+        time_start = create_nomads_string_from_datetime(DataFileManager.get_last_forecast_for_roms())
+        time_end = create_nomads_string_from_datetime(DataFileManager.get_last_forecast_for_roms() + timedelta(days=30)) # Essentially set to infinity
 
-        access_date, date_string  = determine_latest_forecast(XML_URL)
+        URL = 'http://ncss.hycom.org/thredds/ncss/GLBv0.08/expt_93.0/data/forecasts/Forecast_Mode_Run_(FMRC)_best.ncd?' \
+              'var=salinity&var=water_temp&var=water_u&var=water_v' \
+              '&north=50&west=-150&east=-110&south=25&disableProjSubset=on' \
+              '&horizStride=1' \
+              '&time_start='+time_start+'' \
+              '&time_end='+time_end+'' \
+              '&timeStride=1' \
+              '&vertCoord='+vert_coord+'' \
+              '&addLatLon=true&accept=netcdf'
 
-        if verbose > 0:
-            print "Access Date:", access_date
-            print "Access Date String:", date_string
 
-        catalog = etree.parse(XML_URL)
-        today = datetime.now().today()
-
-        export = '929'
-
-        file_ids = []
-
+        print "Downloading HYCOM df...",
         destination_directory = os.path.join(settings.MEDIA_ROOT, settings.NETCDF_STORAGE_DIR)
+        local_filename = "{0}_{1}.nc".format(settings.NAVY_HYCOM_DF_FN, create_string_from_dt_for_file(time_start_dt))
+        urllib.urlretrieve(url=URL, filename=os.path.join(destination_directory, local_filename))
+        print "file downloaded",
 
-        # Determine when we should download
-        last_roms_forecast_date = DataFileManager.get_last_forecast_for_roms()
+        from pl_plot.plotter import HycomPlotter
 
-        # Download
-        for element in catalog.iter():
-            file = element.get('name')
+        plotter = HycomPlotter(local_filename)
 
-            if not file:
-                continue
+        time='time'; salt='salinity'; temp='water_temp'
+        cur_u='water_u'; cur_v='water_v'
 
-            elif file.startswith('hycom_glbv_'+export+'_'+date_string): # Grab only dates that are the latest
-                ''' Grab infromation of the datafile '''
-                if verbose > 0:
-                    print "File split", file.split('_')
+        depth = plotter.data_file.variables['depth']
+        times = plotter.data_file.variables[time]
+        salinity = plotter.data_file.variables[salt][:, 0, :, :]
+        temps = plotter.data_file.variables[temp][:, 0, :, :]
+        curs_u = plotter.data_file.variables[cur_u][:, 0, :, :]
+        curs_v = plotter.data_file.variables[cur_v][:, 0, :, :]
 
-                field = determine_type(file.split('_')[5])
-                access_date, date, tag = create_nomads_time_series_from_file_with_tag(file)
+        # Squeeze out the depth of each variable...
+        salinity = numpy.squeeze(salinity)
+        temps = numpy.squeeze(temps)
+        curs_u = numpy.squeeze(curs_u)
+        curs_v = numpy.squeeze(curs_v)
 
-                url = create_subset_access_url(file, field, access_date)
+        lons = plotter.data_file.variables['lon']
+        lats = plotter.data_file.variables['lat']
 
-                date_tag = date.strftime('%Y-%m-%d')
-                datafile = []
+        basetime = datetime.strptime(plotter.data_file.variables[time].units, 'hours since %Y-%m-%d 12:00:00.000 UTC')
 
-                if len(url) == 2: # TEMP and SSC forecasts create two access links for top or bottom
-                    ''' Top '''
-                    local_filename = []
-                    local_filename.append("{0}_{1}_{2}_{3}_top.nc".format(settings.NAVY_HYCOM_DF_FN, date_tag, tag, field))
+        ts1 = times; ts1 = map(float, ts1)
 
-                    datafile.append(DataFile(
-                        type='HYCOM',
-                        download_datetime=timezone.now(),
-                        generated_datetime=timezone.now(),
-                        model_date=date,
-                        file=local_filename[0],
-                    ))
+        dates = [(basetime + n * timedelta(hours=4)) for n in range(times.shape[0])]
 
-                    ''' Bottom '''
-                    local_filename.append("{0}_{1}_{2}_{3}_bot.nc".format(settings.NAVY_HYCOM_DF_FN, date_tag, tag, field))
+        ts2 = date2num(dates[:], units=times.units, calendar=times.calendar)
 
-                    datafile.append(DataFile(
-                        type='HYCOM',
-                        download_datetime=timezone.now(),
-                        generated_datetime=timezone.now(),
-                        model_date=date,
-                        file=local_filename[1],
-                    ))
-                else:
-                    ''' SSH '''
-                    local_filename = "{0}_{1}_{2}_{3}.nc".format(settings.NAVY_HYCOM_DF_FN, date_tag, tag, field)
-                    datafile.append(DataFile(
-                        type='HYCOM',
-                        download_datetime=timezone.now(),
-                        generated_datetime=timezone.now(),
-                        model_date=date,
-                        file=local_filename,
-                    ))
-
-                verbose = 0
-
-                if verbose > 0:
-                    print last_roms_forecast_date
-                    print type(last_roms_forecast_date)
-
-                date = timezone.make_aware(date, timezone.utc)
-
-                if date > last_roms_forecast_date:
-                    print "Downloading A Hycom File..."
-                    if len(local_filename) == 2: # Top and Bottom files
-                        for i in range(len(local_filename)):
-                            urllib.urlretrieve(url=url[i],
-                                               filename=os.path.join(destination_directory, local_filename[i]))
-                            if not DataFileManager.test_file(local_filename[i]):
-                                print "ERROR DOWNLOADING FILE,", local_filename[i]
-                    else: # SST
-                        urllib.urlretrieve(url=url,
-                                           filename=os.path.join(destination_directory, local_filename))
-                        if not DataFileManager.test_file(local_filename):
-                            print "ERROR DOWNLOADING FILE,", local_filename
-
-                else:
-                    # Don't download - we already have a forecast for this time
-                    print "NO DOWNLOAD!", date
-                    continue
-
-                for d in datafile:
-                    d.save()
-                    file_ids.append(d.id)
+        for i in range(len(ts2)):
+            ts2[i] += times[0] + 1 # Now bump up the times to be equal with what we desire
 
 
-        print "NAVY HYCOM - COMPLETE"
-        return file_ids
+        salinity_int = numpy.empty([ts2.shape[0], lats.shape[0], lons.shape[0]]) # Array to be filled
+        temps_int = numpy.empty([ts2.shape[0], lats.shape[0], lons.shape[0]]) # Array to be filled
+        curs_u_int = numpy.empty([ts2.shape[0], lats.shape[0], lons.shape[0]]) # Array to be filled
+        curs_v_int = numpy.empty([ts2.shape[0], lats.shape[0], lons.shape[0]]) # Array to be filled
+
+        print "...Interpolating...",
+
+        for i in range(lats.shape[0]):
+            for j in range(lons.shape[0]):
+                """ For each lat and lon across t, time, interpolate from ts1, orginal timestamp,
+                the the new timestamp, ts2.
+                """
+                salinity_int[:, i, j] = numpy.interp(ts2, ts1, salinity[:, i, j]) # Heights interpolated
+                temps_int[:, i, j] = numpy.interp(ts2, ts1, temps[:, i, j])
+                curs_u_int[:, i, j] = numpy.interp(ts2, ts1, curs_u[:, i, j])
+                curs_v_int[:, i, j] = numpy.interp(ts2, ts1, curs_v[:, i, j])
+
+        plotter.close_file() # Close readonly Datafile
+        print "saving interpolated values..."
+
+        plotter.write_file(local_filename) # Open datafile for writing
+
+        # Write values
+        plotter.data_file.variables[time][:] = ts2
+        plotter.data_file.variables[salt][:, :, :] = salinity_int
+        plotter.data_file.variables[temp][:, :, :] = temps_int
+        plotter.data_file.variables[cur_u][:, :, :] = curs_u_int
+        plotter.data_file.variables[cur_v][:, :, :] = curs_v_int
+
+        plotter.close_file() # Close rw datafile
+
+        datafile = DataFile(
+            type='HYCOM',
+            download_datetime=timezone.now(),
+            generated_datetime=timezone.now(),
+            model_date=time_start_dt,
+            file=local_filename,
+        )
+        file_id = datafile.save() # S-S-Save that datafile entry!
+        print "finished! Datafile saved!"
+
+        return file_id
 
     @staticmethod
     @shared_task(name='pl_download.ww3_download')
@@ -550,7 +543,7 @@ class DataFileManager(models.Manager):
 
         # TODO: Check to see if the download file already exists?
         begin_date, end_date = create_nomads_time_series_from_today(start=0, end=20)
-        #begin_date = DataFileManager.get_last_forecast_for_osu_ww3()
+        #begin_date = DataFileManager.get_last_forecast_for_osu_ww3() # No longer extending WW3. OSU WW3 is N/A
 
         begin = datetime.strftime(begin_date, '%Y-%m-%d')
         begin = str(begin) + 'T00%3A00%3A00Z'
@@ -606,7 +599,6 @@ class DataFileManager(models.Manager):
 
         for i in range(len(ts2)):
             ts2[i] += times[0] + 1 # Now bump up the times to be equal with what we desire
-
 
         """ Good ole interpolation """
 
@@ -909,172 +901,10 @@ class DataFileManager(models.Manager):
 
         return True
 
-
-def create_url_temp_sal(file, date):
-    # &vertCoord = 0 <- Depth
-
-    top = \
-        'http://ncss.hycom.org/thredds/ncss/GLBv0.08/expt_92.9/forecasts/' \
-        ''+file+'?' \
-        '&var=salinity&var=water_temp' \
-        '&north=50&west=228&east=237&south=35' \
-        '&horizStride=1' \
-        '&time='+date+'' \
-        '&vertCoord=0' \
-        '&addLatLon=true&accept=netcdf'
-
-    bot = \
-        'http://ncss.hycom.org/thredds/ncss/GLBv0.08/expt_92.9/forecasts/' \
-        ''+file+'?' \
-        'var=salinity_bottom&var=water_temp_bottom' \
-        '&north=50&west=228&east=237&south=35' \
-        '&horizStride=1' \
-        '&time='+date+'' \
-        '&addLatLon=true&accept=netcdf'
-
-    return top, bot
-
-def create_url_ssc(file, date):
-    # Vert Cord = Depth
-    top = \
-        'http://ncss.hycom.org/thredds/ncss/GLBv0.08/expt_92.9/forecasts/' \
-        ''+file+'?' \
-        '&var=water_u&var=water_v' \
-        '&north=50&west=228&east=237&south=35' \
-        '&horizStride=1' \
-        '&time='+date+'' \
-        '&vertCoord=0' \
-        '&addLatLon=true&accept=netcdf'
-
-    bot = \
-        'http://ncss.hycom.org/thredds/ncss/GLBv0.08/expt_92.9/forecasts/' \
-        ''+file+'?' \
-        'var=water_u_bottom&var=water_v_bottom' \
-        '&north=50&west=228&east=237&south=35' \
-        '&horizStride=1' \
-        '&time='+date+'' \
-        '&addLatLon=true&accept=netcdf'
-
-    return top, bot
-
-def create_url_ssh(file, date):
-    return \
-        'http://ncss.hycom.org/thredds/ncss/GLBv0.08/expt_92.9/forecasts/' \
-        ''+file+'?' \
-        'var=surf_el' \
-        '&north=50&west=228&east=237&south=35' \
-        '&horizStride=1' \
-        '&time='+date+ \
-        '&addLatLon=true' \
-        '&accept=netcdf'
-
-
-def determine_type(fileEnding):
-    if fileEnding == 'ssh.nc':
-        type = 'ssh'
-    if fileEnding == 'ts3z.nc':
-        type = 'temp'
-    if fileEnding == 'uv3z.nc':
-        type = 'cur'
-
-    return type
-
-def determine_latest_forecast(XML_URL):
-    """ A mess of a function. The navy's posts has the last few days of its forecast genreations
-    on its site, so we need to find the latest one and use that. However, sometimes the latest one
-    doesn't have the full number of forecast.
-
-    So in this function we find the dates that are aviable to choose from. Then starting from the
-    most recent day we check to see which date has the longest set of full forecasts (tag > 180).
-
-    :param XML_URL:
-    :return:
-    """
-    catalog = etree.parse(XML_URL)
-    avaliable_dates = []
-    export = '929'
-
-    def parse_catalog(dates):
-        for element in catalog.iter():
-            file = element.get('name')
-
-            if not file:
-                continue
-
-            elif file.startswith('hycom_glbv_'+export+'_'+dates.strftime("%Y%m%d")): # Grab only dates that are the latest
-                ''' Grab infromation of the datafile '''
-
-                _, _, tag = create_nomads_time_series_from_file_with_tag(file)
-
-                if int(tag[1:]) >= 180:
-                    return dates
-                else:
-                    continue
-        else:
-            return False
-
-    i = 0
-    for element in catalog.iter():
-        file = element.get('name')
-        if not file:
-            continue
-        elif file.startswith('hycom_glbv'):
-            date = datetime.strptime(file.split('_')[3][0:8], "%Y%m%d")
-
-            if i == 0:
-                date_s = date
-            else:
-                if date > date_s:
-                    avaliable_dates.append(date)
-                    date_s = date
-
-            i += 1
-
-    avaliable_dates = sorted(avaliable_dates, reverse=True)
-
-    # Find the latest date with the fullest forecast
-    date_s = False
-    for dates in avaliable_dates:
-        # Now Search through each date and see what the last tag is
-        date_s = parse_catalog(dates)
-        if date_s is not False:
-            break
-
-
-    access_date = date_s
-    date_string = date_s.strftime("%Y%m%d")
-
-    return access_date, date_string
-
-def create_subset_access_url(file, field, date):
-    """
-
-    :param field: ssh, temp, cur
-    :param date: DateTime
-    :param file: outfile
-    :return: subset access url for given type
-    """
-    verbose = 0
-
-    if verbose > 0:
-        print "Type:", field, type(field)
-        print "Date:", date, type(date)
-        print "File:", file, type(file)
-
-    if field == 'temp':
-        return create_url_temp_sal(file, date)
-    if field == 'cur':
-        return create_url_ssc(file, date)
-    if field == 'ssh':
-        return create_url_ssh(file, date)
-
-
 def create_nomads_time_series_from_file_with_tag(file):
     """ create a nomads date & time access from a file that looks like:
     hycom_glbv_929_2018010812_t000 to 2018-01-08T12%3A00%3A00Z
-
     where `txxx` = the number of hours from the date in the file
-
     :param file: hycom_glbv_929_yyyymmdd12_txxx
     :return: string in format - YYYY-MM-DDTHH%3AMM%3ASSZ and datetime
     """
@@ -1092,7 +922,6 @@ def create_nomads_time_series_from_file_with_tag(file):
 def create_nomads_time_series_from_today(start=0, end=4):
     """ Creates a nomads time series in the format of: T00%3A00%3A00Z with today's date as the start
     and to todays date + range.
-
     :param start: number of days into the future to start
     :param end: number of days into the future to end
     :return: begin_date, end_date
@@ -1100,22 +929,23 @@ def create_nomads_time_series_from_today(start=0, end=4):
     begin_date = datetime.now().date() + timedelta( days = start )
     end_date = datetime.now().date() + timedelta( days = end)
 
-
-
     return begin_date, end_date
 
-def create_nomads_time_series_from_datetime(datetime):
-    pass
+def create_nomads_string_from_datetime(datetime):
+    return datetime.strftime('%Y-%m-%dT%H%%3A%M%%3A%SZ')
+
+def create_string_from_dt_for_file(dt):
+    return dt.strftime('%d-%b-%Y')
 
 def get_datetime_from_units_since(units_since):
     """
     This probably wont work with every model, so just check and make sure before use.
-
     :param unit_since: String "units since ...."
     :return:  datetime object with date in that string
     """
     date = datetime.strptime(units_since, "Hour since %Y-%m-%dT00:00:00Z")
     return date
+
 
 class DataFile(models.Model):
     """ The Model or "Object" that is used by our Web Management Server (Django) to describe our
