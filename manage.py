@@ -122,13 +122,23 @@ def download(roms=False, wave=False, wind=False, hycom=False, ncep=False, tcline
     return ids
 
 
+def info(object):
+    from pl_download.models import DataFile
+    from pl_plot.models import Overlay
 
-def info(datafile):
-    print "--- ", datafile.type, " DATAFILE --- ", datafile.file.name, " --- ", "DF-ID: ", datafile.id, " --- "
-    print "   MODEL DATE: ", datafile.model_date, " DL DATETIME: ", datafile.download_datetime
-    print ""
+    if type(object) == DataFile:
+        print "--- ", object.type, " DATAFILE --- ", object.file.name, " --- ", "DF-ID: ", object.id, " --- "
+        print "   MODEL DATE: ", object.model_date, " DL DATETIME: ", object.download_datetime
+        print ""
 
 
+    if type(object) == Overlay:
+        print "--- Overlay Defintion: ", object.definition, " --- OVERLAY ID", object.id
+        print " FILE: ", object.file.name
+        print " CREATED DATETIME: ", object.created_datetime, " APPLIES AT: ", object.applies_at_datetime
+        print " IS TILED: ", object.is_tiled, " IS EXTEND: ", object.is_extend
+        print " ZOOM LEVEL: ", object.zoom_levels
+        print ""
 
 def plot_by_id(ids=None):
     if ids == None:
@@ -140,7 +150,7 @@ def plot_by_id(ids=None):
 
     for id in ids:
         file = df.objects.get(pk=id)
-        print_file_info(file)
+        info(file)
 
         if file.type == 'NCDF':
             om.make_plot()
@@ -163,12 +173,8 @@ def plot_by_id(ids=None):
         elif file.type == 'RTOFS':
             om.make_plot()
 
-
-
-
-
 def plot(ids=[],
-         num_plots=DEF_NUM_PLOTS, tile=DEF_TILE_FLAG, full_roms=DEF_FULL_ROMS_FLAG,
+         num_plots=DEF_NUM_PLOTS, tile_flag=DEF_TILE_FLAG, full_roms=DEF_FULL_ROMS_FLAG,
          roms=False, wave=False, wind=False, hycom=False, ncep=False, tcline=False, navy=False):
     '''  Just generates plots. You need to pass in the df id to get a plot! Pass it in manually
     or by using one of the functions below which grabs them using the database or via downloading!
@@ -209,17 +215,18 @@ def plot(ids=[],
                         print "PLOT: OSU ROMS SSH - timeslice: ", i
                         roms.append(om.make_plot(settings.OSU_ROMS_SSH, i, id))
         else:
-            for i in range(num_plots):
-                roms.append(om.make_plot(settings.OSU_ROMS_SST, i, id))
-                roms.append(om.make_plot(settings.OSU_ROMS_SUR_CUR, i, id))
+            for id in ids:
+                for i in range(num_plots):
+                    roms.append(om.make_plot(settings.OSU_ROMS_SST, i, id))
+                    roms.append(om.make_plot(settings.OSU_ROMS_SUR_CUR, i, id))
 
-                if full_roms:
-                    roms.append(om.make_plot(settings.OSU_ROMS_SUR_SAL, i, id))
-                    roms.append(om.make_plot(settings.OSU_ROMS_BOT_SAL, i, id))
-                    roms.append(om.make_plot(settings.OSU_ROMS_BOT_TEMP, i, id))
-                    roms.append(om.make_plot(settings.OSU_ROMS_SSH, i, id))
+                    if full_roms:
+                        roms.append(om.make_plot(settings.OSU_ROMS_SUR_SAL, i, id))
+                        roms.append(om.make_plot(settings.OSU_ROMS_BOT_SAL, i, id))
+                        roms.append(om.make_plot(settings.OSU_ROMS_BOT_TEMP, i, id))
+                        roms.append(om.make_plot(settings.OSU_ROMS_SSH, i, id))
 
-        if tile:
+        if tile_flag:
             print "PLOT: Tiling ROMS"
             tile(roms)
 
@@ -240,7 +247,7 @@ def plot(ids=[],
                 waves.append(om.make_wave_watch_plot(settings.OSU_WW3_HI, i, id))
                 waves.append(om.make_wave_watch_plot(settings.OSU_WW3_DIR, i, id))
 
-        if tile:
+        if tile_flag:
             print "PLOT: Tiling waves"
             tile(waves)
 
@@ -254,7 +261,7 @@ def plot(ids=[],
             for i in range(num_plots):
                 winds.append(om.make_plot(settings.NAMS_WIND, i, id))
 
-        if tile:
+        if tile_flag:
             print "PLOT: Tiling NAM Winds"
             tile(winds)
 
@@ -268,7 +275,7 @@ def plot(ids=[],
             hycoms.append(om.make_plot(settings.HYCOM_SST, 0, id))
             hycoms.append(om.make_plot(settings.HYCOM_SUR_CUR, 0, id))
 
-        if tile:
+        if tile_flag:
             print "PLOT: Tiling HYCOM"
             tile(hycoms)
 
@@ -284,9 +291,9 @@ def plot(ids=[],
                 nceps.append(om.make_wave_watch_plot(settings.NCEP_WW3_DIR, i, id))
                 nceps.append(om.make_wave_watch_plot(settings.NCEP_WW3_HI, i, id))
 
-        if tile:
+        if tile_flag:
             print "PLOT: Tiling NCEP"
-            tile(ncep)
+            tile(nceps)
 
         return
 
@@ -299,7 +306,7 @@ def plot(ids=[],
             for i in range(num_plots):
                 tcline_ids.append(om.make_plot(settings.OSU_ROMS_TCLINE, i, id))
 
-        if tile:
+        if tile_flag:
             print "PLOT: Tiling tcline"
             tile(tcline_ids)
 
@@ -316,7 +323,7 @@ def plot(ids=[],
             navy_ids.append(om.make_plot(settings.NAVY_HYCOM_SUR_SAL, 0, id))
 
 
-        if tile:
+        if tile_flag:
             print "PLOT: Tiling NCEP"
             tile(navy_ids)
 
@@ -334,43 +341,43 @@ def plot_new(num_plots=DEF_NUM_PLOTS, tile=DEF_TILE_FLAG, full_roms=DEF_FULL_ROM
         ids = download(roms=True)
         roms = []
 
-        plot( ids, roms=True, num_plots=num_plots, tile=tile, full_roms=full_roms )
+        plot( ids, roms=True, num_plots=num_plots, tile_flag=tile, full_roms=full_roms )
 
     if wave:
         ids = download(wave=True)
         waves = []
 
-        plot( ids, wave=True, num_plots=num_plots, tile=tile )
+        plot( ids, wave=True, num_plots=num_plots, tile_flag=tile )
 
     if wind:
         ids = download(wind=True)
         winds = []
 
-        plot( ids, wind=True, num_plots=num_plots, tile=tile )
+        plot( ids, wind=True, num_plots=num_plots, tile_flag=tile )
 
     if hycom:
         ids = download(hycom=True, num_dl=num_plots)
         hycoms = []
 
-        plot( ids, hycom=True, num_plots=num_plots, tile=tile )
+        plot( ids, hycom=True, num_plots=num_plots, tile_flag=tile )
 
     if ncep:
         ids = download(ncep=True)
         nceps = []
 
-        plot( ids, ncep=True, num_plots=num_plots, tile=tile )
+        plot( ids, ncep=True, num_plots=num_plots, tile_flag=tile )
 
     if tcline:
         ids = download(tcline=True)
         tclines = []
 
-        plot( ids, tcline=True, num_plots=num_plots, tile=tile )
+        plot( ids, tcline=True, num_plots=num_plots, tile_flag=tile )
 
     if navy:
         ids = download(navy=True)
         navys = []
 
-        plot( ids, navy=True, num_plots=num_plots, tile=tile )
+        plot( ids, navy=True, num_plots=num_plots, tile_flag=tile )
 
 def plot_latest(num_plots=DEF_NUM_PLOTS, tile=DEF_TILE_FLAG, full_roms=DEF_FULL_ROMS_FLAG, date='latest',
                 roms=False, wave=False, wind=False, hycom=False, ncep=False, tcline=False, navy=False):
@@ -415,7 +422,7 @@ def plot_latest(num_plots=DEF_NUM_PLOTS, tile=DEF_TILE_FLAG, full_roms=DEF_FULL_
         if date == "today":
             ids = df.objects.filter(type='NCDF').get(model_date=today)
         elif date == "latest":
-            ids = dm.get_next_few_datafiles_of_a_type(days=1, type ='NCDF')
+            ids = dm.get_next_few_datafiles_of_a_type(type ='NCDF')
         elif date == "all":
             ids = df.objects.all().filter(type = "NCDF")
 
@@ -431,7 +438,7 @@ def plot_latest(num_plots=DEF_NUM_PLOTS, tile=DEF_TILE_FLAG, full_roms=DEF_FULL_
         if date == "today":
             ids = df.objects.filter(type='WAVE').get(model_date=today)
         elif date == "latest":
-            ids = dm.get_next_few_datafiles_of_a_type(days=1, past_days=1, type ='WAVE')
+            ids = dm.get_next_few_datafiles_of_a_type(type ='WAVE')
         elif date == "all":
             ids = df.objects.all().filter(type = "WAVE")
 
@@ -447,7 +454,7 @@ def plot_latest(num_plots=DEF_NUM_PLOTS, tile=DEF_TILE_FLAG, full_roms=DEF_FULL_
         if date is "today":
             ids = df.objects.filter(type='WIND').get(model_date=today)
         elif date is "latest":
-            ids = dm.get_next_few_datafiles_of_a_type(days=1, type ='WIND')
+            ids = dm.get_next_few_datafiles_of_a_type(type ='WIND')
         elif date is "all":
             ids = df.objects.all().filter(type = "WIND")
 
@@ -460,7 +467,7 @@ def plot_latest(num_plots=DEF_NUM_PLOTS, tile=DEF_TILE_FLAG, full_roms=DEF_FULL_
         if date == "today":
             ids = df.objects.filter(type='HYCOM').get(model_date=today)
         elif date == "latest":
-            ids = dm.get_next_few_datafiles_of_a_type(days=20, type ='HYCOM')
+            ids = dm.get_next_few_datafiles_of_a_type(type ='HYCOM')
         elif date == "all":
             ids = df.objects.all().filter(type = "HYCOM")
 
@@ -474,7 +481,7 @@ def plot_latest(num_plots=DEF_NUM_PLOTS, tile=DEF_TILE_FLAG, full_roms=DEF_FULL_
         if date is "today":
             ids = df.objects.filter(type='NCEP_WW3').get(model_date=today)
         elif date is "latest":
-            ids = dm.get_next_few_datafiles_of_a_type(days=20, type ='NCEP_WW3')
+            ids = dm.get_next_few_datafiles_of_a_type(type ='NCEP_WW3')
         elif date is "all":
             ids = df.objects.all().filter(type = "NCEP_WW3")
 
@@ -487,7 +494,7 @@ def plot_latest(num_plots=DEF_NUM_PLOTS, tile=DEF_TILE_FLAG, full_roms=DEF_FULL_
         if date is "today":
             ids = df.objects.filter(type='T-CLINE').get(model_date=today)
         elif date is "latest":
-            ids = dm.get_next_few_datafiles_of_a_type(days=20, type ='T-CLINE')
+            ids = dm.get_next_few_datafiles_of_a_type(type ='T-CLINE')
         elif date is "all":
             ids = df.objects.all().filter(type = "T-CLINE")
 
@@ -500,7 +507,7 @@ def plot_latest(num_plots=DEF_NUM_PLOTS, tile=DEF_TILE_FLAG, full_roms=DEF_FULL_
         if date is "today":
             ids = df.objects.filter(type='HYCOM').get(model_date=today)
         elif date is "latest":
-            ids = dm.get_next_few_datafiles_of_a_type(days=20, type ='HYCOM')
+            ids = dm.get_next_few_datafiles_of_a_type(type ='HYCOM')
         elif date is "all":
             ids = df.objects.all().filter(type = "HYCOM")
 
@@ -509,44 +516,54 @@ def plot_latest(num_plots=DEF_NUM_PLOTS, tile=DEF_TILE_FLAG, full_roms=DEF_FULL_
     print "MANAGE.PY: FINISH TEST"
 
 
-def list_datafiles_of_a_type(roms=False, wave=False, wind=False, hycom=False, ncep=False, tcline=False, navy=False):
+def list_function(table='datafiles', roms=False, wave=False, wind=False, hycom=False, ncep=False, tcline=False, navy=False):
+    from pl_plot.models import Overlay
     from pl_download.models import DataFile
 
-    if roms:
-        df_type = 'NCDF'
-        entries = DataFile.objects.filter(type=df_type)
-        for entry in entries:
-            info(entry)
-    if wave:
-        df_type = 'WAVE'
-        entries = DataFile.objects.filter(type=df_type)
-        for entry in entries:
-            info(entry)
-    if wind:
-        df_type = 'WIND'
-        entries = DataFile.objects.filter(type=df_type)
-        for entry in entries:
-            info(entry)
-    if hycom:
-        df_type = 'HYCOM'
-        entries = DataFile.objects.filter(type=df_type)
-        for entry in entries:
-            info(entry)
-    if ncep:
-        df_type = 'NCEP'
-        entries = DataFile.objects.filter(type=df_type)
-        for entry in entries:
-            info(entry)
-    if tcline:
-        df_type = 'tcline'
-        entries = DataFile.objects.filter(type=df_type)
-        for entry in entries:
-            info(entry)
-    if navy:
-        df_type = 'NAVY'
-        entries = DataFile.objects.filter(type=df_type)
-        for entry in entries:
-            info(entry)
+    if table == 'datafiles' or table == 'all':
+        if roms:
+            df_type = 'NCDF'
+            entries = DataFile.objects.filter(type=df_type)
+            for entry in entries:
+                info(entry)
+        if wave:
+            df_type = 'WAVE'
+            entries = DataFile.objects.filter(type=df_type)
+            for entry in entries:
+                info(entry)
+        if wind:
+            df_type = 'WIND'
+            entries = DataFile.objects.filter(type=df_type)
+            for entry in entries:
+                info(entry)
+        if hycom:
+            df_type = 'HYCOM'
+            entries = DataFile.objects.filter(type=df_type)
+            for entry in entries:
+                info(entry)
+        if ncep:
+            df_type = 'NCEP'
+            entries = DataFile.objects.filter(type=df_type)
+            for entry in entries:
+                info(entry)
+        if tcline:
+            df_type = 'tcline'
+            entries = DataFile.objects.filter(type=df_type)
+            for entry in entries:
+                info(entry)
+        if navy:
+            df_type = 'NAVY'
+            entries = DataFile.objects.filter(type=df_type)
+            for entry in entries:
+                info(entry)
+    elif table == 'overlays' or table == 'all': # List overlays
+        from django.db.models import Q
+        if ncep:
+            overlays = Overlay.objects.filter(Q(definition_id=settings.NCEP_WW3_DIR)
+                                               | Q(definition_id=settings.NCEP_WW3_HI))
+            for overlay in overlays:
+                info(overlay)
+
 
 
 def test(ids=None, navy=False, ncep=False):
@@ -802,7 +819,7 @@ if __name__ == "__main__":
     elif args.task == "plot":
         plot(args.ids,
              num_plots=args.num,
-             tile=args.tile,
+             tile_flag=args.tile,
              roms=args.roms,
              wave=args.wave,
              wind=args.nams,
@@ -828,15 +845,28 @@ if __name__ == "__main__":
         tile_set()
         sys.exit()
 
-    elif args.task == "list":
-        list_datafiles_of_a_type( roms=args.roms,
-                                  wave=args.wave,
-                                  wind=args.nams,
-                                  hycom=args.hycom,
-                                  ncep=args.ncep,
-                                  tcline=args.ncep,
-                                  navy=args.navy,
-                                  )
+    elif args.task == "datafiles":
+        list_function(table='datafiles',
+                      roms=args.roms,
+                      wave=args.wave,
+                      wind=args.nams,
+                      hycom=args.hycom,
+                      ncep=args.ncep,
+                      tcline=args.ncep,
+                      navy=args.navy,
+                      )
+        sys.exit()
+
+    elif args.task == "overlays":
+        list_function(table='overlays',
+                      roms=args.roms,
+                      wave=args.wave,
+                      wind=args.nams,
+                      hycom=args.hycom,
+                      ncep=args.ncep,
+                      tcline=args.ncep,
+                      navy=args.navy,
+                      )
         sys.exit()
 
     elif args.task == "test":

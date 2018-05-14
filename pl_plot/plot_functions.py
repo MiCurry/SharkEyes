@@ -5,11 +5,15 @@ from matplotlib import pyplot, colors
 
 from django.conf import settings
 from pl_download.models import DataFile
-from pl_plot.plotter import WindPlotter
+from pl_plot.plotter import WindPlotter, NcepWW3Plotter
 from pl_download.models import DataFile
 import os
 from scipy.io import netcdf
 from django.conf import settings
+from django.utils import timezone
+from datetime import datetime, timedelta, time
+
+
 
 numpy.set_printoptions(threshold=numpy.inf) # This is helpful for testing purposes:
 # it sets print options so that when you print a large array, it doesn't get truncated in the middle
@@ -305,24 +309,12 @@ def ww3_height(ax, data_file, bmap, key_ax, forecast_index, downsample_ratio):
     def meters_to_feet(height):
         return height * METERS_TO_FEET
 
+    vectorized_conversion = numpy.vectorize(meters_to_feet)
+
     """ longitude comes in degrees east and because we coded the bmap latitude and longitude
     in degrees west we need to covert to degrees west. """
     def convert_to_degrees_west(x):
         y = 180 - x; return -(y + 180)
-
-    height = "Significant_height_of_combined_wind_waves_and_swell_surface"
-    heights = data_file.variables[height][forecast_index, :, :]
-
-    lons = data_file.variables['lon']
-    lats = data_file.variables['lat']
-
-    lats = map(float, lats) # Converting the latitude into Floats and not netcdf variables
-    lons = map(float, lons) # Likewise
-    lons = map(convert_to_degrees_west, lons)
-
-    x, y = numpy.meshgrid(lons, lats)
-
-    heights = numpy.ma.masked_array(heights, numpy.isnan(heights))
 
     min_period = MIN_WAVE_HEIGHT * METERS_TO_FEET
     max_period = MAX_WAVE_HEIGHT * METERS_TO_FEET
@@ -333,6 +325,25 @@ def ww3_height(ax, data_file, bmap, key_ax, forecast_index, downsample_ratio):
     color_levels = []
     for i in xrange(NUM_COLOR_LEVELS_FOR_WAVES + 1):
         color_levels.append(min_period + 1 + i * contour_range_inc)
+
+    height = "Significant_height_of_combined_wind_waves_and_swell_surface"
+
+    heights = data_file.variables[height][forecast_index, :, :]
+    heights = numpy.ma.masked_array(heights, numpy.isnan(heights))
+    heights = vectorized_conversion(heights)
+
+    lons = data_file.variables['lon']
+    lats = data_file.variables['lat']
+
+    lats = map(float, lats) # Converting the latitude into Floats and not netcdf variables
+    lons = map(float, lons) # Likewise
+    lons = map(convert_to_degrees_west, lons)
+
+    x, y = numpy.meshgrid(lons, lats)
+
+    print "x shape", x.shape
+    print "y shape", y.shape
+    print "heights shape", heights.shape
 
     overlay = bmap.contourf(x, y, heights, color_levels, ax=ax, extend='both', cmap=get_modified_jet_colormap_for_waves())
 
@@ -348,6 +359,7 @@ def ww3_height(ax, data_file, bmap, key_ax, forecast_index, downsample_ratio):
     cbar.ax.xaxis.set_ticks(locations)
     cbar.ax.xaxis.set_ticklabels(labels)
     cbar.set_label("Wave Height (Feet) - Extended")
+
 
 """ OSU ROMS """
 def sst_function(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
@@ -728,6 +740,7 @@ def t_cline(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
 # of our models. Because of that we need to interpolate them as seen below.
 #-------------------------------------------------------------------------
 def wind_function(ax, data_file, bmap, time_index, downsample_ratio):
+    VERBOSE = 10
 
     if VERBOSE > 0:
         print "CREATING A WIND PLOT"
@@ -771,7 +784,9 @@ def wind_function(ax, data_file, bmap, time_index, downsample_ratio):
     if time_index in interp_indices:
         interpolate = 1
 
-    interpolate = 0 # Interpolation seems to be making all the plots the same.
+    VERBOSE = 1
+
+    interpolate = 1# Interpolation seems to be making all the plots the same.
     if interpolate == 1:
         # Interpolation process
         # -------------------------------------------------------------------------
@@ -794,8 +809,16 @@ def wind_function(ax, data_file, bmap, time_index, downsample_ratio):
 
         # Interpolation Process interpolates wind_u and wind_v from ts1 to ts2 - Disable to turn off interpolation
         # -------------------------------------------------------------------------
+
+        print ts2.shape
+        print ts1.shape
+
+        print wind_u.shape
+        print wind_v.shape
+
         for i in range(0, 92):
             for j in range(0, 61):
+
                 wind_u_int[:,i,j] = numpy.interp(ts2, ts1, wind_u[:,i,j])
                 wind_v_int[:,i,j] = numpy.interp(ts2, ts1, wind_v[:,i,j])
 

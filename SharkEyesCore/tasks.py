@@ -104,14 +104,14 @@ def do_pipeline():
     #   pl_download/models.py.DataFileManager.get_latest_wave_watch_files() and
     #   pl_download/models.py.DataFileManager.fetch_new_files() respectively
 
-    print "DOWNLOADING OSU WW3 FILES"
-    logging.info('DOWNLOADING OSU WW3')
+    print "DOWNLOADING UCAR NCEP FILES"
+    logging.info('DOWNLOADING UCAR NCEP WW3')
     try: # Try Catches to ensure do_pipeline completes even if a model server cant be reached
-        wave_watch_files = DataFileManager.get_latest_wave_watch_files()
+        wave_watch_files = DataFileManager.ww3_download()
     except Exception:
         print '-' * 60
-        print "COULD NOT DOWNLOAD OSU WW3 FILES"
-        logging.error('ERROR DOWNLOADING OSU WW3')
+        print "COULD NOT DOWNLOAD UCAR NCEP WW3 FILES"
+        logging.error('ERROR DOWNLOADING UCAR NCEP WW3')
         traceback.print_exc(file=sys.stdout)
         print '-' * 60
     logging.info('OSU WW3 DOWNLOADED SUCCESFULLY')
@@ -140,28 +140,6 @@ def do_pipeline():
         print '-' * 60
     logging.info('NAM WINDS DOWNLOADED SUCCESFULLY')
 
-    logging.info('DOWNLOADING NAVY HYCOM')
-    try: # Try Catches to ensure do_pipeline completes even if a model server cant be reached
-        hycom_files = DataFileManager.navy_hycom_download()
-    except Exception:
-        print '-' * 60
-        print "COULD NOT DOWNLOAD NAVY HYCOM FILE"
-        logging.error('ERROR DOWNLOADING HYCOM')
-        traceback.print_exc(file=sys.stdout)
-        print '-' * 60
-    logging.info('HYCOM DOWNLOADED SUCCESFULLY')
-
-    logging.info('DOWNLOADING NCEP')
-    try: # Try Catches to ensure do_pipeline completes even if a model server cant be reached
-        ncep_files = DataFileManager.ww3_download()
-    except Exception:
-        print '-' * 60
-        print "COULD NOT DOWNLOAD NCEP WW3 FILE"
-        logging.error('ERROR DOWNLOADING NCEP')
-        traceback.print_exc(file=sys.stdout)
-        print '-' * 60
-    logging.info('NCEP DOWNLOADED SUCCESFULLY')
-
     print "DOWNLOADING TCLINE FILES"
     try: # Try Catches to ensure do_pipeline completes even if a model server cant be reached
         tcline_files = DataFileManager.download_tcline()
@@ -175,7 +153,7 @@ def do_pipeline():
     try:
         #This try catch is also for the wave watch timeout bug
         if not wave_watch_files and not sst_files and not wind_files \
-                and not ncep_files and not hycom_files and not tcline_files:
+                and not tcline_files:
             print "No New Files Available, Quitting."
             return None
     except Exception:

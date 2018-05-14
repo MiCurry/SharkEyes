@@ -4,6 +4,7 @@ import shutil
 import traceback
 from uuid import uuid4
 from scipy.io import netcdf
+from netCDF4 import Dataset
 import xarray as xr
 import numpy
 import pytz
@@ -13,7 +14,7 @@ from mpl_toolkits.basemap import Basemap
 from pl_download.models import DataFile
 from django.utils import timezone
 from django.conf import settings
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
 
 """ The plotter file contains Plotters for models that help with plot generation
  Instantiated with model DataFile, Plotters allow retuines to access and read the datafiles properties.
@@ -339,11 +340,11 @@ class Plotter:
         # we used the dimensions provided by the file itself, but the change in provided data has changed
         # the size of the image.
 
-        longs = self.data_file.variables['lon_rho'][0, :] # only needed to set up longs
-        lats = self.data_file.variables['lat_rho'][:, 0] # only needed to set up lats
+        #longs = self.data_file.variables['lon_rho'][0, :] # only needed to set up longs
+        #lats = self.data_file.variables['lat_rho'][:, 0] # only needed to set up lats
 
-        #longs = [-129.0, -123.726199391]
-        #lats = [40.5840806224, 47.499]
+        longs = [-129.0, -123.726199391]
+        lats = [40.5840806224, 47.499]
 
 
         # Window cropped by picking lat and lon corners
@@ -574,6 +575,18 @@ class NcepWW3Plotter:
             )
         )
 
+    def write_file(self, file_name):
+        self.data_file = Dataset(
+            os.path.join(
+                settings.MEDIA_ROOT,
+                settings.WAVE_WATCH_DIR,
+                file_name
+            ), 'r+'
+        )
+
+    def close_file(self):
+        self.data_file.close()
+        return
 
     def get_zoom_level(self, def_id):
         print "Plotter.get_zoom_level - def_id: {0}".format(def_id)
@@ -594,7 +607,7 @@ class NcepWW3Plotter:
         times = self.data_file.variables['time']
         basetime = self.data_file.variables['time'].units
         basetime = datetime.strptime(basetime, "Hour since %Y-%m-%dT00:00:00Z")
-        applies_at_datetime = timezone.make_aware(basetime + timedelta(hours=times[time_index]) , timezone.utc)
+        applies_at_datetime = basetime + timedelta(hours=times[time_index])
         return applies_at_datetime
 
     def get_number_of_model_times(self):
