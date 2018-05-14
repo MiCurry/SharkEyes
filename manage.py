@@ -632,6 +632,81 @@ def test(ids=None, navy=False, ncep=False):
     print "TESTING TASK CREATION"
 
 
+from django.db.models.query import QuerySet
+from pprint import PrettyPrinter
+
+
+def dprint(object, stream=None, indent=1, width=80, depth=None):
+    # Catch any singleton Django model object that might get passed in
+    if getattr(object, '__metaclass__', None):
+        if object.__metaclass__.__name__ == 'ModelBase':
+            # Convert it to a dictionary
+            object = object.__dict__
+
+    # Catch any Django QuerySets that might get passed in
+    elif isinstance(object, QuerySet):
+        # Convert it to a list of dictionaries
+        object = [i.__dict__ for i in object]
+
+    # Pass everything through pprint in the typical way
+    printer = PrettyPrinter(stream=stream, indent=indent, width=width, depth=depth)
+    printer.pprint(object)
+
+def extend():
+    from pl_plot.models import OverlayManager
+
+    models = [settings.OSU_ROMS_SST, # Extended
+              settings.OSU_ROMS_SUR_SAL,
+              settings.OSU_ROMS_SUR_CUR, # Extended
+              settings.OSU_WW3_HI, # Extended
+              settings.NAMS_WIND,
+              settings.OSU_WW3_DIR, # Extended
+              settings.OSU_ROMS_BOT_SAL,
+              settings.OSU_ROMS_BOT_TEMP,
+              settings.OSU_ROMS_SSH,
+              settings.OSU_ROMS_TCLINE,
+              ]
+
+    extended_models = [settings.OSU_ROMS_SST,
+                       settings.OSU_ROMS_SUR_CUR,
+                       settings.OSU_WW3_HI,
+                       settings.OSU_WW3_DIR]
+
+    # 14 = Thermocline
+    #models = [1,3,4,6,5,8,2,7,9,]
+    fields = get_list_of_overlay_definitions(models)
+
+    base_overlays = OverlayManager.get_next_few_days_of_tiled_overlays(models)
+
+    ww3_extended_overlays = OverlayManager.get_next_few_days_of_tiled_overlays_for_extended_forecasts('WAVE', extended_models)
+    roms_extended_overlays = OverlayManager.get_next_few_days_of_tiled_overlays_for_extended_forecasts('NCDF', extended_models)
+
+    print "Base Overlays:"
+    for overlay in base_overlays:
+        print overlay.file, overlay.applies_at_datetime, overlay.is_extend
+
+    print "Extended WW3"
+    for overlay in ww3_extended_overlays:
+        print overlay.file, overlay.applies_at_datetime, overlay.is_extend
+
+    print "Extended ROMS"
+    for overlay in roms_extended_overlays:
+        print overlay.file, overlay.applies_at_datetime, overlay.is_extend
+
+    overlays = base_overlays | ww3_extended_overlays | roms_extended_overlays # Union of all three querysets - '|' represents the union
+
+
+def get_list_of_overlay_definitions(models):
+    from pl_plot.models import OverlayDefinition
+    """
+    :param models: List of models definition ids ie: model = [seetings.OSU_ROMS_SST, settings.OSU_ROMS_SUR_SAL ...]
+    :return: Obejct of fields
+    """
+    fields = []
+    for value in models:
+        fields.append(OverlayDefinition.objects.get(pk=value))
+    return fields
+
 if __name__ == "__main__":
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "SharkEyesCore.settings")
     startup.run()
@@ -766,6 +841,9 @@ if __name__ == "__main__":
 
     elif args.task == "test":
         test(ids=args.ids, navy=args.navy, ncep=args.ncep)
+        sys.exit()
+    elif args.task == "extend":
+        extend()
         sys.exit()
 
     execute_from_command_line(sys.argv)
