@@ -70,7 +70,7 @@ class OverlayManager(models.Manager):
     @classmethod
     def get_next_few_days_of_tiled_overlays_for_extended_forecasts(cls, type, models):
         extend_date = None
-        if type == 'WAVE':
+        if type == 'NCEP':
             extend_date = DataFileManager.get_last_forecast_for_osu_ww3()
             ids = [settings.OSU_WW3_HI, settings.OSU_WW3_DIR]
         elif type == 'NCDF':
@@ -87,7 +87,6 @@ class OverlayManager(models.Manager):
                                            ).values_list('applies_at_datetime', flat=True).distinct()
 
         
-
         return cls.grab_tiled_overlays_from_dates(dates, models, extend_bool=True)
 
     @classmethod
@@ -271,7 +270,7 @@ class OverlayManager(models.Manager):
                 datafile = DataFile.objects.get(pk=file_id)
             plotter = NcepWW3Plotter(datafile.file.name)
             zoom_levels = plotter.get_zoom_level(overlay_id)
-            extend_bool = True
+            extend_bool = False
 
 
         generated_datetime = DataFile.objects.get(pk=file_id).generated_datetime.date().strftime('%m_%d_%Y')
@@ -300,7 +299,7 @@ class OverlayManager(models.Manager):
                     overlay_id = settings.OSU_WW3_DIR
                 if overlay_id == settings.NCEP_WW3_HI:
                     overlay_id = settings.OSU_WW3_HI
-            if not settings.EXTEND:
+            if not settings.EXTEND: # Nice for testing the views of the tiled models
                 extend_bool = False
 
             overlay = Overlay(
@@ -415,6 +414,8 @@ class OverlayManager(models.Manager):
                     overlay__id = settings.OSU_ROMS_SST
                 elif overlay__id == settings.NAVY_HYCOM_SUR_CUR:
                     overlay__id = settings.OSU_ROMS_SUR_CUR
+            if not settings.EXTEND: # Nice for testing the views of the tiled models
+                extend_bool = False
 
             overlay = Overlay(
                 file=os.path.join(settings.UNCHOPPED_STORAGE_DIR, plot_filename),

@@ -523,10 +523,10 @@ class DataFileManager(models.Manager):
             model_date=time_start_dt,
             file=local_filename,
         )
-        file_id = datafile.save() # S-S-Save that datafile entry!
+        datafile.save() # S-S-Save that datafile entry!
         print "finished! Datafile saved!"
 
-        return file_id
+        return datafile.id
 
     @staticmethod
     @shared_task(name='pl_download.ww3_download')

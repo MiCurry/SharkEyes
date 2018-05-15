@@ -396,6 +396,19 @@ class HycomPlotter:
             )
         )
 
+    def write_file(self, file_name):
+        self.data_file = Dataset(
+            os.path.join(
+                settings.MEDIA_ROOT,
+                settings.NETCDF_STORAGE_DIR,
+                file_name
+            ), 'r+'
+        )
+
+    def close_file(self):
+        self.data_file.close()
+        return
+
     def get_zoom_level(self, def_id):
         if def_id == settings.HYCOM_SUR_CUR:
             self.zoom_level = settings.ZOOM_LEVELS_CURRENTS

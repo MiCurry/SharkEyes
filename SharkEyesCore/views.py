@@ -274,28 +274,6 @@ def get_models(keys):
             models['seas'] = 1
     return models
 
-def get_extended_overlays(extend):
-    if not extend:
-        return []
-
-    models = [settings.OSU_ROMS_SST,
-              settings.OSU_ROMS_SUR_CUR,
-              settings.NCEP_WW3_HI,
-              settings.NCEP_WW3_DIR,
-              settings.NAMS_WIND,
-              settings.OSU_ROMS_BOT_TEMP,
-              settings.OSU_ROMS_SUR_SAL,
-              settings.OSU_ROMS_BOT_SAL,
-              settings.OSU_ROMS_SSH,
-              settings.OSU_ROMS_TCLINE]
-
-
-    ww3_extended_overlays = OverlayManager.get_next_few_days_of_tiled_overlays_for_extended_forecasts('WAVE', models)
-    roms_extended_overlays = OverlayManager.get_next_few_days_of_tiled_overlays_for_extended_forecasts('NCDF', models)
-    
-    return list(chain(ww3_extended_overlays.values_list('applies_at_datetime', flat=True).distinct().order_by('applies_at_datetime'),
-                roms_extended_overlays.values_list('applies_at_datetime', flat=True).distinct().order_by('applies_at_datetime')))
-
 #This is where we associate the Javascript variables (overlays, defs etc) with the Django objects from the database.
 def home(request):
     #Models determines which models are displayed on the website. They will appear in the order provided by models[]. Change this order to change the order of the buttons and which buttons appear.
@@ -308,11 +286,10 @@ def home(request):
     # 7 = Bottom Temperature,
     # 8 = Bottom Salinity,
     # 9 = Sea Surface Height
-    # 10 =
+    # 10 = TODO: Update this comment - Easy!
     # 11 =
     # 12 =
     # 13 =
-
 
     models = [settings.OSU_ROMS_SST,
               settings.OSU_ROMS_SUR_CUR,
@@ -327,18 +304,16 @@ def home(request):
               ]
 
     extended_models = [settings.OSU_ROMS_SST,
-                       settings.OSU_ROMS_SUR_CUR,
-                       settings.OSU_WW3_HI,
-                       settings.OSU_WW3_DIR]
+                       settings.OSU_ROMS_SUR_CUR]
 
     fields = get_list_of_overlay_definitions(models)
 
     base_overlays = OverlayManager.get_next_few_days_of_tiled_overlays(models)
 
-    ww3_extended_overlays = OverlayManager.get_next_few_days_of_tiled_overlays_for_extended_forecasts('WAVE', extended_models)
-    roms_extended_overlays = OverlayManager.get_next_few_days_of_tiled_overlays_for_extended_forecasts('NCDF', extended_models)
+    #ww3_extended_overlays = OverlayManager.get_next_few_days_of_tiled_overlays_for_extended_forecasts('WAVE', extended_models) # WW3 No Longer needed
+    extended_overlays = OverlayManager.get_next_few_days_of_tiled_overlays_for_extended_forecasts('NCDF', extended_models)
 
-    overlays = base_overlays | ww3_extended_overlays | roms_extended_overlays # Union of all three querysets - '|' represents the union
+    overlays = base_overlays | extended_overlays # Union of all three querysets - '|' represents the union
 
     datetimes = overlays
     context = {'overlays': overlays, 'defs': fields, 'times':datetimes }
@@ -346,7 +321,6 @@ def home(request):
     overlays - overlays_view_data: Django Overlay Objects
     def - fields : Definition of forecasts to be used on the website
     times - datetimes : 
-    
     """
 
     return render(request, 'index.html', context)
