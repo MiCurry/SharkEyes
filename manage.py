@@ -381,6 +381,10 @@ def plot(ids=[],
         return
 
 
+def do_pipeline():
+    from SharkEyesCore.tasks import do_pipeline
+    do_pipeline()
+
 def test():
     print "No test function implemented! Write your test function today!"
     pass
@@ -503,6 +507,9 @@ if __name__ == "__main__":
                       tcline=args.ncep,
                       navy=args.navy,
                       )
+        sys.exit()
+    elif args.task == "do_pipeline":
+        do_pipeline()
         sys.exit()
 
     elif args.task == "test":

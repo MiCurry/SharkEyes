@@ -500,8 +500,10 @@ def purgetasks(): # Purge the celery tasks
         print "Answer was 'No' exiting"
         return
 
-def dopipeline(): # Run do pipeline, but ask user if tasks should be stopped
-    pass
+def do_pipeline(): # Run do pipeline, but ask user if tasks should be stopped
+    with cd('/opt/sharkeyes/src'):
+        with prefix('source /opt/sharkeyes/env_sharkeyes/bin/activate'):
+            run('python manage.py do_pipeline')
 
 def log(): # tail -f the celery log
     run('tail -f /var/log/sharkeyes/celery/sharkeyes_1.log')
