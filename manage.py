@@ -825,7 +825,8 @@ if __name__ == "__main__":
              wind=args.nams,
              hycom=args.hycom,
              ncep=args.ncep,
-             tcline=args.cline)
+             tcline=args.cline,
+             navy=args.navy)
         sys.exit()
 
     elif args.task == "plot-l":

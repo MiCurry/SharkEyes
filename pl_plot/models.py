@@ -54,21 +54,39 @@ class OverlayManager(models.Manager):
         return ids_of_these
 
     @classmethod
-    def get_next_few_days_of_tiled_overlays(cls, models, tiled=True, extend=False, future_files=11, past_files=PAST_DAYS_OF_FILES_TO_DISPLAY):
-        """ Gets the next few days of tiled overlays to be displayed on the website. """
+    def get_next_few_days_of_tiled_overlays(cls, models, is_tiled=True, is_extend=False, future_files=11, past_files=PAST_DAYS_OF_FILES_TO_DISPLAY):
+        """
+        TODO: Update DocString for this function
+
+
+        :param models:
+        :param is_tiled:
+        :param is_extend:
+        :param future_files:
+        :param past_files:
+        :return: A list of overlay objects
+        """
         display = Overlay.objects.none()
 
         # know what dates to look for
         dates = Overlay.objects.filter(applies_at_datetime__gte=timezone.now()-timedelta(days=past_files),
                                        applies_at_datetime__lte=timezone.now()+timedelta(days=future_files),
-                                       is_tiled=tiled,
-                                       is_extend=extend,
+                                       is_tiled=is_tiled,
+                                       is_extend=is_extend,
                                        ).values_list('applies_at_datetime', flat=True).distinct()
 
-        return cls.grab_tiled_overlays_from_dates(dates, models, tiled=tiled)
+        return cls.grab_tiled_overlays_from_dates(dates, models, is_tiled=is_tiled)
 
     @classmethod
-    def get_next_few_days_of_tiled_overlays_for_extended_forecasts(cls, type, models):
+    def get_next_few_days_of_tiled_overlays_for_extended_forecasts(cls, type, models, is_tiled=True, is_extend=True):
+        """
+        TODO: Update Docstring for this fucntion
+        :param type:
+        :param models:
+        :param is_tiled:
+        :param is_extend:
+        :return: TODO: Find out exactly what this function returns
+        """
         extend_date = None
         if type == 'NCEP':
             extend_date = DataFileManager.get_last_forecast_for_osu_ww3()
@@ -76,10 +94,13 @@ class OverlayManager(models.Manager):
         elif type == 'NCDF':
             extend_date = DataFileManager.get_last_forecast_for_roms()
             ids = [settings.OSU_ROMS_SST, settings.OSU_ROMS_SUR_CUR]
+        else:
+            print "Wrong type! Returning!"
+            return -1
 
         dates = []
-        # know what dates to look for
-        for id in ids:
+
+        for id in ids: # Grab the dates based on the extend date found above
             dates = Overlay.objects.filter(applies_at_datetime__gte=extend_date,
                                            is_tiled=True,
                                            is_extend=True,
@@ -87,13 +108,21 @@ class OverlayManager(models.Manager):
                                            ).values_list('applies_at_datetime', flat=True).distinct()
 
         
-        return cls.grab_tiled_overlays_from_dates(dates, models, extend_bool=True)
+        return cls.grab_tiled_overlays_from_dates(dates, models, is_tiled=is_tiled, is_extend=is_extend)
 
     @classmethod
-    def grab_tiled_overlays_from_dates(cls, dates, models, extend_bool=False):
+    def grab_tiled_overlays_from_dates(cls, dates, models, is_tiled=True, is_extend=False):
+        """
+        TODO: UPDATE DOC STRING FOR THIS FUNCTION
+        :param dates:
+        :param models:
+        :param is_tiled:
+        :param is_extend:
+        :return: TODO: Find out exactly what this function returns
+        """
         display = Overlay.objects.none()
         for d in dates:
-            over = Overlay.objects.filter(applies_at_datetime=d, is_tiled=True, is_extend=extend_bool)
+            over = Overlay.objects.filter(applies_at_datetime=d, is_tiled=is_tiled, is_extend=is_extend)
             for m in models:
                 tile = over.filter(definition_id=m)
                 gen = tile.aggregate(Max('created_datetime'))['created_datetime__max']
@@ -104,8 +133,6 @@ class OverlayManager(models.Manager):
                     add = tile.filter(created_datetime__gte=gen)
                     display = display | add
         return display
-
-
 
     @classmethod
     def make_all_base_plots_for_next_few_days(cls):
