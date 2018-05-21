@@ -481,13 +481,12 @@ def pull():
         run('git checkout {0}'.format(branch if branch else env.branch))
         run('git pull')
 
-
 # Server Management
-
 def tasks(): # Show the celery tasks
     with cd('/opt/sharkeyes/src'):
         with prefix('source /opt/sharkeyes/env_sharkeyes/bin/activate'):
             run('python manage.py celery inspect active')
+
 
 def purgetasks(): # Purge the celery tasks
     answr = prompt("Are you sure you want to purge the tasks currently in celery? (Yes/No)")
@@ -500,10 +499,12 @@ def purgetasks(): # Purge the celery tasks
         print "Answer was 'No' exiting"
         return
 
+
 def do_pipeline(): # Run do pipeline, but ask user if tasks should be stopped
     with cd('/opt/sharkeyes/src'):
         with prefix('source /opt/sharkeyes/env_sharkeyes/bin/activate'):
             run('python manage.py do_pipeline')
+
 
 def log(): # tail -f the celery log
     run('tail -f /var/log/sharkeyes/celery/sharkeyes_1.log')
