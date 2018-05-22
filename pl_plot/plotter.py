@@ -697,12 +697,12 @@ class NavyPlotter:
 
     def get_time_at_oceantime_index(self, index=None):
         basetime = self.data_file.variables['time'].units
-        basetime = datetime.strptime(basetime, "hours since %Y-%m-%d 00:00:00")
+        basetime = datetime.strptime(basetime, "hours since %Y-%m-%d 12:00:00.000 UTC")
         return basetime + timedelta(hours=self.data_file.variables['time'][0])
 
 
     def get_number_of_model_times(self):
-        return 0
+        return numpy.shape(self.data_file.variables['time'])[0]
 
     def make_plot(self, plot_function, zoom_levels, time_index=0,  downsample_ratio=None):
         fig = pyplot.figure()

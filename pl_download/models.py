@@ -422,6 +422,8 @@ class DataFileManager(models.Manager):
     @staticmethod
     @shared_task(name='pl_download.navy_hycom_download')
     def navy_hycom_download(level='top'):
+        from pl_plot.plotter import HycomPlotter
+        print "NAVY HYCOM DOWNLOAD"
 
         # TODO: Interpolate
 
@@ -432,6 +434,7 @@ class DataFileManager(models.Manager):
         time_start_dt = DataFileManager.get_last_forecast_for_roms()
         time_start = create_nomads_string_from_datetime(DataFileManager.get_last_forecast_for_roms())
         time_end = create_nomads_string_from_datetime(DataFileManager.get_last_forecast_for_roms() + timedelta(days=30)) # Essentially set to infinity
+
 
         URL = 'http://ncss.hycom.org/thredds/ncss/GLBv0.08/expt_93.0/data/forecasts/Forecast_Mode_Run_(FMRC)_best.ncd?' \
               'var=salinity&var=water_temp&var=water_u&var=water_v' \
@@ -444,13 +447,12 @@ class DataFileManager(models.Manager):
               '&addLatLon=true&accept=netcdf'
 
 
-        print "Downloading HYCOM df...",
+        print "DOWNLOADING HYCOM DF...",
         destination_directory = os.path.join(settings.MEDIA_ROOT, settings.NETCDF_STORAGE_DIR)
         local_filename = "{0}_{1}.nc".format(settings.NAVY_HYCOM_DF_FN, create_string_from_dt_for_file(time_start_dt))
         urllib.urlretrieve(url=URL, filename=os.path.join(destination_directory, local_filename))
-        print "file downloaded",
+        print "FILE DOWNLOADED...",
 
-        from pl_plot.plotter import HycomPlotter
 
         plotter = HycomPlotter(local_filename)
 

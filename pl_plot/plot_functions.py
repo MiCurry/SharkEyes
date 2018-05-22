@@ -867,7 +867,7 @@ def wind_function(ax, data_file, bmap, time_index, downsample_ratio):
         print "WIND PLOT CREATED"
 
 """ RTOFS - NOT IN USE"""
-def hycom_temp(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
+def rtofs_temp(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
     depth = 0
     min_temp = 34
     max_temp = 65
@@ -917,7 +917,7 @@ def hycom_temp(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
     cbar.ax.xaxis.set_ticklabels(labels)
     cbar.set_label("Fahrenheit - Extended")
 
-def hycom_currents(ax, data_file, bmap, key_ax, time_index, downsample_ratio=1):
+def rtofs_currents(ax, data_file, bmap, key_ax, time_index, downsample_ratio=1):
     DEPTH = 0
 
     u = data_file.variables['u'][time_index, DEPTH]
@@ -1012,17 +1012,13 @@ def hycom_sst(ax, data_file, bmap, key_ax, bottom=False, downsample_ratio=None):
     temps = numpy.ma.masked_where(temps == -30000, temps) # mask values
     temps = numpy.ma.masked_array(temps, numpy.isnan(temps))
 
-    scale_fac = data_file.variables[level].scale_factor
-    offset = data_file.variables[level].add_offset
-
-    temps = temps * scale_fac + offset # Decompression
     temps = numpy.ma.array(temp_conversion(temps))
 
     print "Temps: ", temps.shape
 
     longs = data_file.variables['lon'][:]
-    lats = data_file.variables['lat'][:]
     longs = numpy.ma.array(lon_conversion(longs))
+    lats = data_file.variables['lat'][:]
 
     longs, lats = numpy.meshgrid(longs, lats)
 
@@ -1069,6 +1065,8 @@ def hycom_ssc(ax, data_file, bmap, key_ax, downsample_ratio, bottom=False):
         y = 180 - x; return -(y + 180)
     lon_conversion = numpy.vectorize(convert_to_degrees_west)
 
+    print "HYCOM SSC"
+
     # average nearby points to align grid, and add the edge column/row so it's the right size.
     #-------------------------------------------------------------------------
 
@@ -1092,14 +1090,6 @@ def hycom_ssc(ax, data_file, bmap, key_ax, downsample_ratio, bottom=False):
     v = numpy.ma.masked_where(v == -30000, v) # mask values
     u = numpy.ma.masked_array(u , numpy.isnan(u))
     v = numpy.ma.masked_array(v , numpy.isnan(v))
-
-    scale_fac_u = data_file.variables[level_u].scale_factor
-    scale_fac_v = data_file.variables[level_v].scale_factor
-    offset_u = data_file.variables[level_u].add_offset
-    offset_v = data_file.variables[level_v].add_offset
-
-    u = u * scale_fac_u + offset_u # Decompression
-    v = v * scale_fac_v + offset_v # Decompression
 
     print "Downsample Ratio:", downsample_ratio
 
@@ -1142,7 +1132,7 @@ def hycom_ssc(ax, data_file, bmap, key_ax, downsample_ratio, bottom=False):
 def hycom_bot_cur(ax, data_file, bmap, key_ax):
     hycom_ssc(ax, data_file, bmap, key_ax, bottom=True)
 
-def hycom_sur_sal(ax, data_file, bmap, key_ax, bottom=False ):
+def hycom_sur_sal(ax, data_file, bmap, key_ax, bottom=False, downsample_ratio=None ):
     def convert_to_degrees_west(x):
         y = 180 - x; return -(y + 180)
     lon_conversion = numpy.vectorize(convert_to_degrees_west)
@@ -1157,10 +1147,6 @@ def hycom_sur_sal(ax, data_file, bmap, key_ax, bottom=False ):
         min_salt = MIN_SAL_TOP
         max_salt = MAX_SAL_TOP
         salt = numpy.ma.array(data_file.variables[level][0][0][:][:])
-
-    scale_fac = data_file.variables[level].scale_factor
-    offset = data_file.variables[level].add_offset
-    salt = salt * scale_fac + offset # Decompression
 
     longs = data_file.variables['lon'][:]
     lats = data_file.variables['lat'][:]
@@ -1182,6 +1168,11 @@ def hycom_sur_sal(ax, data_file, bmap, key_ax, bottom=False ):
     overlay = bmap.contourf(x, y, salt, color_levels, ax=ax, extend='both', cmap=get_modified_jet_colormap())
 
     # add colorbar.
+    cbar = pyplot.colorbar(overlay, orientation='horizontal', cax=key_ax)
+    cbar.ax.tick_params(labelsize=10)
+    cbar.ax.xaxis.label.set_color('white')
+    cbar.ax.xaxis.set_tick_params(labelcolor='white')
+
     locations = numpy.arange(0, 1.01, 1.0/(NUM_COLOR_LEVELS))[::10]    # we just want every third label
     float_labels = numpy.arange(min_salt, max_salt + 0.01, contour_range_inc)[::10]
     labels = ["%.1f" % num for num in float_labels]
