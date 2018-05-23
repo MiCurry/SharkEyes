@@ -1014,8 +1014,6 @@ def hycom_sst(ax, data_file, bmap, key_ax, bottom=False, downsample_ratio=None):
 
     temps = numpy.ma.array(temp_conversion(temps))
 
-    print "Temps: ", temps.shape
-
     longs = data_file.variables['lon'][:]
     longs = numpy.ma.array(lon_conversion(longs))
     lats = data_file.variables['lat'][:]
@@ -1023,12 +1021,6 @@ def hycom_sst(ax, data_file, bmap, key_ax, bottom=False, downsample_ratio=None):
     longs, lats = numpy.meshgrid(longs, lats)
 
     x, y = bmap(longs, lats)
-
-    print "Lat: ", lats.shape
-    print "Lon: ", longs.shape
-    print "Temps: ", temps.shape
-    print "x: ", x.shape
-    print "y: ", y.shape
 
     contour_range = ((max_temp) - (min_temp))
     contour_range_inc = float(contour_range)/NUM_COLOR_LEVELS
@@ -1091,7 +1083,6 @@ def hycom_ssc(ax, data_file, bmap, key_ax, downsample_ratio, bottom=False):
     u = numpy.ma.masked_array(u , numpy.isnan(u))
     v = numpy.ma.masked_array(v , numpy.isnan(v))
 
-    print "Downsample Ratio:", downsample_ratio
 
     u = crop_and_downsample(u, downsample_ratio, False)
     v = crop_and_downsample(v, downsample_ratio, False)
@@ -1102,13 +1093,6 @@ def hycom_ssc(ax, data_file, bmap, key_ax, downsample_ratio, bottom=False):
 
     x, y = bmap(longs, lats)
     #x, y = bmap(longs_zoomed, lats_zoomed)
-
-    print "Lats : ", lats.shape
-    print "Longs: ", longs.shape
-    print "u : ", u.shape
-    print "v : ", v.shape
-    print "x : ", x.shape
-    print "y : ", y.shape
 
     bmap.drawmapboundary(linewidth=0.0, ax=ax)
 
