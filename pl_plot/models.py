@@ -78,7 +78,7 @@ class OverlayManager(models.Manager):
         return cls.grab_tiled_overlays_from_dates(dates, models, is_tiled=is_tiled)
 
     @classmethod
-    def get_next_few_days_of_tiled_overlays_for_extended_forecasts(cls, type, models, is_tiled=True, is_extend=True):
+    def get_next_few_days_of_tiled_overlays_for_extended_forecasts(cls, type, is_tiled=True, is_extend=True):
         """
         TODO: Update Docstring for this fucntion
         :param type:
@@ -99,16 +99,17 @@ class OverlayManager(models.Manager):
             return -1
 
         dates = []
+        print "EXTEND DATE: ", extend_date
 
         for id in ids: # Grab the dates based on the extend date found above
             dates = Overlay.objects.filter(applies_at_datetime__gte=extend_date,
-                                           is_tiled=True,
-                                           is_extend=True,
+                                           is_tiled=is_tiled,
+                                           is_extend=is_extend,
                                            definition_id=id
                                            ).values_list('applies_at_datetime', flat=True).distinct()
 
         
-        return cls.grab_tiled_overlays_from_dates(dates, models, is_tiled=is_tiled, is_extend=is_extend)
+        return cls.grab_tiled_overlays_from_dates(dates, ids, is_tiled=is_tiled, is_extend=is_extend)
 
     @classmethod
     def grab_tiled_overlays_from_dates(cls, dates, models, is_tiled=True, is_extend=False):

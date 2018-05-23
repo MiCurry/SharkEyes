@@ -12,6 +12,7 @@ from pl_chop.tasks import tile_wave_watch_overlay
 from SharkEyesCore.models import FeedbackHistory
 from SharkEyesCore.models import FeedbackQuestionaire
 
+from django.conf import settings
 
 @shared_task(name='get_and_apply_new_jobs')
 def get_and_apply_new_jobs():
@@ -52,6 +53,7 @@ def do_pipeline():
 
     logging.info('DO_PIPELINE STARTED')
 
+
     # Cleaning up old files from the database and the disk
     print "CLEANING UP - DELETING OLD FILES"
     logging.info('CLEANING UP - DELETING OLD DATAFILE FILES')
@@ -65,6 +67,7 @@ def do_pipeline():
         print '-' * 60
     logging.info('CLEANING UP - OLD DATAFILE FILES DELETED')
 
+
     logging.info('CLEANING UP - DELETING OLD OVERLAY FILES')
     try:
         OverlayManager.delete_old_files()
@@ -75,6 +78,7 @@ def do_pipeline():
         traceback.print_exc(file=sys.stdout)
         print '-' * 60
     logging.info('CLEANING UP - OLD OVERLAY and TILES DELETED')
+
 
     # Check for new feedback surveys or comments, and email them to Flaxen
     print "SENDING OUT FEEDBACK"
@@ -89,6 +93,7 @@ def do_pipeline():
         print '-' * 60
     logging.info('FEEDBACK FORMS SENT')
 
+
     logging.info('SENDING OUT SURVEY')
     try:
         FeedbackQuestionaire.send_feedback_survey()
@@ -100,9 +105,6 @@ def do_pipeline():
         print '-' * 60
     logging.info('SURVEYS Sent')
 
-    # Downloading the latest datafiles for our models. See the appropriate functions
-    #   pl_download/models.py.DataFileManager.get_latest_wave_watch_files() and
-    #   pl_download/models.py.DataFileManager.fetch_new_files() respectively
 
     print "DOWNLOADING UCAR NCEP FILES"
     logging.info('DOWNLOADING UCAR NCEP WW3')
@@ -116,6 +118,7 @@ def do_pipeline():
         print '-' * 60
     logging.info('OSU WW3 DOWNLOADED SUCCESFULLY')
 
+
     print "DOWNLOADING OSU ROMS FILES"
     logging.info('DOWNLOADING OSU ROMS')
     try: # Try Catches to ensure do_pipeline completes even if a model server cant be reached
@@ -128,17 +131,20 @@ def do_pipeline():
         print '-' * 60
     logging.info('OSU ROMS DOWNLOADED SUCCESFULLY')
 
-    print "DOWNLOADING NAVY HYCOM"
-    logging.info('DOWNLOADING NAVY HYCOM')
-    try: # Try Catches to ensure do_pipeline completes even if a model server cant be reached
-        hycom_files = DataFileManager.navy_hycom_download()
-    except Exception:
-        print '-' * 60
-        print "COULD NOT DOWNLOAD NAVY HYCOM FILES"
-        logging.error('ERROR DOWNLOADING OSU ROMS')
-        traceback.print_exc(file=sys.stdout)
-        print '-' * 60
-    logging.info('OSU ROMS DOWNLOADED SUCCESFULLY')
+
+    if settings.EXTEND:
+        print "DOWNLOADING NAVY HYCOM"
+        logging.info('DOWNLOADING NAVY HYCOM')
+        try: # Try Catches to ensure do_pipeline completes even if a model server cant be reached
+            hycom_files = DataFileManager.navy_hycom_download()
+        except Exception:
+            print '-' * 60
+            print "COULD NOT DOWNLOAD NAVY HYCOM FILES"
+            logging.error('ERROR DOWNLOADING OSU ROMS')
+            traceback.print_exc(file=sys.stdout)
+            print '-' * 60
+        logging.info('OSU ROMS DOWNLOADED SUCCESFULLY')
+
 
     print "DOWNLOADING WIND FILES"
     logging.info('DOWNLOADING NAM WIND')
@@ -152,6 +158,7 @@ def do_pipeline():
         print '-' * 60
     logging.info('NAM WINDS DOWNLOADED SUCCESFULLY')
 
+
     print "DOWNLOADING TCLINE FILES"
     try: # Try Catches to ensure do_pipeline completes even if a model server cant be reached
         tcline_files = DataFileManager.download_tcline()
@@ -161,7 +168,7 @@ def do_pipeline():
         traceback.print_exc(file=sys.stdout)
         print '-' * 60
 
-    # If no new files were returned, don't plot or tile anything.
+
     try:
         #This try catch is also for the wave watch timeout bug
         if not wave_watch_files and not sst_files and not wind_files and not hycom_files \

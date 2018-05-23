@@ -213,7 +213,7 @@ ZOOM_LEVELS_FOR_WAVE_OTHERS = [(None, None)]
 MIN_TCLINE_DEPTH = -450 # Meters
 MAX_TCLINE_DEPTH = 0 # Meters
 
-EXTEND = True
+EXTEND = False
 
 # import local settings. PyCharm thinks it's unused, but PyCharm is silly.
 # noinspection PyUnresolvedReferences

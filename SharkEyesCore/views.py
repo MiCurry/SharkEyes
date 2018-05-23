@@ -310,12 +310,13 @@ def home(request):
 
     base_overlays = OverlayManager.get_next_few_days_of_tiled_overlays(models)
 
-    #ww3_extended_overlays = OverlayManager.get_next_few_days_of_tiled_overlays_for_extended_forecasts('WAVE', extended_models) # WW3 No Longer needed
-    extended_overlays = OverlayManager.get_next_few_days_of_tiled_overlays_for_extended_forecasts('NCDF', extended_models)
+    if settings.EXTEND:
+        extended_overlays = OverlayManager.get_next_few_days_of_tiled_overlays_for_extended_forecasts('NCDF')
+        overlays = base_overlays | extended_overlays # Union of all three querysets - '|' represents the union
+    else:
+        overlays = base_overlays
 
-    overlays = base_overlays | extended_overlays # Union of all three querysets - '|' represents the union
-
-    datetimes = overlays
+    datetimes = overlays.values_list('applies_at_datetime', flat=True).distinct().order_by('applies_at_datetime')
     context = {'overlays': overlays, 'defs': fields, 'times':datetimes }
     """
     overlays - overlays_view_data: Django Overlay Objects
