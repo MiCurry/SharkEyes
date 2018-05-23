@@ -1,0 +1,85 @@
+{% load staticfiles %}
+
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1.0, maximum-scale=1.0, minimal-ui" />
+
+<title>Seacast News</title>
+
+<link href="{% static 'css/news.css' %}" rel="stylesheet" type="text/css"/>
+
+
+
+</head>
+<body>
+
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-57018273-1', 'auto');
+  ga('send', 'pageview');
+
+</script>
+
+<script>
+    function goBack() {
+        window.history.back()
+    }
+</script>
+
+
+<div id="container">
+    <h1><span class="title_left">Seacast News</span></h1>
+    <div id="container-blog"> <!-- Blog container & start of posts-->
+        <div class="post">
+            <div class="post-head">
+                <h2 class="post-title">Seacast is Moving!</h2><span class="post-date"><strong> - Date Posted: 04/24/2018</strong></span>
+            </div>
+            <div class="post-body-container">
+                <div class="post-body">
+                    <img width="400px" src="/static/imgs/NVSSeacast.png" align="right"><img>
+                    <p> After 6 years of operation and development at Oregon State University, Seacast.org is shutting down!
+                        Seacast.org has been funded by a grant provided by Sea Grant which is scheduled to end in the summer
+                        of 2018. The development team is pleased and happy with the findings produced by Seacast.org and
+                        value having the site as a service to the community.</p>
+
+                    <p> Because of this, the Seacast team has teamed up with our friends at the Northwest Association of
+                        Networked Ocean Observing Systems (NANOOS) to continue hosting Seacast.org. The new site has a new
+                        look and feel and has all the same features and more including: data at the cursor, more tidal
+                        locations, separated wind and swell wave heights and bathymetric depth contours. You can visit the
+                        site at: <a href="http://nvs.nanoos.org/Seacast">http://nvs.nanoos.org/Seacast</a>.</p>
+
+                    <p> If you have any questions or comments with the new site or the old site, please use the feedback
+                        forms on Seacast.org!</p>
+
+                </div>
+            </div>
+        </div>
+        <!--  End of Post -->
+
+        <div class="post">
+            <div class="post-head">
+                <h2 class="post-title">Public Meeting - 6/08/18 @ 1pm</h2><span class="post-date"><strong> - Date Posted: 05/11/2018</strong></span>
+            </div>
+            <div class="post-body-container">
+                <div class="post-body">
+                    <p>We will be holding a public meeting on 6/08/18 at 1pm in Englunds. If you have use or used
+                        Seacast in the past we invite you to come to give use your feedback. We will also be showing
+                        off our new site hosted by NANOOS!<a href="http://nvs.nanoos.org/Seacast">http://nvs.nanoos.org/Seacast</a>.
+                        We invite you to come down and give us your feedback on the new site and the previous site!
+                        Lunch will be provided!</p>
+                </div>
+            </div>
+        </div>
+        <!--  End of Post -->
+    </div>
+
+
+
+
+</div>
+</body>
+</html>

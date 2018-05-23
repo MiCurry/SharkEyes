@@ -604,3 +604,6 @@ def save_feedback(request):
         print "Error Message: "
         print e.message
     return render(request, 'index.html')
+
+def news(request):
+    return render(request, 'news.html')
