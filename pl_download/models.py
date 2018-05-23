@@ -1,3 +1,4 @@
+import time
 import traceback
 
 import os
@@ -21,6 +22,8 @@ from dateutil import parser
 from operator import __or__ as OR
 from scipy.io import netcdf_file
 from scipy.io import netcdf
+import pandas
+import xarray as xar
 import pydap.client
 
 from celery import shared_task
@@ -446,6 +449,7 @@ class DataFileManager(models.Manager):
               '&vertCoord='+vert_coord+'' \
               '&addLatLon=true&accept=netcdf'
 
+        print URL
 
         print "DOWNLOADING HYCOM DF...",
         destination_directory = os.path.join(settings.MEDIA_ROOT, settings.NETCDF_STORAGE_DIR)
@@ -581,28 +585,34 @@ class DataFileManager(models.Manager):
         direction = "Primary_wave_direction_surface"
         period = "Primary_wave_mean_period_surface"
 
+        "&north=50&west=-150&east=-110&south=25&horizStride=1" \
+
+
+        """ Good ole interpolation """
         # Original values
         times = plotter.data_file.variables['time']
+        lons = plotter.data_file.variables['lon']
+        lats = plotter.data_file.variables['lat']
         heights = plotter.data_file.variables[height][:, :, :]
         directions = plotter.data_file.variables[direction][:, :, :]
         periods = plotter.data_file.variables[period][:, :, :]
-
-        lons = plotter.data_file.variables['lon']
-        lats = plotter.data_file.variables['lat']
 
         # Create the new 'time' variable, which is a list of hours since
         # df.variables['time'].units, to match the time series we want
         basetime = get_datetime_from_units_since(plotter.data_file.variables['time'].units)
         ts1 = times; ts1 = map(float, ts1) # Orginal times converted from type netcdf variable else we get an error
 
+        print "Basetime: ", basetime
+        print type(basetime)
+
         dates = [(basetime + n * timedelta(hours=4)) for n in range(times.shape[0])]
 
         ts2 = date2num(dates[:], units=times.units, calendar=times.calendar)
 
+
         for i in range(len(ts2)):
             ts2[i] += times[0] + 1 # Now bump up the times to be equal with what we desire
 
-        """ Good ole interpolation """
 
         heights_int = numpy.empty([ts2.shape[0], lats.shape[0], lons.shape[0]]) # Array to be filled
         period_int = numpy.empty([ts2.shape[0], lats.shape[0], lons.shape[0]]) # Ditto
@@ -643,6 +653,196 @@ class DataFileManager(models.Manager):
             file=local_filename,
         )
         datafile.save() # S-S-Save that datafile entry!
+
+        return datafile.id
+
+    @staticmethod
+    @shared_task(name='pl_download.ww3_download_openDAP')
+    def ww3_download_openDAP():
+        """
+        Example URL: 'http://nomads.ncep.noaa.gov:9090/dods/wave/mww3/20180419/multi_1.wc_10m20180419_00z'
+        https://stackoverflow.com/questions/34923646/how-to-create-a-netcdf-file-with-python-netcdf4
+
+        :return:
+        """
+
+        verbose = 0
+
+        # Setup URL
+        ncep_url_base = 'http://nomads.ncep.noaa.gov:9090/dods/wave/mww3/'
+        ncep_url_multi = '/multi_1.wc_10m'
+        ncep_url_end ='_00z'
+
+        model_date = dt.date.today()
+        date = str(dt.date.today()).replace("-", "", 3) # Todays Date used for access
+        access_url = ncep_url_base + date + ncep_url_multi + date + ncep_url_end
+
+        print access_url
+
+        destination_directory = os.path.join(settings.MEDIA_ROOT, settings.WAVE_WATCH_DIR)
+        filename = settings.NCEP_WW3_DF_FN + '_' + date + '.nc'
+
+        print "ACCESSES NCEP WW3 VIA OPENDAP...",
+        ncep = xar.open_dataset(access_url, engine='netcdf4')
+
+        times = ncep['time'][:]; ts1 = times; ts1 = map(float, ts1) # Make time ts1
+
+        latbounds = [40, 47]
+        lonbounds = [230, 236]
+        lats = ncep['lat']
+        lons = ncep['lon']
+
+        latli = int(numpy.argmin( numpy.abs( lats - latbounds[0] ) ))
+        latui = int(numpy.argmin( numpy.abs( lats - latbounds[1] ) ))
+
+        lonli = int(numpy.argmin( numpy.abs( lons - lonbounds[0] ) ))
+        lonui = int(numpy.argmin( numpy.abs( lons - lonbounds[1] ) ))
+
+        if verbose > 0:
+            print "Latli", type(latli), int(latli)
+            print "Latui", type(latui), int(latui)
+            print "Lonli", type(lonli), int(lonli)
+            print "Lonui", type(lonui), int(lonui)
+
+        heights    = ncep['htsgwsfc'][ :, latli:latui, lonli:lonui]
+        directions = ncep['dirpwsfc'][ :, latli:latui, lonli:lonui]
+        periods    = ncep['perpwsfc'][ :, latli:latui, lonli:lonui]
+
+        lats = ncep['lat'][latli:latui]
+        lons = ncep['lon'][lonli:lonui]
+
+        if verbose > 0:
+            print "Lats.shape: ", lats.shape
+            print "Lons.shape: ", lons.shape
+
+        #f = open(os.path.join(destination_directory, filename), 'w+')
+        #f.close()
+        print "..CREATING TEMP NCDF FILE..",
+        data_file = Dataset(os.path.join(destination_directory, filename), 'w', format='NETCDF4_CLASSIC')
+
+        dim_time = data_file.createDimension('time', times.shape[0])
+        dim_lats = data_file.createDimension('lat', lats.shape[0])
+        dim_lons = data_file.createDimension('lon', lons.shape[0])
+
+        if verbose > 0:
+            for dimname in data_file.dimensions.keys():
+                dim = data_file.dimensions[dimname]
+                print dimname, len(dim), dim.isunlimited()
+
+        df_time = data_file.createVariable('time', numpy.float64, ('time',))
+        df_lat = data_file.createVariable('lat', numpy.float64, ('lat'))
+        df_lon = data_file.createVariable('lon', numpy.float64, ('lon'))
+        df_height = data_file.createVariable('height', numpy.float64, ('time', 'lat', 'lon'))
+        df_direction = data_file.createVariable('direction', numpy.float64, ('time', 'lat', 'lon'))
+        df_period = data_file.createVariable('period', numpy.float64, ('time', 'lat', 'lon'))
+
+        data_file.description = "NCEP WW3 NetCDF file"
+        data_file.history = 'Created ' + time.ctime(time.time())
+        data_file.source = 'Miles A. Curry - currymiles@gmail.com'
+
+        DAYS_SINCE = 'days since 0001-01-01 00:00:0.0'
+        df_time.units = DAYS_SINCE
+        df_lat.units = 'degree_north'
+        df_lon.units = 'degree_east'
+
+        df_height.units = 'm'
+        df_direction.units = 'deg'
+        df_period.units = 's'
+
+        if verbose > 0:
+            print "Time Units: ", df_time.units
+
+        times_new = []
+        for t in times.values:
+            times_new.append(pandas.to_datetime(t))
+        times = date2num(times_new, units=df_time.units, calendar='standard')
+
+        df_time[:] = map(float, times)
+        df_lat[:] = lats
+        df_lon[:] = lons
+
+        if verbose > 0:
+            for varname in data_file.variables.keys():
+                var = data_file.variables[varname]
+                print varname, var.dtype, var.dimensions, var.shape
+
+        if verbose > 0:
+            print "Datafile heights shape: ", df_height.shape
+            print "OpenDAP heights shape: ", heights.shape
+
+        df_height[:,:,:] = heights
+        df_direction[:,:,:] = directions
+        df_period[:,:,:] = periods
+
+        if verbose > 1:
+            print "heights: ", heights
+            print type(heights)
+
+        data_file.close()
+
+        """ Good ole interpolate - OpenDAP WW3 """
+        print "INTERPOLATING VALUES...",
+        data_file = Dataset(os.path.join(destination_directory, filename), 'r+', format='NETCDF4_CLASSIC')
+
+        # Original Values
+        times = data_file.variables['time'][:]
+        lons = data_file.variables['lon'][:]
+        lats = data_file.variables['lat'][:]
+        heights = data_file.variables['height'][:,:,:]
+        directions = data_file.variables['direction'][:,:,:]
+        periods = data_file.variables['period'][:,:,:]
+
+
+        # Time series construction
+        basetime = datetime.strptime(data_file.variables['time'].units, DAYS_SINCE)
+        basetime = basetime.replace(year=0001)
+        if verbose > 0:
+            print "Basetime: ", basetime
+
+        dates = [basetime + n * timedelta(hours=4) for n in range(times.shape[0])]
+        ts2 = date2num(dates[:], units=DAYS_SINCE, calendar='standard')
+
+        for i in range(len(ts2)):
+            ts2[i] += times[0] + 1
+
+        ts1 = map(float, ts1)
+        ts2 = map(float, ts2)
+
+        if verbose > 0:
+            print len(ts2)
+            print "lats: ", lats.shape
+            print "lons: ", lons.shape
+
+        heights_int = numpy.empty([len(ts2), lats.shape[0], lons.shape[0]]) # Array to be filled
+        period_int = numpy.empty([len(ts2), lats.shape[0], lons.shape[0]]) # Ditto
+        direction_int = numpy.empty([len(ts2), lats.shape[0], lons.shape[0]]) # Ditto
+
+        for i in range(lats.shape[0]):
+            for j in range(lons.shape[0]):
+                """ For each lat and lon across t, time, interpolate from ts1, orginal timestamp,
+                the the new timestamp, ts2.
+                """
+                heights_int[:, i, j] = numpy.interp(ts2, ts1, heights[:, i, j]) # Heights interpolated
+                period_int[:, i, j] = numpy.interp(ts2, ts1, periods[:, i, j])
+                direction_int[:, i, j] = numpy.interp(ts2, ts1, directions[:, i, j])
+
+
+        print "done..saving values..",
+        data_file.variables['time'][:] = ts2
+        data_file.variables['height'][:, :, :] = heights_int
+        data_file.variables['direction'][:, :, :] = direction_int
+        data_file.variables['period'][:, :, :] = period_int
+        data_file.close()
+
+        datafile = DataFile(
+            type='NCEP',
+            download_datetime=timezone.now(),
+            generated_datetime=timezone.now(),
+            model_date=model_date,
+            file=filename,
+        )
+        datafile.save() # S-S-Save that datafile entry!
+        print "done! Saving file and datafile entry. File:", filename
 
         return datafile.id
 
@@ -945,6 +1145,7 @@ def get_datetime_from_units_since(units_since):
     :param unit_since: String "units since ...."
     :return:  datetime object with date in that string
     """
+    print units_since
     date = datetime.strptime(units_since, "Hour since %Y-%m-%dT00:00:00Z")
     return date
 
