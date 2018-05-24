@@ -40,6 +40,7 @@ python_packages = ['numpy==1.8',
 PROJECT_ROOT = '/opt/sharkeyes'
 SRC_ROOT = '/opt/sharkeyes/src'
 
+
 def vagrant():
     """Allow fabric to manage a Vagrant VM/LXC container"""
     env.user = 'vagrant'
@@ -70,6 +71,7 @@ def production():
     env.branch = 'master'
 
 
+# Installation
 def install_prereqs():
     #handle selinux
     with settings(warn_only=True):
@@ -327,10 +329,12 @@ def configure_celery():
     sudo('service celerybeat start')
     sudo('service celeryevcam start')
 
+
 def configure_logging():
     sudo('touch /var/log/sharkeyes/log.log')
     sudo('chmod 770 /var/log/sharkeyes/log.log')
     sudo('chgrp sharkeyes /var/log/sharkeyes/log.log')
+
 
 def deploy():
     with cd('/opt/sharkeyes/src/'):
@@ -374,6 +378,7 @@ def restartsite():
     print("!-"*50)
     prompt("And you're good to go! Hit enter to continue.")
 
+
 def stopSite():
     sudo('service mysqld stop')
     sudo('service rabbitmq-server stop')
@@ -382,6 +387,7 @@ def stopSite():
     sudo('service celeryevcam stop')
     print("!-"*50)
     prompt("And you're good to go! Hit enter to continue.")
+
 
 def startdev():
     # starts everything that needs to run for the dev environment
@@ -463,6 +469,7 @@ def is_centos_7():
         return True
     return False
 
+
 def restart():
         reboot()
 
@@ -473,3 +480,31 @@ def pull():
         branch = prompt("Branch to run? (Enter to leave default): ")
         run('git checkout {0}'.format(branch if branch else env.branch))
         run('git pull')
+
+# Server Management
+def tasks(): # Show the celery tasks
+    with cd('/opt/sharkeyes/src'):
+        with prefix('source /opt/sharkeyes/env_sharkeyes/bin/activate'):
+            run('python manage.py celery inspect active')
+
+
+def purgetasks(): # Purge the celery tasks
+    answr = prompt("Are you sure you want to purge the tasks currently in celery? (Yes/No)")
+    if answr == 'Yes':
+        with cd('/opt/sharkeyes/src'):
+            with prefix('source /opt/sharkeyes/env_sharkeyes/bin/activate'):
+                print "Purging celery tasks..."
+                run('python manage.py celery purge')
+    else:
+        print "Answer was 'No' exiting"
+        return
+
+
+def do_pipeline(): # Run do pipeline, but ask user if tasks should be stopped
+    with cd('/opt/sharkeyes/src'):
+        with prefix('source /opt/sharkeyes/env_sharkeyes/bin/activate'):
+            run('python manage.py do_pipeline')
+
+
+def log(): # tail -f the celery log
+    run('tail -f /var/log/sharkeyes/celery/sharkeyes_1.log')

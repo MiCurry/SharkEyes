@@ -277,19 +277,28 @@ def get_models(keys):
 #This is where we associate the Javascript variables (overlays, defs etc) with the Django objects from the database.
 def home(request):
     #Models determines which models are displayed on the website. They will appear in the order provided by models[]. Change this order to change the order of the buttons and which buttons appear.
-    # 1 = SST,
-    # 2 = Salinity,
-    # 3 = Currents,
-    # 4 = Wave Height,
-    # 5 = Winds,
-    # 6 = Wave Direction/Period,
-    # 7 = Bottom Temperature,
-    # 8 = Bottom Salinity,
-    # 9 = Sea Surface Height
-    # 10 = TODO: Update this comment - Easy!
-    # 11 =
-    # 12 =
-    # 13 =
+    # OSU_ROMS_SST = 1
+    # OSU_ROMS_SUR_SAL = 2
+    # OSU_ROMS_SUR_CUR = 3
+    # OSU_WW3_HI = 4
+    # NAMS_WIND = 5
+    # OSU_WW3_DIR = 6
+    # OSU_ROMS_BOT_SAL = 7
+    # OSU_ROMS_BOT_TEMP = 8
+    # OSU_ROMS_SSH = 9
+    # NCEP_WW3_DIR = 10
+    # NCEP_WW3_HI = 11
+    # HYCOM_SST = 12 # RTOFS - Not Used - needs to be renamed
+    # HYCOM_SUR_CUR = 13 # RTOFS - Not Used - needs to be renamed
+    # OSU_ROMS_TCLINE = 14
+    # OSU_ROMS_PCLINE = 15
+    # NAVY_HYCOM_SST = 16
+    # NAVY_HYCOM_SUR_CUR = 17
+    # NAVY_HYCOM_SUR_SAL = 18
+    # NAVY_HYCOM_SSH = 19
+    # NAVY_HYCOM_BOT_TEMP = 20
+    # NAVY_HYCOM_BOT_CUR = 21
+    # NAVY_HYCOM_BOT_SAL = 22
 
     models = [settings.OSU_ROMS_SST,
               settings.OSU_ROMS_SUR_CUR,
@@ -318,11 +327,6 @@ def home(request):
 
     datetimes = overlays.values_list('applies_at_datetime', flat=True).distinct().order_by('applies_at_datetime')
     context = {'overlays': overlays, 'defs': fields, 'times':datetimes }
-    """
-    overlays - overlays_view_data: Django Overlay Objects
-    def - fields : Definition of forecasts to be used on the website
-    times - datetimes : 
-    """
 
     return render(request, 'index.html', context)
 
