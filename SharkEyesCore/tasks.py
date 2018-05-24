@@ -106,19 +106,6 @@ def do_pipeline():
     logging.info('SURVEYS Sent')
 
 
-    print "DOWNLOADING UCAR NCEP FILES"
-    logging.info('DOWNLOADING UCAR NCEP WW3')
-    try: # Try Catches to ensure do_pipeline completes even if a model server cant be reached
-        wave_watch_files = DataFileManager.ww3_download()
-    except Exception:
-        print '-' * 60
-        print "COULD NOT DOWNLOAD UCAR NCEP WW3 FILES"
-        logging.error('ERROR DOWNLOADING UCAR NCEP WW3')
-        traceback.print_exc(file=sys.stdout)
-        print '-' * 60
-    logging.info('OSU WW3 DOWNLOADED SUCCESFULLY')
-
-
     print "DOWNLOADING OSU ROMS FILES"
     logging.info('DOWNLOADING OSU ROMS')
     try: # Try Catches to ensure do_pipeline completes even if a model server cant be reached
@@ -130,6 +117,31 @@ def do_pipeline():
         traceback.print_exc(file=sys.stdout)
         print '-' * 60
     logging.info('OSU ROMS DOWNLOADED SUCCESFULLY')
+
+    if settings.WW3_OPENDAP:
+        print "DOWNLOADING NCEP FILES VIA OPENDAP"
+        logging.info('DOWNLOADING NCEP WW3 VIA OPENDAP')
+        try: # Try Catches to ensure do_pipeline completes even if a model server cant be reached
+            wave_watch_files = DataFileManager.ww3_download_openDAP()
+        except Exception:
+            print '-' * 60
+            print "COULD NOT DOWNLOAD NCEP WW3 FILE VIA OPENDAP"
+            logging.error('ERROR DOWNLOADING NCEP WW3 OPENDAP')
+            traceback.print_exc(file=sys.stdout)
+            print '-' * 60
+        logging.info('NCEP WW3 VIA OPENDAP DOWNLOADED SUCCESFULLY')
+    else:
+        print "DOWNLOADING UCAR NCEP FILES"
+        logging.info('DOWNLOADING UCAR NCEP WW3')
+        try: # Try Catches to ensure do_pipeline completes even if a model server cant be reached
+            wave_watch_files = DataFileManager.ww3_download()
+        except Exception:
+            print '-' * 60
+            print "COULD NOT DOWNLOAD UCAR NCEP WW3 FILES"
+            logging.error('ERROR DOWNLOADING UCAR NCEP WW3')
+            traceback.print_exc(file=sys.stdout)
+            print '-' * 60
+        logging.info('OSU WW3 DOWNLOADED SUCCESFULLY')
 
 
     if settings.EXTEND:
@@ -171,14 +183,15 @@ def do_pipeline():
 
     try:
         #This try catch is also for the wave watch timeout bug
-        if not wave_watch_files and not sst_files and not wind_files and not hycom_files \
-                and not tcline_files:
+        if not wave_watch_files and not sst_files and not wind_files \
+            and not hycom_files and not tcline_files:
             print "No New Files Available, Quitting."
             return None
     except Exception:
         print '-' * 60
         traceback.print_exc(file=sys.stdout)
         print '-' * 60
+
 
     # Get the list of plotting tasks based on the files we just downloaded.
     logging.info('GENERATING TASK LIST')

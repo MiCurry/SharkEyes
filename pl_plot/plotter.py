@@ -580,12 +580,12 @@ class NcepWW3Plotter:
         self.load_file(file_name)
 
     def load_file(self, file_name): # Gives a netcdf file object with default mode of reading permissions only
-        self.data_file = netcdf.netcdf_file(
+        self.data_file = Dataset(
             os.path.join(
                 settings.MEDIA_ROOT,
                 settings.WAVE_WATCH_DIR,
                 file_name
-            )
+            ), 'r'
         )
 
     def write_file(self, file_name):
@@ -619,7 +619,10 @@ class NcepWW3Plotter:
         '''
         times = self.data_file.variables['time']
         basetime = self.data_file.variables['time'].units
-        basetime = datetime.strptime(basetime, "Hour since %Y-%m-%dT00:00:00Z")
+        if settings.WW3_OPENDAP:
+            basetime = datetime.strptime(basetime, "days since 0001-01-01 00:00:0.0")
+        else:
+            basetime = datetime.strptime(basetime, "Hour since %Y-%m-%dT00:00:00Z")
         applies_at_datetime = basetime + timedelta(hours=times[time_index])
         return applies_at_datetime
 

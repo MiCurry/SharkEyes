@@ -687,7 +687,7 @@ class DataFileManager(models.Manager):
 
         times = ncep['time'][:]; ts1 = times; ts1 = map(float, ts1) # Make time ts1
 
-        latbounds = [40, 47]
+        latbounds = [40, 48]
         lonbounds = [230, 236]
         lats = ncep['lat']
         lons = ncep['lon']

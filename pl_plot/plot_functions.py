@@ -225,7 +225,11 @@ def ww3_direction(ax, data_file, bmap, key_ax, forecast_index, downsample_ratio)
     def convert_to_degrees_west(x):
         y = 180 - x; return -(y + 180)
 
-    direction_string = 'Primary_wave_direction_surface'
+    if settings.WW3_OPENDAP:
+        direction_string = 'direction'
+    else:
+        direction_string = 'Primary_wave_direction_surface'
+
     directions = data_file.variables[direction_string]
     directions = directions[forecast_index]
 
@@ -256,7 +260,6 @@ def ww3_direction(ax, data_file, bmap, key_ax, forecast_index, downsample_ratio)
 
     x, y = numpy.meshgrid(lons, lats)
 
-    bmap.drawcoastlines()
     bmap.drawmapboundary(linewidth=0.0, ax=ax)
     overlay = bmap.quiver(x, y, u, v,
                           ax=ax,
@@ -272,7 +275,10 @@ def ww3_direction(ax, data_file, bmap, key_ax, forecast_index, downsample_ratio)
     that will be loaded as a key and shown on the website.
     
     """
-    period_string = 'Primary_wave_mean_period_surface'
+    if settings.WW3_OPENDAP:
+        period_string = 'period'
+    else:
+        period_string = 'Primary_wave_mean_period_surface'
     wave_period = data_file.variables[period_string][forecast_index]
 
     period_masked = numpy.ma.masked_array(wave_period,numpy.isnan(wave_period))
@@ -326,7 +332,10 @@ def ww3_height(ax, data_file, bmap, key_ax, forecast_index, downsample_ratio):
     for i in xrange(NUM_COLOR_LEVELS_FOR_WAVES + 1):
         color_levels.append(min_period + 1 + i * contour_range_inc)
 
-    height = "Significant_height_of_combined_wind_waves_and_swell_surface"
+    if settings.WW3_OPENDAP:
+        height = "height"
+    else:
+        height = "Significant_height_of_combined_wind_waves_and_swell_surface"
 
     heights = data_file.variables[height][forecast_index, :, :]
     heights = numpy.ma.masked_array(heights, numpy.isnan(heights))
@@ -901,7 +910,6 @@ def rtofs_temp(ax, data_file, bmap, key_ax, time_index, downsample_ratio):
     for i in xrange(num_color_levels+1):
         color_levels.append(min_temp+1 + i * contour_range_inc)
 
-    bmap.drawcoastlines()
     bmap.drawmapboundary(linewidth=0.0, ax=ax)
     overlay = bmap.contourf(x, y, temps, color_levels, ax=ax, extend='both', cmap=get_modified_jet_colormap())
 
