@@ -214,9 +214,13 @@ def download(roms=False, wave=False, wind=False, hycom=False, ncep=False, tcline
         ids.append(hycom_ids)
 
     if ncep:
-        print "DL: Downloaind NCEP WW3"
         ncep_ids = []
-        ncep_ids = DataFileManager.ww3_download()
+        if settings.WW3_OPENDAP:
+            print "DL: Downloaind NCEP WW3 via OpenDAP"
+            ncep_ids = DataFileManager.ww3_download_openDAP()
+        else:
+            print "DL: Downloaind NCEP WW3"
+            ncep_ids = DataFileManager.ww3_download()
         print("NCEP dl ids:", ncep_ids)
         ids.append(ncep_ids)
 
