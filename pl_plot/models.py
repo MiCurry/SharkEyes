@@ -192,22 +192,10 @@ class OverlayManager(models.Manager):
                 plotter = HycomPlotter(datafile.file.name)
                 t = plotter.get_number_of_model_times()
 
-                # TODO: Need to update this to match what each file is saved for
-                if datafile.file.name.endswith("ssh.nc"): # Sea Surface Height
-                    #task_list.append(cls.make_plot.subtask(args=(settings.NAVY_HYCOM_SSH, t, fid), immutable=True))
-                    pass
-                if datafile.file.name.endswith("temp_top.nc"): # Temperature Top
-                    task_list.append(cls.make_plot.subtask(args=(settings.NAVY_HYCOM_SST, t, fid), immutable=True))
-                    #task_list.append(cls.make_plot.subtask(args=(settings.NAVY_HYCOM_SUR_SAL, t, fid), immutable=True))
-                if datafile.file.name.endswith("temp_bot.nc"): # Temperature Bot
-                    #task_list.append(cls.make_plot.subtask(args=(settings.NAVY_HYCOM_BOT_TEMP, t, fid), immutable=True))
-                    #task_list.append(cls.make_plot.subtask(args=(settings.NAVY_HYCOM_BOT_SAL, t, fid), immutable=True))
-                    pass
-                if datafile.file.name.endswith("cur_top.nc"): # Current Top
-                    task_list.append(cls.make_plot.subtask(args=(settings.NAVY_HYCOM_SUR_CUR, t, fid), immutable=True))
-                if datafile.file.name.endswith("cur_bot.nc"): # Current Bot
-                    #task_list.append(cls.make_plot.subtask(args=(settings.NAVY_HYCOM_BOT_CUR, t, fid), immutable=True))
-                    pass
+                for t in range(plotter.get_number_of_model_times()):
+                    # TODO: Need to update this to match what each file is saved for
+                    task_list.append(cls.make_wave_watch_plot.subtask(args=(settings.NAVY_HYCOM_SST, t, fid), immutable=True))
+                    task_list.append(cls.make_wave_watch_plot.subtask(args=(settings.NAVY_SUR_CUR, t, fid), immutable=True))
 
             # OSU_ROMS
             elif datafile.file.name.startswith(settings.OSU_ROMS_DF_FN):
