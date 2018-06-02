@@ -147,7 +147,7 @@ def list_function(table='datafiles',
                                               | Q(definition_id=settings.NAVY_HYCOM_BOT_TEMP)
                                               | Q(definition_id=settings.NAVY_HYCOM_SUR_CUR)
                                               | Q(definition_id=settings.NAVY_HYCOM_BOT_CUR)
-                                              | Q(definition_id=settings.NAVY_HYCOM_TOP_SAL)
+                                              | Q(definition_id=settings.NAVY_HYCOM_SUR_SAL)
                                               | Q(definition_id=settings.NAVY_HYCOM_BOT_SAL)
                                               | Q(definition_id=settings.NAVY_HYCOM_SSH))
             for overlay in overlays:
@@ -373,9 +373,9 @@ def plot(ids=[],
         print ids
         print "PLOT: Plotting NCEP WW3 with file IDS: ", ids
         for id in ids:
-            navy_ids.append(om.make_plot(settings.NAVY_HYCOM_SST, 0, id))
-            navy_ids.append(om.make_plot(settings.NAVY_HYCOM_SUR_CUR, 0, id))
-            navy_ids.append(om.make_plot(settings.NAVY_HYCOM_SUR_SAL, 0, id))
+            for i in range(num_plots):
+                navy_ids.append(om.make_plot(settings.NAVY_HYCOM_SST, i, id))
+                navy_ids.append(om.make_plot(settings.NAVY_HYCOM_SUR_CUR, i, id))
 
 
         if tile_flag:
