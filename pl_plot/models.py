@@ -235,7 +235,7 @@ class OverlayManager(models.Manager):
         file_ids.append(DataFileManager.get_next_few_datafiles_of_a_type('NCEP')) # Wave Forecast
         file_ids.append(DataFileManager.get_next_few_datafiles_of_a_type('WIND')) # Wind
         file_ids.append(DataFileManager.get_next_few_datafiles_of_a_type('T-CLINE')) # T-Cline
-        file_ids.append(DataFileManager.get_next_few_datafiles_of_a_type('HYCOM')) # Wind
+        file_ids.append(DataFileManager.get_next_few_datafiles_of_a_type('HYCOM')) # Hycom - Extended
 
         file_ids = [item for sublist in file_ids for item in sublist] # Unravel lists of lists
 
