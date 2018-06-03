@@ -385,9 +385,105 @@ def plot(ids=[],
         return
 
 
-def do_pipeline():
-    from SharkEyesCore.tasks import do_pipeline
-    do_pipeline()
+def list_function(table='datafiles', roms=False, wave=False, wind=False, hycom=False, ncep=False, tcline=False, navy=False):
+    from pl_plot.models import Overlay
+    from pl_download.models import DataFile
+
+    if table == 'datafiles' or table == 'all':
+        if roms:
+            df_type = 'NCDF'
+            entries = DataFile.objects.filter(type=df_type)
+            for entry in entries:
+                info(entry)
+        if wave:
+            df_type = 'WAVE'
+            entries = DataFile.objects.filter(type=df_type)
+            for entry in entries:
+                info(entry)
+        if wind:
+            df_type = 'WIND'
+            entries = DataFile.objects.filter(type=df_type)
+            for entry in entries:
+                info(entry)
+        if hycom:
+            df_type = 'HYCOM'
+            entries = DataFile.objects.filter(type=df_type)
+            for entry in entries:
+                info(entry)
+        if ncep:
+            df_type = 'NCEP'
+            entries = DataFile.objects.filter(type=df_type)
+            for entry in entries:
+                info(entry)
+        if tcline:
+            df_type = 'tcline'
+            entries = DataFile.objects.filter(type=df_type)
+            for entry in entries:
+                info(entry)
+        if navy:
+            df_type = 'NAVY'
+            entries = DataFile.objects.filter(type=df_type)
+            for entry in entries:
+                info(entry)
+    elif table == 'overlays' or table == 'all': # List overlays
+        from django.db.models import Q
+        if ncep:
+            overlays = Overlay.objects.filter(Q(definition_id=settings.NCEP_WW3_DIR)
+                                               | Q(definition_id=settings.NCEP_WW3_HI))
+            for overlay in overlays:
+                info(overlay)
+
+
+def test(ids=None, navy=False, ncep=False):
+    from pl_download.models import DataFile
+    from pl_plot.plotter import NavyPlotter, NcepWW3Plotter
+    from pl_plot.models import OverlayManager as om
+    print ids
+
+
+    if navy:
+        print "NAVY HYCOM TEST"
+        count = 0
+        if ids:
+            for id in ids:
+                datafile = DataFile.objects.get(pk=id)
+                if datafile.type != 'HYCOM':
+                    continue # Skip over non HYCOM Files
+
+                count += 1
+
+            print "HYCOM TESTING ", count, " FOR FILE: "
+            info(datafile)
+            print "\tTESTING PLOTTER:"
+            plotter = NavyPlotter(datafile.file.name)
+            if plotter:
+                print "\t PLOTTER LOADED SUCCESFULLY"
+            else:
+                print "\t ERROR: UNABLE TO LOAD FILE: ", datafile.file.name
+
+            print "\t NUMBER OF MODEL TIMES: ", plotter.get_number_of_model_times()
+            print "\t OCEAN TIME: ", plotter.get_time_at_oceantime_index()
+
+            print "\t GENERATING PLOT.... "
+            print ""
+
+            if datafile.file.name.endswith("ssh.nc"):
+                om.make_plot(settings.NAVY_HYCOM_SUR_CUR, 0, id)
+            if datafile.file.name.endswith("temp_top.nc"):
+                om.make_plot(settings.NAVY_HYCOM_SST, 0, id)
+            if datafile.file.name.endswith("temp_bot.nc"):
+                om.make_plot(settings.NAVY_HYCOM_BOT_TEMP, 0, id)
+            if datafile.file.name.endswith("cur_top.nc"):
+                om.make_plot(settings.NAVY_HYCOM_SUR_CUR, 0, id)
+            if datafile.file.name.endswith("sal_top.nc"):
+                om.make_plot(settings.NAVY_HYCOM_SUR_SAL, 0, id)
+
+    if ncep:
+        from pl_download.models import DataFileManager as dm
+
+        print dm.ww3_download_openDAP()
+
+    print "TESTING TASK CREATION"
 
 def test():
     print "No test function implemented! Write your test function today!"
