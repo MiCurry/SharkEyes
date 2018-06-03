@@ -698,10 +698,10 @@ class NavyPlotter:
             self.zoom_level = settings.ZOOM_LEVELS_OTHERS
             return self.zoom_level
 
-    def get_time_at_oceantime_index(self, index=None):
+    def get_time_at_oceantime_index(self, time_index):
         basetime = self.data_file.variables['time'].units
         basetime = datetime.strptime(basetime, "hours since %Y-%m-%d 12:00:00.000 UTC")
-        return basetime + timedelta(hours=self.data_file.variables['time'][0])
+        return basetime + timedelta(hours=self.data_file.variables['time'][time_index])
 
 
     def get_number_of_model_times(self):
