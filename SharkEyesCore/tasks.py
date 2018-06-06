@@ -14,40 +14,6 @@ from SharkEyesCore.models import FeedbackQuestionaire
 
 from django.conf import settings
 
-@shared_task(name='get_and_apply_new_jobs')
-def get_and_apply_new_jobs():
-    """ Gets tasks from the OverlayManager and applies jobs that haven't been run,
-    similar to do_pipeline, but doesn't download any new files.
-    :return: Celery Result
-    """
-    # Get the list of plotting tasks based on the files we just downloaded.
-    logging.info('get_and_apply_new_jobs')
-    logging.info('GENERATING TASK LIST')
-    plot_task_list = OverlayManager.get_tasks_for_base_plots_for_next_few_days()
-
-    list_of_chains = []
-
-    for pt in plot_task_list:
-        if pt.args[0] != 4 and pt.args[0] != 6:
-            # Chaining passes the result of first function to second function
-            list_of_chains.append(chain(pt, tile_overlay.s()))
-        else:
-            # Use the Wavewatch tiler for Wavewatch files
-            list_of_chains.append(chain(pt, tile_wave_watch_overlay.s()))
-    logging.info('TASK LIST GENERATED')
-
-    job = group(item for item in list_of_chains)
-
-    print "PIPELINE: JOBS: "
-    for each in job:
-        print each
-
-    logging.info('APPLY JOBS')
-    result = job.apply_async() # Run the group.
-    logging.info('JOBS APPLIED')
-    return result
-
-
 @shared_task(name='sharkeyescore.pipeline')
 def do_pipeline():
 
@@ -118,7 +84,7 @@ def do_pipeline():
         print '-' * 60
     logging.info('OSU ROMS DOWNLOADED SUCCESFULLY')
 
-    if settings.WW3_OPENDAP:
+    if settings.WW3_OPENDAP is True:
         print "DOWNLOADING NCEP FILES VIA OPENDAP"
         logging.info('DOWNLOADING NCEP WW3 VIA OPENDAP')
         try: # Try Catches to ensure do_pipeline completes even if a model server cant be reached
