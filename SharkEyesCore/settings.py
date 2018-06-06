@@ -11,8 +11,12 @@ from __future__ import absolute_import
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import os
+import logging
+
 from celery.schedules import crontab
 from datetime import timedelta
+
+VERBOSE = 0
 
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 
@@ -76,6 +80,12 @@ TEMPLATE_LOADERS = (
 
 #some database
 CONN_MAX_AGE = None
+
+# Logging
+logging.basicConfig(filename='/var/log/sharkeyes/log.log',
+                    format='%(levelname)s %(asctime)s %(message)s (%(filename)s)',
+                    level=logging.DEBUG)
+logging.info('Debug Started and loaded')
 
 # For celery
 BROKER_HOST = "127.0.0.1"
@@ -142,6 +152,7 @@ OSU_WW3_DF_FN = "Outergrid"
 NAMS_WIND_DF_FN = "WIND"
 NCEP_WW3_DF_FN  = "NCEP_WW3"
 HYCOM_DF_FN = "HYCOM"
+NAVY_HYCOM_DF_FN = "NVY_HYCOM"
 OSU_TCLINE_DF_FN = "TCLINE"
 
 # Model Definition ID's
@@ -156,8 +167,8 @@ OSU_ROMS_BOT_TEMP = 8
 OSU_ROMS_SSH = 9
 NCEP_WW3_DIR = 10
 NCEP_WW3_HI = 11
-HYCOM_SST = 12
-HYCOM_SUR_CUR = 13
+HYCOM_SST = 12 # RTOFS - Not Used - needs to be renamed
+HYCOM_SUR_CUR = 13 # RTOFS - Not Used - needs to be renamed
 OSU_ROMS_TCLINE = 14
 OSU_ROMS_PCLINE = 15
 NAVY_HYCOM_SST = 16
@@ -167,7 +178,6 @@ NAVY_HYCOM_SSH = 19
 NAVY_HYCOM_BOT_TEMP = 20
 NAVY_HYCOM_BOT_CUR = 21
 NAVY_HYCOM_BOT_SAL = 22
-
 
 OSU_ROMS = [OSU_ROMS_SST, OSU_ROMS_SUR_SAL,
             OSU_ROMS_SUR_CUR, OSU_ROMS_BOT_SAL,
@@ -179,6 +189,14 @@ OSU_WW3 = [OSU_WW3_HI, OSU_WW3_DIR]
 
 NCEP_WW3 = [NCEP_WW3_HI, NCEP_WW3_DIR]
 
+HYCOM = [HYCOM_SST, HYCOM_SUR_CUR] # Rename
+
+NAVY_HYCOM = [NAVY_HYCOM_SST, NAVY_HYCOM_SUR_CUR,
+              NAVY_HYCOM_SUR_SAL, NAVY_HYCOM_SSH,
+              NAVY_HYCOM_BOT_TEMP, NAVY_HYCOM_BOT_CUR,
+              NAVY_HYCOM_BOT_SAL]
+
+NAVY_HYCOM_CUR = [NAVY_HYCOM_SUR_CUR, NAVY_HYCOM_BOT_CUR]
 HYCOM = [HYCOM_SST, HYCOM_SUR_CUR]
 
 VECTOR_FIELDS = [OSU_ROMS_SUR_CUR, HYCOM_SUR_CUR]
@@ -194,6 +212,12 @@ ZOOM_LEVELS_FOR_WAVE_OTHERS = [(None, None)]
 # T-Cline Settings
 MIN_TCLINE_DEPTH = -450 # Meters
 MAX_TCLINE_DEPTH = 0 # Meters
+
+# True for extend, false for not!
+EXTEND = True
+
+# True for WW3 NCEP OpenDap version, false for UCAR NCEP WW3 dl
+WW3_OPENDAP = True
 
 # import local settings. PyCharm thinks it's unused, but PyCharm is silly.
 # noinspection PyUnresolvedReferences

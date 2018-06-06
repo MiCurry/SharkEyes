@@ -17,7 +17,9 @@ urlpatterns = patterns('',
     url(r'^SharkEyesCore/tides', 'SharkEyesCore.views.tides'),
     url(r'^SharkEyesCore/right_click_menu', 'SharkEyesCore.views.right_click_menu'),
     url(r'^SharkEyesCore', 'SharkEyesCore.views.save_feedback'),
-    url(r'^survey.html', 'SharkEyesCore.views.survey')
+    url(r'^survey.html', 'SharkEyesCore.views.survey'),
+    url(r'^news', 'SharkEyesCore.views.news'),
+    url(r'^news.html', 'SharkEyesCore.views.news')
 
 )
 

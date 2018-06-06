@@ -1,182 +1,698 @@
 #!/usr/bin/env python
 import os
 import sys , traceback
+import argparse
 import time
+
+import SharkEyesCore.startup as startup
+from django.core.management import execute_from_command_line
+
+from django.conf import settings
+
+""" manage.py - Information
+
+Baisc usages
+
+`python manage.py download -r -w -n` # Download Roms, wind and nams
+
+`python manage.py plot -i 23 34 45 -r` # Plot rom df with id 23, 34 and 45
+
+With manage.py plot you can only plot one file type at a time. So if 23, 34
+were ROMS datafiles and 45 was a wave file, you'll get an error.
+
+`python manage.py plot-all -r` # Download and plot all of roms. Fresh
+plots!
+
+`python manage.py plot-l -d today -r -w` # Plot today's plots
+
+Options for plot-l are `latest`, `all`, `today`.
+
+###
+
+File Structure:
+===============
+* info(object)
+* def list_function(table='datafiles', roms=False, wave=False, wind=False,
+                    hycom=False, ncep=False, tcline=False,navy=False):
+* tile_set(id_start, id_end)
+* tile(ids)
+* download(roms=False, wave=False, wind=False, hycom=False, ncep=False,
+           tcline=False, navy=False, num_dl=None):
+* plot(ids=[], num_plots=DEF_NUM_PLOTS, tile_flag=DEF_TILE_FLAG,
+       full_roms=DEF_FULL_ROMS_FLAG, roms=False, wave=False, wind=False,
+       hycom=False, ncep=False, tcline=False, navy=False):
+"""
+
+DEF_NUM_PLOTS = 5 # Default Number of Num Plots
+DEF_TILE_FLAG = False # Default Tile Flag
+DEF_FULL_ROMS_FLAG = False # Default Full Roms Flag
+
+verbose = 0
+
+def info(object):
+    from pl_download.models import DataFile
+    from pl_plot.models import Overlay
+
+    if type(object) == DataFile:
+        print "--- ", object.type, " DATAFILE --- ", object.file.name, " --- ", "DF-ID: ", object.id, " --- "
+        print "   MODEL DATE: ", object.model_date, " DL DATETIME: ", object.download_datetime
+        print ""
+    if type(object) == Overlay:
+        print "--- Overlay Defintion: ", object.definition, " --- OVERLAY ID", object.id
+        print " FILE: ", object.file.name
+        print " CREATED DATETIME: ", object.created_datetime, " APPLIES AT: ", object.applies_at_datetime
+        print " IS TILED: ", object.is_tiled, " IS EXTEND: ", object.is_extend
+        print " ZOOM LEVEL: ", object.zoom_levels
+        print ""
+
+def list_function(table='datafiles',
+                  roms=False, wave=False, wind=False, hycom=False, ncep=False, tcline=False,
+                  navy=False):
+    from pl_plot.models import Overlay
+    from pl_download.models import DataFile
+
+    if table == 'datafiles' or table == 'all':
+        if roms:
+            df_type = 'NCDF'
+            entries = DataFile.objects.filter(type=df_type)
+            for entry in entries:
+                info(entry)
+        if wave:
+            df_type = 'WAVE'
+            entries = DataFile.objects.filter(type=df_type)
+            for entry in entries:
+                info(entry)
+        if wind:
+            df_type = 'WIND'
+            entries = DataFile.objects.filter(type=df_type)
+            for entry in entries:
+                info(entry)
+        if hycom:
+            df_type = 'HYCOM'
+            entries = DataFile.objects.filter(type=df_type)
+            for entry in entries:
+                info(entry)
+        if ncep:
+            df_type = 'NCEP'
+            entries = DataFile.objects.filter(type=df_type)
+            for entry in entries:
+                info(entry)
+        if tcline:
+            df_type = 'tcline'
+            entries = DataFile.objects.filter(type=df_type)
+            for entry in entries:
+                info(entry)
+        if navy:
+            df_type = 'NAVY'
+            entries = DataFile.objects.filter(type=df_type)
+            for entry in entries:
+                info(entry)
+    elif table == 'overlays' or table == 'all': # List overlays
+        from django.db.models import Q
+        if roms:
+            overlays = Overlay.objects.filter(Q(definition_id=settings.OSU_ROMS_SST)
+                                            | Q(definition_id=settings.OSU_ROMS_BOT_TEMP)
+                                            | Q(definition_id=settings.OSU_ROMS_SUR_CUR)
+                                            | Q(definition_id=settings.OSU_ROMS_SUR_SAL)
+                                            | Q(definition_id=settings.OSU_ROMS_BOT_SAL)
+                                            | Q(definition_id=settings.OSU_ROMS_SSH))
+            for overlay in overlays:
+                info(overlay)
+        if wave:
+            overlays = Overlay.objects.filter(Q(definition_id=settings.NCEP_WW3_DIR)
+                                            | Q(definition_id=settings.NCEP_WW3_HI))
+            for overlay in overlays:
+                info(overlay)
+        if wind:
+            overlays = Overlay.objects.filter(Q(definition_id=settings.NAMS_WIND))
+            for overlay in overlays:
+                info(overlay)
+        if hycom:
+            overlays = Overlay.objects.filter(Q(definition_id=settings.HYCOM_SST)
+                                            | Q(definition_id=settings.HYCOM_SUR_CUR))
+            for overlay in overlays:
+                info(overlay)
+        if ncep:
+            overlays = Overlay.objects.filter(Q(definition_id=settings.NCEP_WW3_DIR)
+                                            | Q(definition_id=settings.NCEP_WW3_HI))
+            for overlay in overlays:
+                info(overlay)
+        if tcline:
+            overlays = Overlay.objects.filter(Q(definition_id=settings.OSU_ROMS_TCLINE)
+                                            | Q(definition_id=settings.OSU_ROMS_PCLINE))
+            for overlay in overlays:
+                info(overlay)
+        if navy:
+            overlays = Overlay.objects.filter(Q(definition_id=settings.NAVY_HYCOM_SST)
+                                              | Q(definition_id=settings.NAVY_HYCOM_BOT_TEMP)
+                                              | Q(definition_id=settings.NAVY_HYCOM_SUR_CUR)
+                                              | Q(definition_id=settings.NAVY_HYCOM_BOT_CUR)
+                                              | Q(definition_id=settings.NAVY_HYCOM_SUR_SAL)
+                                              | Q(definition_id=settings.NAVY_HYCOM_BOT_SAL)
+                                              | Q(definition_id=settings.NAVY_HYCOM_SSH))
+            for overlay in overlays:
+                info(overlay)
+
+def tile_set(id_start, id_end):
+    # Never Needs to be Updated
+    from pl_chop.tasks import tile_overlay
+    # Tile a range of overlays
+
+    ids = range(id_start, id_end, 1)
+
+    print "Tiling ids"
+    for f in ids:
+        tile_overlay(f)
+
+def tile(ids):
+    """ Never Needs to be Updated"""
+    from pl_chop.tasks import tile_overlay
+
+    if len(ids) == 0:
+        print "TILE: Empty list of IDS quitting"
+        return 0
+
+    print "TILE: Tiling IDS: ", ids
+
+    for f in ids:
+        tile_overlay(f)
+
+def download(roms=False, wave=False, wind=False, hycom=False, ncep=False, tcline=False,  navy=False,
+             num_dl=None):
+
+    from pl_download.models import DataFileManager
+
+    ids = []
+    if roms:
+        print "DL: Downloading roms files"
+        roms_ids = []
+        roms_ids = DataFileManager.download_osu_roms()
+        print("OSU ROM dl ids:", roms_ids)
+        ids.append(roms_ids) # Update to a dictonary
+
+    if wave:
+        print "DL: Downloading OSU WW3 files"
+        wave_ids = []
+        wave_ids = DataFileManager.get_latest_wave_watch_files()
+        print("OSU WW3 dl ids:", wave_ids)
+        ids.append(wave_ids)
+
+    if wind:
+        print "DL: Downloading NAM WIND files"
+        wind_ids = []
+        wind_ids = DataFileManager.get_wind_file()
+        print("NAM Wind dl ids:", wind_ids)
+        ids.append(wind_ids)
+
+    if hycom:
+        print "DL: Downloading HYCOM files"
+        print "DL: Number of downloads specified: ", num_dl
+
+        hycom_ids = []
+        hycom_ids = DataFileManager.rtofs_download(count=num_dl)
+        print("DL: HYCOM dl ids:", hycom_ids)
+        ids.append(hycom_ids)
+
+    if ncep:
+        ncep_ids = []
+        if settings.WW3_OPENDAP:
+            print "DL: Downloaind NCEP WW3 via OpenDAP"
+            ncep_ids = DataFileManager.ww3_download_openDAP()
+        else:
+            print "DL: Downloaind NCEP WW3"
+            ncep_ids = DataFileManager.ww3_download()
+        print("NCEP dl ids:", ncep_ids)
+        ids.append(ncep_ids)
+
+    if tcline:
+        print "DL: Downloading OSU t-cline"
+        tcline_ids = []
+        tcline_ids = None
+        print("NCEP dl ids:", tcline_ids)
+        ids.append(tcline_ids)
+
+    if navy:
+        print "DL: Downloading Navy Hycom"
+        navy_ids = []
+        navy_ids = DataFileManager.navy_hycom_download()
+        print ("NAVY HYCOM ids: ", navy_ids)
+        ids.append(navy_ids)
+
+    return ids
+
+def plot(ids=[],
+         num_plots=DEF_NUM_PLOTS, tile_flag=DEF_TILE_FLAG, full_roms=DEF_FULL_ROMS_FLAG,
+         roms=False, wave=False, wind=False, hycom=False, ncep=False, tcline=False, navy=False):
+    '''  Just generates plots. You need to pass in the df id to get a plot! Pass it in manually
+    or by using one of the functions below which grabs them using the database or via downloading!
+    '''
+    print "IDS", ids
+
+    if not ids:
+        print "PLOT: NO IDS SUBMITTED TO BE PLOTTED - exiting"
+        return
+
+    if len(ids) == 0:
+        print "PLOT: Empty List of IDS exiting"
+        return
+
+    from pl_plot.models import OverlayManager as om
+    from pl_chop.tasks import tile_overlay
+
+    if roms: # OSU ROMS
+        roms = []
+
+        print "PLOT: Plotting Roms with file IDS: ", ids
+        for id in ids:
+            for i in range(num_plots):
+                print "PLOT: OSU ROMS SST - timeslice: ", i
+                roms.append(om.make_plot(settings.OSU_ROMS_SST, i, id))
+                print "PLOT: OSU ROMS SSC - timeslice: ", i
+                roms.append(om.make_plot(settings.OSU_ROMS_SUR_CUR, i, id))
+
+                if full_roms:
+                    print "PLOT: Plotting full roms"
+                    print "PLOT: OSU ROMS SSC - timeslice: ", i
+                    roms.append(om.make_plot(settings.OSU_ROMS_SUR_SAL, i, id))
+                    print "PLOT: OSU ROMS BOT Sal- timeslice: ", i
+                    roms.append(om.make_plot(settings.OSU_ROMS_BOT_SAL, i, id))
+                    print "PLOT: OSU ROMS BOT Temp- timeslice: ", i
+                    roms.append(om.make_plot(settings.OSU_ROMS_BOT_TEMP, i, id))
+                    print "PLOT: OSU ROMS SSH - timeslice: ", i
+                    roms.append(om.make_plot(settings.OSU_ROMS_SSH, i, id))
+
+        if tile_flag:
+            print "PLOT: Tiling ROMS"
+            tile(roms)
+
+        return
+
+    if wave: # OSU WAVE WATCH III - NO LONGER AVIABLE
+        waves = []
+
+        print ids
+        print "PLOT: Plotting OSU WW3 with file IDS: ", ids
+
+        if not ids:
+            print "Empty List of IDS for OSU WW3"
+            return
+
+        for id in ids:
+            for i in range(num_plots):
+                waves.append(om.make_wave_watch_plot(settings.OSU_WW3_HI, i, id))
+                waves.append(om.make_wave_watch_plot(settings.OSU_WW3_DIR, i, id))
+
+        if tile_flag:
+            print "PLOT: Tiling waves"
+            tile(waves)
+
+        return
+
+    if wind: # NORTH AMERICAN MESOSCALE - SURFACE WINDS
+        winds = []
+
+        print "PLOT: Plotting NAM Winds with file IDS: ", ids
+        for id in ids:
+            for i in range(num_plots):
+                winds.append(om.make_plot(settings.NAMS_WIND, i, id))
+
+        if tile_flag:
+            print "PLOT: Tiling NAM Winds"
+            tile(winds)
+
+        return
+
+    if hycom: # NOAA HYCOM - Not currently implemented on the seacast.org
+        hycoms = []
+
+        print "PLOT: Plotting HYCOM with file IDS: ", ids
+        for id in ids:
+            hycoms.append(om.make_plot(settings.HYCOM_SST, 0, id))
+            hycoms.append(om.make_plot(settings.HYCOM_SUR_CUR, 0, id))
+
+        if tile_flag:
+            print "PLOT: Tiling HYCOM"
+            tile(hycoms)
+
+        return
+
+    if ncep: # NCEP WAVE WATCH III
+        nceps = []
+
+        print ids
+        print "PLOT: Plotting NCEP WW3 with file IDS: ", ids
+        for id in ids:
+            for i in range(num_plots):
+                nceps.append(om.make_wave_watch_plot(settings.NCEP_WW3_DIR, i, id))
+                nceps.append(om.make_wave_watch_plot(settings.NCEP_WW3_HI, i, id))
+
+        if tile_flag:
+            print "PLOT: Tiling NCEP"
+            tile(nceps)
+
+        return
+
+    if tcline: # OSU ROMS THERMOCLINE
+        tcline_ids = []
+
+        print ids
+        print "PLOT: Plotting TCLINE with file IDS: ", ids
+        for id in ids:
+            for i in range(num_plots):
+                tcline_ids.append(om.make_plot(settings.OSU_ROMS_TCLINE, i, id))
+
+        if tile_flag:
+            print "PLOT: Tiling tcline"
+            tile(tcline_ids)
+
+        return
+
+    if navy: # NAVY HYCOM
+        navy_ids = []
+
+        print ids
+        print "PLOT: Plotting NCEP WW3 with file IDS: ", ids
+        for id in ids:
+            for i in range(num_plots):
+                navy_ids.append(om.make_plot(settings.NAVY_HYCOM_SST, i, id))
+                navy_ids.append(om.make_plot(settings.NAVY_HYCOM_SUR_CUR, i, id))
+
+
+        if tile_flag:
+            print "PLOT: Tiling NCEP"
+            tile(navy_ids)
+
+        return
+
+
+def list_function(table='datafiles', roms=False, wave=False, wind=False, hycom=False, ncep=False, tcline=False, navy=False):
+    from pl_plot.models import Overlay
+    from pl_download.models import DataFile
+
+    if table == 'datafiles' or table == 'all':
+        if roms:
+            df_type = 'NCDF'
+            entries = DataFile.objects.filter(type=df_type)
+            for entry in entries:
+                info(entry)
+        if wave:
+            df_type = 'WAVE'
+            entries = DataFile.objects.filter(type=df_type)
+            for entry in entries:
+                info(entry)
+        if wind:
+            df_type = 'WIND'
+            entries = DataFile.objects.filter(type=df_type)
+            for entry in entries:
+                info(entry)
+        if hycom:
+            df_type = 'HYCOM'
+            entries = DataFile.objects.filter(type=df_type)
+            for entry in entries:
+                info(entry)
+        if ncep:
+            df_type = 'NCEP'
+            entries = DataFile.objects.filter(type=df_type)
+            for entry in entries:
+                info(entry)
+        if tcline:
+            df_type = 'tcline'
+            entries = DataFile.objects.filter(type=df_type)
+            for entry in entries:
+                info(entry)
+        if navy:
+            df_type = 'NAVY'
+            entries = DataFile.objects.filter(type=df_type)
+            for entry in entries:
+                info(entry)
+    elif table == 'overlays' or table == 'all': # List overlays
+        from django.db.models import Q
+        if ncep:
+            overlays = Overlay.objects.filter(Q(definition_id=settings.NCEP_WW3_DIR)
+                                               | Q(definition_id=settings.NCEP_WW3_HI))
+            for overlay in overlays:
+                info(overlay)
+
+
+def test(ids=None, navy=False, ncep=False):
+    from pl_download.models import DataFile
+    from pl_plot.plotter import NavyPlotter, NcepWW3Plotter
+    from pl_plot.models import OverlayManager as om
+    print ids
+
+
+    if navy:
+        print "NAVY HYCOM TEST"
+        count = 0
+        if ids:
+            for id in ids:
+                datafile = DataFile.objects.get(pk=id)
+                if datafile.type != 'HYCOM':
+                    continue # Skip over non HYCOM Files
+
+                count += 1
+
+            print "HYCOM TESTING ", count, " FOR FILE: "
+            info(datafile)
+            print "\tTESTING PLOTTER:"
+            plotter = NavyPlotter(datafile.file.name)
+            if plotter:
+                print "\t PLOTTER LOADED SUCCESFULLY"
+            else:
+                print "\t ERROR: UNABLE TO LOAD FILE: ", datafile.file.name
+
+            print "\t NUMBER OF MODEL TIMES: ", plotter.get_number_of_model_times()
+            print "\t OCEAN TIME: ", plotter.get_time_at_oceantime_index()
+
+            print "\t GENERATING PLOT.... "
+            print ""
+
+            if datafile.file.name.endswith("ssh.nc"):
+                om.make_plot(settings.NAVY_HYCOM_SUR_CUR, 0, id)
+            if datafile.file.name.endswith("temp_top.nc"):
+                om.make_plot(settings.NAVY_HYCOM_SST, 0, id)
+            if datafile.file.name.endswith("temp_bot.nc"):
+                om.make_plot(settings.NAVY_HYCOM_BOT_TEMP, 0, id)
+            if datafile.file.name.endswith("cur_top.nc"):
+                om.make_plot(settings.NAVY_HYCOM_SUR_CUR, 0, id)
+            if datafile.file.name.endswith("sal_top.nc"):
+                om.make_plot(settings.NAVY_HYCOM_SUR_SAL, 0, id)
+
+    if ncep:
+        from pl_download.models import DataFileManager as dm
+
+        print dm.ww3_download_openDAP()
+
+    print "TESTING TASK CREATION"
+
+def test():
+    print "No test function implemented! Write your test function today!"
+    pass
+
+from django.db.models.query import QuerySet
+from pprint import PrettyPrinter
+
+
+def dprint(object, stream=None, indent=1, width=80, depth=None):
+    # Catch any singleton Django model object that might get passed in
+    if getattr(object, '__metaclass__', None):
+        if object.__metaclass__.__name__ == 'ModelBase':
+            # Convert it to a dictionary
+            object = object.__dict__
+
+    # Catch any Django QuerySets that might get passed in
+    elif isinstance(object, QuerySet):
+        # Convert it to a list of dictionaries
+        object = [i.__dict__ for i in object]
+
+    # Pass everything through pprint in the typical way
+    printer = PrettyPrinter(stream=stream, indent=indent, width=width, depth=depth)
+    printer.pprint(object)
+
+def extend():
+    from pl_plot.models import OverlayManager
+
+    models = [settings.OSU_ROMS_SST, # Extended
+              settings.OSU_ROMS_SUR_SAL,
+              settings.OSU_ROMS_SUR_CUR, # Extended
+              settings.OSU_WW3_HI, # Extended
+              settings.NAMS_WIND,
+              settings.OSU_WW3_DIR, # Extended
+              settings.OSU_ROMS_BOT_SAL,
+              settings.OSU_ROMS_BOT_TEMP,
+              settings.OSU_ROMS_SSH,
+              settings.OSU_ROMS_TCLINE,
+              ]
+
+    extended_models = [settings.OSU_ROMS_SST,
+                       settings.OSU_ROMS_SUR_CUR,
+                       settings.OSU_WW3_HI,
+                       settings.OSU_WW3_DIR]
+
+    # 14 = Thermocline
+    #models = [1,3,4,6,5,8,2,7,9,]
+    fields = get_list_of_overlay_definitions(models)
+
+    base_overlays = OverlayManager.get_next_few_days_of_tiled_overlays(models)
+
+    ww3_extended_overlays = OverlayManager.get_next_few_days_of_tiled_overlays_for_extended_forecasts('WAVE', extended_models)
+    roms_extended_overlays = OverlayManager.get_next_few_days_of_tiled_overlays_for_extended_forecasts('NCDF', extended_models)
+
+    print "Base Overlays:"
+    for overlay in base_overlays:
+        print overlay.file, overlay.applies_at_datetime, overlay.is_extend
+
+    print "Extended WW3"
+    for overlay in ww3_extended_overlays:
+        print overlay.file, overlay.applies_at_datetime, overlay.is_extend
+
+    print "Extended ROMS"
+    for overlay in roms_extended_overlays:
+        print overlay.file, overlay.applies_at_datetime, overlay.is_extend
+
+    overlays = base_overlays | ww3_extended_overlays | roms_extended_overlays # Union of all three querysets - '|' represents the union
+
+
+def get_list_of_overlay_definitions(models):
+    from pl_plot.models import OverlayDefinition
+    """
+    :param models: List of models definition ids ie: model = [seetings.OSU_ROMS_SST, settings.OSU_ROMS_SUR_SAL ...]
+    :return: Obejct of fields
+    """
+    fields = []
+    for value in models:
+        fields.append(OverlayDefinition.objects.get(pk=value))
+    return fields
 
 if __name__ == "__main__":
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "SharkEyesCore.settings")
-
-    import SharkEyesCore.startup as startup
     startup.run()
 
-    if sys.argv[-1] == "download":
-        from pl_download.models import DataFileManager, DataFile
-        wave = 0
-        sst = 1
-        wind = 0
-        tcline = 0
-        if wave:
-            DataFileManager.get_latest_wave_watch_files()
-        if sst:
-            DataFileManager.download_osu_roms()
-        if wind:
-            DataFileManager.get_wind_file()
-        if tcline:
-            DataFileManager.download_tcline()
+    parser = argparse.ArgumentParser(description='Easy way to produce plots of\
+    seacast fields.')
 
-    elif sys.argv[-1] == "plot":
-        from pl_download.models import DataFileManager, DataFile
-        from pl_plot.models import OverlayManager
-        from pl_chop.tasks import tile_overlay, tile_wave_watch_overlay
-        from pl_plot.plotter import WindPlotter, Plotter
-        wave = 0
-        sst = 1
-        wind = 0
-        t_cline = 0
+    task = parser.add_argument_group('Task', 'The task you want to preform.')
+    task.add_argument('task',
+                        help='The manage.py command you want to run. Options are \n' \
+                             "\t 'download' & 'plot'",
+                        type=str)
 
-        if wave:
-            #DataFileManager.get_latest_wave_watch_files()
-            wave = DataFile.objects.filter(type='WAVE').latest('model_date')
-            tiles = []
-            begin = time.time()
-            #first entry is day-1 at 12pm
-            #need to offset 16 to match with sst plot
-            #NOTE it increments in 1 hour changes
-            tiles += OverlayManager.make_wave_watch_plot(4, 20, wave.id)
-            #tiles += OverlayManager.make_wave_watch_plot(6, 20, wave.id)
-            for t in tiles:
-                tile_wave_watch_overlay(t)
-            finish = time.time()
-            totalTime = (finish - begin)/ 60
-            print "Time taken for Waves = " + str(round(totalTime, 2)) + " minutes"
-        if sst:
+    model = parser.add_argument_group('Models', 'Enable models by using these commands')
+    model.add_argument("-a", '--all',
+                       help='Toggle on all the models',
+                       action='store_true')
+    model.add_argument("-r", '--roms',
+                        help='Toggle on OSU ROMS in this task call',
+                        action="store_true")
+    model.add_argument("-w", '--wave',
+                        help='Toggle on OSU WW3 in this task call',
+                        action="store_true")
+    model.add_argument("-n", '--nams',
+                        help='Toggle on NAMS in this task call',
+                        action="store_true")
+    model.add_argument("-p", '--hycom',
+                        help='Toggle on HYCOM in this task call',
+                        action="store_true")
+    model.add_argument("-c", '--ncep',
+                        help='Toggle on NCEP WW3 in this task Call',
+                        action="store_true")
+    model.add_argument("-l", '--cline',
+                       help='Toggle on OSU T/P-CLINE downloads in this task Call',
+                       action="store_true")
+    model.add_argument("-y", '--navy',
+                       help='Toggle on NAVY HYCOM in this task Call',
+                       action="store_true")
 
-            #sst = DataFileManager.download_osu_roms()
-            sst = DataFile.objects.all().filter(type="NCDF")
-            #plotter = Plotter(sst[0].file.name)
-            #print "Time value ", plotter.get_time_at_oceantime_index(0)
 
-            tiles = []
-            begin = time.time()
-            tiles += OverlayManager.make_plot(1, 5, sst[1].id)
-            # tiles += OverlayManager.make_plot(2, 3, sst[2].id)
-            # tiles += OverlayManager.make_plot(3, 3, sst[2].id)
-            # tiles += OverlayManager.make_plot(7, 3, sst[2].id)
-            # tiles += OverlayManager.make_plot(8, 3, sst[2].id)
-            # tiles += OverlayManager.make_plot(9, 3, sst[2].id)
-            for t in tiles:
-                tile_overlay(t)
-            finish = time.time()
-            totalTime = (finish - begin)/ 60
-            print "Time taken for SST = " + str(round(totalTime, 2)) + " minutes"
+    other = parser.add_argument_group('Other')
+    other.add_argument("-T", '--tile',
+                        help='Toggle on to produce tiles in plot',
+                        action="store_true")
+    other.add_argument("-K", '--num',
+                       help='Number of plots to generate in plot',
+                       type=int,
+                       default=DEF_NUM_PLOTS)
+    other.add_argument("-F", '--fullRoms',
+                        help='Run the full number of roms. Default is True',
+                        type=bool,
+                        default=DEF_FULL_ROMS_FLAG)
+    other.add_argument("-I", '--ids',
+                       help='Toggle on to produce tiles in plot',
+                       nargs="+",
+                       dest='ids')
+    other.add_argument("-V", '--verbose',
+                       help='Turn on vebrosity level 0 (default), 1, 2, 3, 9000',
+                       default=0,
+                       type=int)
+    other.add_argument("-D", '--date',
+                       help='today, latest, ',
+                       type=str)
 
-        if wind:
-            #winds = DataFileManager.get_wind_file()
-            winds = DataFile.objects.filter(type='WIND').latest('model_date')
-            plotter = WindPlotter(winds.file.name)
-            x = 0
-            print "Time value ", plotter.get_time_at_oceantime_index(x)
-            tiles = []
-            begin = time.time()
-            tiles += OverlayManager.make_plot(5, x, winds.id)
-            for t in tiles:
-                tile_overlay(t)
-            finish = time.time()
-            totalTime = (finish - begin)/ 60
-            print "Time taken for Winds = " + str(round(totalTime, 2)) + " minutes"
+    args, unknown = parser.parse_known_args()
 
-        if t_cline:
-            #thermo = DataFileManager.download_tcline()
-            thermo = DataFile.objects.filter(type='T-CLINE').latest('model_date')
-            tiles = []
-            begin = time.time()
-            tiles += OverlayManager.make_plot(14, 0, thermo.id)
-            for t in tiles:
-                tile_overlay(t)
-            finish = time.time()
-            totalTime = (finish - begin)/ 60
-            print "Time taken for T-Cline = " + str(round(totalTime, 2)) + " minutes"
+    if args.verbose >= 2:
+        print args
 
-    elif sys.argv[-1] == "plot-all":
-        from pl_download.models import DataFileManager, DataFile
-        from pl_plot.models import OverlayManager as om
-        from pl_chop.tasks import tile_overlay, tile_wave_watch_overlay
-        from pl_plot.plotter import WindPlotter, Plotter
-        from datetime import datetime, timedelta
-        wave = 1
-        sst = 0
-        wind = 0
+    if args.task == "download":
+        print download(roms=args.roms,
+                       wave=args.wave,
+                       wind=args.nams,
+                       hycom=args.hycom,
+                       ncep=args.ncep,
+                       num_dl=args.num,
+                       tcline=args.cline,
+                       navy=args.navy)
+        sys.exit()
 
-        if wave:
-            #DataFileManager.get_latest_wave_watch_files()
-            print "\n--- Plotting WW3 - Height and Direction ---"
-            wave = DataFile.objects.filter(type='WAVE').latest('model_date')
-            wind_id = wave.id
-            for t in xrange(80, 85, 4):
-                try:
-                    print "Plotting WW3 - File ID:", wind_id, "Time Index:", t
-                    tile_wave_watch_overlay(om.make_wave_watch_plot(4, t, wind_id))
-                    #tile_wave_watch_overlay(om.make_wave_watch_plot(6, t, wind_id))
-                    print "plot/tile success"
-                except Exception:
-                    print '-' * 60
-                    traceback.print_exc(file=sys.stdout)
-                    print '-' * 60
-                print
-        if sst:
-            #DataFileManager.download_osu_roms()
-            print "\n--- Plotting ROMS Fields - SST, Salinity, SSH ---"
-            sst_files = DataFile.objects.all().filter(type = "NCDF")
-            for file in sst_files:
-                plotter = Plotter(file.file.name)
-                number_of_times = plotter.get_number_of_model_times()
-                wind_id = file.id
-                for t in xrange(number_of_times):
-                    if t % 2 != 0:
-                        try:
-                            print "Plotting ROMS - File ID:", wind_id, "Time Index:", t
-                            tile_overlay(om.make_plot(1, t, wind_id))
-                            tile_overlay(om.make_plot(2, t, wind_id))
-                            tile_overlay(om.make_plot(3, t, wind_id))
-                            tile_overlay(om.make_plot(7, t, wind_id))
-                            tile_overlay(om.make_plot(8, t, wind_id))
-                            tile_overlay(om.make_plot(9, t, wind_id))
-                            print "plot/tile success"
-                        except Exception:
-                            print '-' * 60
-                            traceback.print_exc(file=sys.stdout)
-                            print '-' * 60
-                        print
+    elif args.task == "plot":
+        plot(args.ids,
+             num_plots=args.num,
+             tile_flag=args.tile,
+             roms=args.roms,
+             wave=args.wave,
+             wind=args.nams,
+             hycom=args.hycom,
+             ncep=args.ncep,
+             tcline=args.cline,
+             navy=args.navy)
+        sys.exit()
 
-        if wind:
-            print "\n Plotting NAMS - Winds"
-            start = time.time()
-            #DataFileManager.get_wind_file()
-            winds = DataFile.objects.filter(type='WIND').latest('model_date')
-            wind_id = winds.id
-            plotter = WindPlotter(winds.file.name)
-            number_of_times = plotter.get_number_of_model_times()
-            wind_values = plotter.get_wind_indices()
-            begin = wind_values['begin']
-            print "Begin = ", begin
-            swap = wind_values['swap']
-            print "Swap = ", swap
-            three_hour_indices = wind_values['indices']
-            print "Indices = ", three_hour_indices
-            print "Pre Swap"
-            for t in range(begin, swap, 4):
-                print "Plotting and Tiling NAMS - Time: ", plotter.get_time_at_oceantime_index(t)- timedelta(hours=8)
-                tile_overlay(om.make_plot(5, t, wind_id))
-            print "Post Swap"
-            for t in range(swap, number_of_times, 1):
-                if t in three_hour_indices:
-                    print "Plotting and Tiling NAMS - Time: ", plotter.get_time_at_oceantime_index(t)-timedelta(hours=8)
-                    tile_overlay(om.make_plot(5, t, wind_id))
-            print "plot/tile success"
-            end = time.time()
-            total = (end - start)/ 60
-            print "Total time taken for plotting and tiling = " + str(round(total, 2)) + " minutes"
+    elif args.task == 'tile':
+        tile(ids=args.ids)
+        sys.exit()
 
-    else:
-        from django.core.management import execute_from_command_line
-        execute_from_command_line(sys.argv)
+    elif args.task == "datafiles":
+        list_function(table='datafiles',
+                      roms=args.roms,
+                      wave=args.wave,
+                      wind=args.nams,
+                      hycom=args.hycom,
+                      ncep=args.ncep,
+                      tcline=args.ncep,
+                      navy=args.navy,
+                      )
+        sys.exit()
+
+    elif args.task == "overlays":
+        list_function(table='overlays',
+                      roms=args.roms,
+                      wave=args.wave,
+                      wind=args.nams,
+                      hycom=args.hycom,
+                      ncep=args.ncep,
+                      tcline=args.ncep,
+                      navy=args.navy,
+                      )
+        sys.exit()
+    elif args.task == "do_pipeline":
+        do_pipeline()
+        sys.exit()
+
+    elif args.task == "test":
+        test()
+        sys.exit()
+    elif args.task == "extend":
+        extend()
+        sys.exit()
+
+    execute_from_command_line(sys.argv)

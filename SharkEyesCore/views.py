@@ -1,14 +1,15 @@
-from django.shortcuts import render
-from pl_plot.models import OverlayManager, OverlayDefinition
-from pl_download.models import DataFile
-from scipy.io import netcdf
-import numpy as np
-from django.conf import settings
 import os
 from datetime import datetime, timedelta
 import pytz
 import json
 import logging
+import re
+from itertools import chain
+from scipy.io import netcdf
+import numpy as np
+
+from mpl_toolkits.basemap import Basemap
+from django.shortcuts import render
 from django.db import connection
 from django.db import IntegrityError
 from django.views.decorators.csrf import csrf_exempt
@@ -18,9 +19,10 @@ from django.template import Library
 from django.template.defaultfilters import stringfilter
 from django.utils.html import conditional_escape
 from django.utils.safestring import mark_safe
-from mpl_toolkits.basemap import Basemap
-import re
+from django.conf import settings
 
+from pl_plot.models import OverlayManager, OverlayDefinition
+from pl_download.models import DataFile
 # Django likes to remove whitespace from HTML strings. Use spacify("string with space") to preserve whitespace
 register = Library()
 @stringfilter
@@ -275,24 +277,68 @@ def get_models(keys):
 #This is where we associate the Javascript variables (overlays, defs etc) with the Django objects from the database.
 def home(request):
     #Models determines which models are displayed on the website. They will appear in the order provided by models[]. Change this order to change the order of the buttons and which buttons appear.
-    # 1 = SST,
-    # 2 = Salinity,
-    # 3 = Currents,
-    # 4 = Wave Height,
-    # 5 = Winds,
-    # 6 = Wave Direction/Period,
-    # 7 = Bottom Temperature,
-    # 8 = Bottom Salinity,
-    # 9 = Sea Surface Height
-    # 14 = Thermocline
-    models = [1,3,4,6,5,8,2,7,9,14]
+    # OSU_ROMS_SST = 1
+    # OSU_ROMS_SUR_SAL = 2
+    # OSU_ROMS_SUR_CUR = 3
+    # OSU_WW3_HI = 4
+    # NAMS_WIND = 5
+    # OSU_WW3_DIR = 6
+    # OSU_ROMS_BOT_SAL = 7
+    # OSU_ROMS_BOT_TEMP = 8
+    # OSU_ROMS_SSH = 9
+    # NCEP_WW3_DIR = 10
+    # NCEP_WW3_HI = 11
+    # HYCOM_SST = 12 # RTOFS - Not Used - needs to be renamed
+    # HYCOM_SUR_CUR = 13 # RTOFS - Not Used - needs to be renamed
+    # OSU_ROMS_TCLINE = 14
+    # OSU_ROMS_PCLINE = 15
+    # NAVY_HYCOM_SST = 16
+    # NAVY_HYCOM_SUR_CUR = 17
+    # NAVY_HYCOM_SUR_SAL = 18
+    # NAVY_HYCOM_SSH = 19
+    # NAVY_HYCOM_BOT_TEMP = 20
+    # NAVY_HYCOM_BOT_CUR = 21
+    # NAVY_HYCOM_BOT_SAL = 22
+
+    models = [settings.OSU_ROMS_SST,
+              settings.OSU_ROMS_SUR_CUR,
+              settings.NCEP_WW3_HI,
+              settings.NCEP_WW3_DIR,
+              settings.NAMS_WIND,
+              settings.OSU_ROMS_BOT_TEMP,
+              settings.OSU_ROMS_SUR_SAL,
+              settings.OSU_ROMS_BOT_SAL,
+              settings.OSU_ROMS_SSH,
+              settings.OSU_ROMS_TCLINE,
+              ]
+
+    extended_models = [settings.OSU_ROMS_SST,
+                       settings.OSU_ROMS_SUR_CUR]
+
+    fields = get_list_of_overlay_definitions(models)
+
+    base_overlays = OverlayManager.get_next_few_days_of_tiled_overlays(models)
+
+    if settings.EXTEND:
+        extended_overlays = OverlayManager.get_next_few_days_of_tiled_overlays_for_extended_forecasts('NCDF')
+        overlays = base_overlays | extended_overlays # Union of all three querysets - '|' represents the union
+    else:
+        overlays = base_overlays
+
+    datetimes = overlays.values_list('applies_at_datetime', flat=True).distinct().order_by('applies_at_datetime')
+    context = {'overlays': overlays, 'defs': fields, 'times':datetimes }
+
+    return render(request, 'index.html', context)
+
+def get_list_of_overlay_definitions(models):
+    """
+    :param models: List of models definition ids ie: model = [seetings.OSU_ROMS_SST, settings.OSU_ROMS_SUR_SAL ...]
+    :return: Obejct of fields
+    """
     fields = []
     for value in models:
         fields.append(OverlayDefinition.objects.get(pk=value))
-    overlays_view_data = OverlayManager.get_next_few_days_of_tiled_overlays(models)
-    datetimes = overlays_view_data.values_list('applies_at_datetime', flat=True).distinct().order_by('applies_at_datetime')
-    context = {'overlays': overlays_view_data, 'defs': fields, 'times':datetimes }
-    return render(request, 'index.html', context)
+    return fields
 
 def oops(request):
     return render(request, 'oops.html')
@@ -541,6 +587,7 @@ def save_survey(request):
         print e.message
 
     return render(request, 'survey.html')
+
 @csrf_exempt
 def save_feedback(request):
     #Access feedback data to be saved into the database
@@ -562,3 +609,7 @@ def save_feedback(request):
         print "Error Message: "
         print e.message
     return render(request, 'index.html')
+
+
+def news(request):
+    return render(request, 'news.html')
