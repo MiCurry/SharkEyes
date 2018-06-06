@@ -214,10 +214,10 @@ MIN_TCLINE_DEPTH = -450 # Meters
 MAX_TCLINE_DEPTH = 0 # Meters
 
 # True for extend, false for not!
-EXTEND = False
+EXTEND = True
 
 # True for WW3 NCEP OpenDap version, false for UCAR NCEP WW3 dl
-WW3_OPENDAP = False
+WW3_OPENDAP = True
 
 # import local settings. PyCharm thinks it's unused, but PyCharm is silly.
 # noinspection PyUnresolvedReferences
